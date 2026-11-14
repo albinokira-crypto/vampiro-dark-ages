@@ -58,12 +58,12 @@ export const FotoPersonagem: React.FC<FotoPersonagemProps> = ({
 
   const dimensoes = {
     sm: 'w-14 h-14 sm:w-16 sm:h-16',
-    md: 'w-20 h-20 sm:w-28 sm:h-28',
+    md: 'w-[96px] h-[116px] sm:w-[110px] sm:h-[130px]',
     lg: 'w-32 h-32 sm:w-36 sm:h-36',
   }[tamanho];
 
   return (
-    <div className={`relative inline-block select-none ${className}`}>
+    <div className={`relative flex flex-col items-center select-none w-[96px] sm:w-[110px] ${className}`}>
       <input
         ref={fileInputRef}
         type="file"
@@ -113,14 +113,14 @@ export const FotoPersonagem: React.FC<FotoPersonagemProps> = ({
         )}
       </div>
 
-      {/* Botões rápidos abaixo ou ao lado se puder editar */}
+      {/* Botões rápidos abaixo com largura exata da parte inferior da foto */}
       {podeEditar && (
-        <div className="flex items-center justify-center gap-1.5 mt-1.5">
+        <div className="flex items-center gap-1 mt-1 w-full">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={comprimindo}
-            className="px-2 py-1 bg-[#1e1317] hover:bg-[#2b1016] border border-[#522228] text-[10px] font-gothic font-bold uppercase text-[#d4af37] rounded-xs flex items-center gap-1 cursor-pointer transition-colors touch-manipulation"
+            className="flex-1 py-1 px-1 bg-[#1e1317] hover:bg-[#2b1016] border border-[#522228] text-[9.5px] font-gothic font-bold uppercase text-[#d4af37] rounded-xs flex items-center justify-center gap-1 cursor-pointer transition-colors touch-manipulation"
           >
             <Camera className="w-3 h-3" />
             <span>Foto</span>
@@ -131,7 +131,7 @@ export const FotoPersonagem: React.FC<FotoPersonagemProps> = ({
               type="button"
               onClick={onFotoRemover}
               title="Remover foto"
-              className="p-1 bg-[#1e1317] hover:bg-red-950 border border-[#522228] text-[#a89f91] hover:text-[#ef4444] rounded-xs cursor-pointer transition-colors"
+              className="shrink-0 p-1 bg-[#1e1317] hover:bg-red-950 border border-[#522228] text-[#a89f91] hover:text-[#ef4444] rounded-xs cursor-pointer transition-colors"
             >
               <Trash2 className="w-3 h-3" />
             </button>
