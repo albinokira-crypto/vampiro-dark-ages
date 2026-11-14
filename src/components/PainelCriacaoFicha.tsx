@@ -181,8 +181,16 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   // Alternar entre Iniciais e Bônus
   const alternarEtapaBonus = () => {
     const novaEtapa = etapa === 'iniciais' ? 'bonus' : 'iniciais';
+    const c = ficha.virtudes?.consciencia || 1;
+    const a = ficha.virtudes?.autocontrole || 1;
+    const cor = ficha.virtudes?.coragem || 1;
+    const trilhaCalc = Math.min(10, Math.max(1, c + a));
+    const vontadeCalc = Math.min(10, Math.max(1, cor));
+
     onAtualizarFicha({
       ...ficha,
+      caminhoNivel: Math.max(ficha.caminhoNivel || 0, trilhaCalc),
+      forcaDeVontade: Math.max(ficha.forcaDeVontade || 0, vontadeCalc),
       criacao: {
         ...criacao,
         etapa: novaEtapa,
@@ -272,8 +280,16 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
 
   const salvarPrioridades = () => {
     const primeiras3 = ficha.disciplinas.slice(0, 3).map((d) => d.id);
+    const c = ficha.virtudes?.consciencia || 1;
+    const a = ficha.virtudes?.autocontrole || 1;
+    const cor = ficha.virtudes?.coragem || 1;
+    const trilhaCalc = Math.min(10, Math.max(1, c + a));
+    const vontadeCalc = Math.min(10, Math.max(1, cor));
+
     onAtualizarFicha({
       ...ficha,
+      caminhoNivel: Math.max(ficha.caminhoNivel || 0, trilhaCalc),
+      forcaDeVontade: Math.max(ficha.forcaDeVontade || 0, vontadeCalc),
       criacao: {
         ...criacao,
         status: 'em_criacao',

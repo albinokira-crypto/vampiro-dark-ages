@@ -18,7 +18,7 @@ import { InlineField } from './InlineField';
 import { SelectDarkAgesField } from './SelectDarkAgesField';
 import { PainelCriacaoFicha } from './PainelCriacaoFicha';
 import { FotoPersonagem } from './FotoPersonagem';
-import { storageService } from '../services/storage';
+import { storageService, normalizarPersonagem } from '../services/storage';
 import {
   CLAS_DARK_AGES_1E,
   ARQUETIPOS_PERSONALIDADE_1E,
@@ -59,10 +59,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   onSalvar,
   onVoltar,
 }) => {
-  const [ficha, setFicha] = useState<Personagem>(personagem);
+  const [ficha, setFicha] = useState<Personagem>(() => normalizarPersonagem(personagem));
   const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [abaAtiva, setAbaAtiva] = useState<'secao1' | 'secao2' | 'secao3'>('secao1');
   const [mensagemSalvo, setMensagemSalvo] = useState<boolean>(false);
+  const [feedbackSincronizacao, setFeedbackSincronizacao] = useState<string | null>(null);
 
   // Sistema de Transações de XP e Desfazer
   interface TransacaoXP {
@@ -232,10 +233,21 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const podeEditar =
     usuarioAtual.role === 'mestre' || ficha.usuarioId === usuarioAtual.id;
 
-  // Atualizar quando mudar o personagem passado por prop
+  // Atualizar quando mudar o personagem passado por prop e normalizar automaticamente
   useEffect(() => {
-    setFicha(personagem);
+    const norm = normalizarPersonagem(personagem);
+    setFicha(norm);
     setHasChanges(false);
+
+    // Se a ficha existente no banco/storage tinha valores antigos (ex: 2 de caminho ou 1 de força de vontade),
+    // salvar imediatamente a correção no Cloudflare D1 e cache local!
+    if (
+      norm.caminhoNivel !== personagem.caminhoNivel ||
+      norm.forcaDeVontade !== personagem.forcaDeVontade ||
+      norm.pontosDeSangueMax !== personagem.pontosDeSangueMax
+    ) {
+      storageService.salvarPersonagem(norm);
+    }
   }, [personagem.id]);
 
   // Listener para atalho de teclado Ctrl+S
@@ -1041,18 +1053,28 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         [tipo]: novoValor,
       };
 
+      const c = tipo === 'consciencia' ? novoValor : (novasVirtudes.consciencia || 1);
+      const a = tipo === 'autocontrole' ? novoValor : (novasVirtudes.autocontrole || 1);
+      const cor = tipo === 'coragem' ? novoValor : (novasVirtudes.coragem || 1);
+
+      const trilhaBase = Math.min(10, Math.max(1, c + a));
+      const vontadeBase = Math.min(10, Math.max(1, cor));
+
       let novoCaminhoNivel = prev.caminhoNivel;
       let novaForcaVontade = prev.forcaDeVontade;
 
-      // Em modo de criação, sincroniza automaticamente Trilha (Consciência + Autocontrole) e Vontade (Coragem)
       if (prev.criacao?.status === 'em_criacao') {
-        if (tipo === 'consciencia') {
-          novoCaminhoNivel = Math.min(10, Math.max(1, novoValor + prev.virtudes.autocontrole));
-        } else if (tipo === 'autocontrole') {
-          novoCaminhoNivel = Math.min(10, Math.max(1, prev.virtudes.consciencia + novoValor));
-        } else if (tipo === 'coragem') {
-          novaForcaVontade = Math.min(10, Math.max(1, novoValor));
+        if (prev.criacao.etapa === 'iniciais' || prev.criacao.etapa === 'prioridades') {
+          novoCaminhoNivel = trilhaBase;
+          novaForcaVontade = vontadeBase;
+        } else {
+          // Na etapa bônus, não pode ser menor que a base das virtudes
+          novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
+          novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
         }
+      } else {
+        novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
+        novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
       }
 
       return {
@@ -1062,6 +1084,40 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         forcaDeVontade: novaForcaVontade,
       };
     });
+  };
+
+  const handleSincronizarTrilhaEVontade = () => {
+    const c = ficha.virtudes?.consciencia || 1;
+    const a = ficha.virtudes?.autocontrole || 1;
+    const cor = ficha.virtudes?.coragem || 1;
+    const trilhaCalc = Math.min(10, Math.max(1, c + a));
+    const vontadeCalc = Math.min(10, Math.max(1, cor));
+
+    const isEtapaIniciais =
+      ficha.criacao?.status === 'em_criacao' &&
+      (ficha.criacao?.etapa === 'iniciais' || ficha.criacao?.etapa === 'prioridades');
+
+    const novoCaminho = isEtapaIniciais
+      ? trilhaCalc
+      : Math.max(ficha.caminhoNivel || 0, trilhaCalc);
+    const novaVontade = isEtapaIniciais
+      ? vontadeCalc
+      : Math.max(ficha.forcaDeVontade || 0, vontadeCalc);
+
+    const fichaAtualizada: Personagem = {
+      ...ficha,
+      caminhoNivel: novoCaminho,
+      forcaDeVontade: novaVontade,
+    };
+
+    setFicha(fichaAtualizada);
+    setHasChanges(true);
+    storageService.salvarPersonagem(fichaAtualizada);
+
+    setFeedbackSincronizacao(
+      `✓ Sincronizado com sucesso! Trilha: ${novoCaminho} (Consciência ${c} + Autocontrole ${a}) • Força de Vontade: ${novaVontade} (Coragem ${cor})`
+    );
+    setTimeout(() => setFeedbackSincronizacao(null), 5000);
   };
 
   // Rituais
@@ -1226,8 +1282,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 'Deseja concluir e finalizar a criação do personagem? A pontuação inicial e os pontos bônus serão consolidados e a ficha passará para o modo de jogo normal.'
               )
             ) {
+              const c = ficha.virtudes?.consciencia || 1;
+              const a = ficha.virtudes?.autocontrole || 1;
+              const cor = ficha.virtudes?.coragem || 1;
+              const trilhaMin = Math.min(10, Math.max(1, c + a));
+              const vontadeMin = Math.min(10, Math.max(1, cor));
+
               const finalizada: Personagem = {
                 ...ficha,
+                caminhoNivel: Math.max(ficha.caminhoNivel || 0, trilhaMin),
+                forcaDeVontade: Math.max(ficha.forcaDeVontade || 0, vontadeMin),
                 criacao: {
                   ...ficha.criacao!,
                   status: 'finalizada',
@@ -2018,9 +2082,29 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* STATUS ATUAIS (Caminho, Força de Vontade, Sangue, Fraqueza) */}
                 <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-5">
-                  <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase border-b border-[#3b181b] pb-2">
-                    Status Atuais & Pontos
-                  </h3>
+                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 flex-wrap gap-2">
+                    <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
+                      Status Atuais & Pontos
+                    </h3>
+                    {podeEditar && (
+                      <button
+                        type="button"
+                        onClick={handleSincronizarTrilhaEVontade}
+                        className="px-2.5 py-1 text-[11px] font-sans font-bold bg-[#251016] hover:bg-[#3d1822] text-[#d4af37] border border-[#ef4444]/60 hover:border-[#ef4444] rounded-xs cursor-pointer flex items-center gap-1.5 transition-all shadow-[0_0_8px_rgba(239,68,68,0.2)]"
+                        title="Recalcular Trilha (Consciência + Autocontrole) e Força de Vontade (Coragem)"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-[#ef4444]" />
+                        <span>Sincronizar das Virtudes</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {feedbackSincronizacao && (
+                    <div className="p-2 bg-green-950/80 border border-green-700/80 text-green-300 text-xs rounded-xs flex items-center gap-2 animate-fadeIn">
+                      <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                      <span>{feedbackSincronizacao}</span>
+                    </div>
+                  )}
 
                   {/* Trilha de Iluminação (Livro Devir 1998) */}
                   <div className="space-y-1.5">
@@ -2038,6 +2122,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           placeholder="Selecione a Trilha do livro..."
                           readonly={!podeEditar}
                         />
+                        <div className="text-[10px] text-[#a89f91] mt-0.5">
+                          Base 1ª Edição: Consciência ({ficha.virtudes?.consciencia || 1}) + Autocontrole ({ficha.virtudes?.autocontrole || 1}) = {(ficha.virtudes?.consciencia || 1) + (ficha.virtudes?.autocontrole || 1)}
+                        </div>
                       </div>
                       <div className="pt-2 sm:pt-4">
                         <Bolinhas
@@ -2055,9 +2142,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   {/* Força de Vontade */}
                   <div className="space-y-2 border-t border-[#251419] pt-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-gothic font-bold uppercase tracking-wider text-[#a89f91]">
-                        Força de Vontade (Permanente)
-                      </span>
+                      <div>
+                        <span className="text-xs font-gothic font-bold uppercase tracking-wider text-[#a89f91] block">
+                          Força de Vontade (Permanente)
+                        </span>
+                        <span className="text-[10px] text-[#a89f91]">
+                          Base 1ª Edição: Igual à Coragem ({ficha.virtudes?.coragem || 1})
+                        </span>
+                      </div>
                       <Bolinhas
                         valor={ficha.forcaDeVontade}
                         max={10}

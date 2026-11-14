@@ -7,6 +7,7 @@ import type {
   LogAlteracao,
 } from '../types';
 import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
+import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
 
 const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
 const STORAGE_KEY_USERS = 'vampiro_dark_ages_users_v1';
@@ -137,8 +138,8 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
   caminhoNivel: 2,
   forcaDeVontade: 1,
   forcaDeVontadeGasta: 0,
-  pontosDeSangueMax: 10,
-  pontosDeSangueAtual: 10,
+  pontosDeSangueMax: 11,
+  pontosDeSangueAtual: 11,
   fraqueza: '',
   vitalidade: NIVEIS_VITALIDADE_PADRAO.map((n) => ({ ...n })),
   xp: {
@@ -195,6 +196,70 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
     notas: 'Porta um anel com o brasão de sua antiga linhagem mortal.',
   },
 };
+
+/**
+ * Normaliza e sincroniza retroativamente regras canônicas da 1ª Edição (1996/Devir 1998):
+ * 1. Trilha = Consciência + Autocontrole (Mínimo igual à soma, máx 10).
+ * 2. Força de Vontade = Coragem (Mínimo igual à Coragem, máx 10).
+ * 3. Geração e Reserva de Sangue sincronizadas com o Antecedente Geração.
+ */
+export function normalizarPersonagem(p: Personagem): Personagem {
+  if (!p) return p;
+  const copia = { ...p };
+
+  const c = copia.virtudes?.consciencia ?? 1;
+  const a = copia.virtudes?.autocontrole ?? 1;
+  const cor = copia.virtudes?.coragem ?? 1;
+
+  const trilhaEsperada = Math.min(10, Math.max(1, c + a));
+  const vontadeEsperada = Math.min(10, Math.max(1, cor));
+
+  const isEmCriacao = copia.criacao?.status === 'em_criacao';
+  const isEtapaIniciais =
+    copia.criacao?.etapa === 'iniciais' || copia.criacao?.etapa === 'prioridades';
+
+  if (isEmCriacao && isEtapaIniciais) {
+    if (copia.caminhoNivel !== trilhaEsperada) {
+      copia.caminhoNivel = trilhaEsperada;
+    }
+    if (copia.forcaDeVontade !== vontadeEsperada) {
+      copia.forcaDeVontade = vontadeEsperada;
+    }
+  } else {
+    // Para fichas na etapa de bônus ou criadas anteriormente,
+    // Trilha e Força de Vontade nunca podem ser menores que os valores base das virtudes
+    if (!copia.caminhoNivel || copia.caminhoNivel < trilhaEsperada) {
+      copia.caminhoNivel = trilhaEsperada;
+    }
+    if (!copia.forcaDeVontade || copia.forcaDeVontade < vontadeEsperada) {
+      copia.forcaDeVontade = vontadeEsperada;
+    }
+  }
+
+  // Sincronizar Antecedente Geração se presente
+  if (copia.antecedentes && Array.isArray(copia.antecedentes)) {
+    const antGeracao = copia.antecedentes.find(
+      (ant) =>
+        ant.nome.toLowerCase().trim() === 'geração' ||
+        ant.nome.toLowerCase().trim() === 'geracao'
+    );
+    const pontos = antGeracao ? antGeracao.nivel : 0;
+    const info = calcularGeracaoEpoolSangue(pontos);
+    if (!copia.geracao || copia.geracao !== info.geracaoNome) {
+      copia.geracao = info.geracaoNome;
+    }
+    if (!copia.pontosDeSangueMax || copia.pontosDeSangueMax !== info.reservaSangueMax) {
+      copia.pontosDeSangueMax = info.reservaSangueMax;
+    }
+  } else {
+    if (!copia.geracao) copia.geracao = '12ª Geração';
+    if (!copia.pontosDeSangueMax || copia.pontosDeSangueMax === 10) {
+      copia.pontosDeSangueMax = 11;
+    }
+  }
+
+  return copia;
+}
 
 export const storageService = {
   // Configurações da Mesa
@@ -488,7 +553,23 @@ export const storageService = {
     }
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      let precisouSalvar = false;
+      const normalizados = parsed.map((p: Personagem) => {
+        const norm = normalizarPersonagem(p);
+        if (
+          norm.caminhoNivel !== p.caminhoNivel ||
+          norm.forcaDeVontade !== p.forcaDeVontade ||
+          norm.pontosDeSangueMax !== p.pontosDeSangueMax
+        ) {
+          precisouSalvar = true;
+        }
+        return norm;
+      });
+      if (precisouSalvar) {
+        localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(normalizados));
+      }
+      return normalizados;
     } catch {
       return [];
     }
@@ -500,8 +581,28 @@ export const storageService = {
       if (res.ok) {
         const remotos: Personagem[] = await res.json();
         if (Array.isArray(remotos)) {
-          localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(remotos));
-          return remotos;
+          const normalizados = remotos.map(normalizarPersonagem);
+          localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(normalizados));
+
+          // Se algum personagem remoto estava desatualizado no Cloudflare D1, atualiza no D1
+          normalizados.forEach(async (p, idx) => {
+            const original = remotos[idx];
+            if (
+              p.caminhoNivel !== original.caminhoNivel ||
+              p.forcaDeVontade !== original.forcaDeVontade ||
+              p.pontosDeSangueMax !== original.pontosDeSangueMax
+            ) {
+              try {
+                await fetch('/api/personagens', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(p),
+                });
+              } catch {}
+            }
+          });
+
+          return normalizados;
         }
       }
     } catch {
@@ -520,7 +621,8 @@ export const storageService = {
 
   getPersonagem(id: string): Personagem | null {
     const todos = this.getPersonagens();
-    return todos.find((p) => p.id === id) ?? null;
+    const p = todos.find((item) => item.id === id) ?? null;
+    return p ? normalizarPersonagem(p) : null;
   },
 
   async salvarPersonagem(personagem: Personagem): Promise<void> {
