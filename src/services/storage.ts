@@ -6,6 +6,7 @@ import type {
   ConfiguracaoMesa,
   LogAlteracao,
 } from '../types';
+import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
 
 const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
 const STORAGE_KEY_USERS = 'vampiro_dark_ages_users_v1';
@@ -20,13 +21,14 @@ export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   },
   pontosHabilidades: {
     primario: 13,
-    secundario: 7,
+    secundario: 9,
     terciario: 5,
   },
-  pontosDisciplinas: 4,
+  pontosDisciplinas: 3,
   pontosAntecedentes: 5,
   pontosVirtudes: 7,
   pontosBonus: 15,
+  atalhosCard: ATALHOS_CARD_PADRAO,
 };
 
 export const NIVEIS_VITALIDADE_PADRAO: NivelVitalidade[] = [
@@ -201,7 +203,11 @@ export const storageService = {
       return CONFIGURACAO_MESA_PADRAO;
     }
     try {
-      return { ...CONFIGURACAO_MESA_PADRAO, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      if (!parsed.atalhosCard || parsed.atalhosCard.length === 0) {
+        parsed.atalhosCard = ATALHOS_CARD_PADRAO;
+      }
+      return { ...CONFIGURACAO_MESA_PADRAO, ...parsed };
     } catch {
       return CONFIGURACAO_MESA_PADRAO;
     }

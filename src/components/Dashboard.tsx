@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import type { Personagem, User } from '../types';
+import type { Personagem, User, ConfiguracaoMesa } from '../types';
 import { storageService } from '../services/storage';
 import {
   Skull,
-  Shield,
   Trash2,
   ExternalLink,
   Settings,
@@ -11,9 +10,7 @@ import {
   Check,
   Sparkles,
   RefreshCw,
-  Swords,
   Flame,
-  Eye,
   Zap,
   Radio,
   Users,
@@ -21,6 +18,12 @@ import {
 import { FotoPersonagem } from './FotoPersonagem';
 import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
 import { PainelJogadoresMestre } from './PainelJogadoresMestre';
+import {
+  calcularValorAtalho,
+  ATALHOS_CARD_PADRAO,
+  MAPA_TRACOS,
+  getIconeAtalho,
+} from '../data/atalhosCard';
 
 interface DashboardProps {
   usuarioAtual: User;
@@ -43,12 +46,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [personagens, setPersonagens] = useState<Personagem[]>(() =>
     storageService.getPersonagensDoUsuario(usuarioAtual)
   );
+  const [config, setConfig] = useState<ConfiguracaoMesa>(() =>
+    storageService.getConfiguracaoMesa()
+  );
 
   const sincronizar = async () => {
     setSincronizando(true);
     try {
       const remotos = await storageService.sincronizarPersonagensRemotos(usuarioAtual);
       setPersonagens(remotos);
+      const confRemota = await storageService.carregarConfiguracaoMesaRemota();
+      setConfig(confRemota);
     } finally {
       setSincronizando(false);
     }
@@ -98,32 +106,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         pior.penalidade === 'Incapaz'
           ? 'text-red-400 bg-red-950/80 border-red-700 animate-pulse'
           : 'text-amber-400 bg-amber-950/40 border-amber-800',
-    };
-  };
-
-  // Cálculos automáticos de paradas de dados mais frequentes
-  const getEstatisticasTeste = (p: Personagem) => {
-    const at = p.atributos;
-    const hab = p.habilidades;
-
-    const discFortitude = p.disciplinas.find((d) =>
-      d.nome.toLowerCase().includes('fortitude')
-    );
-    const nivelFortitude = discFortitude ? discFortitude.nivel : 0;
-
-    const absorcao = (at.vigor || 1) + nivelFortitude;
-    const iniciativa = (at.destreza || 1) + (at.raciocinio || 1);
-    const percepcaoAlerta = (at.percepcao || 1) + (hab.prontidao || 0);
-    const ataqueCorpo =
-      (at.destreza || 1) + Math.max(hab.briga || 0, hab.armasBrancas || 0);
-    const esquiva = (at.destreza || 1) + (hab.esquiva || 0);
-
-    return {
-      absorcao,
-      iniciativa,
-      percepcaoAlerta,
-      ataqueCorpo,
-      esquiva,
     };
   };
 
@@ -342,7 +324,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const sangueDisp = p.pontosDeSangueAtual;
                 const sangueMax = p.pontosDeSangueMax;
                 const isEmCriacao = p.criacao?.status === 'em_criacao';
-                const stats = getEstatisticasTeste(p);
+                const atalhos =
+                  config.atalhosCard && config.atalhosCard.length > 0
+                    ? config.atalhosCard
+                    : ATALHOS_CARD_PADRAO;
                 const forcaVontadeAtual =
                   (p.forcaDeVontade || 1) - (p.forcaDeVontadeGasta || 0);
 
@@ -430,55 +415,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           Paradas de Dados para Testes Frequentes
                         </span>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
-                          {/* Absorção */}
-                          <div className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between">
-                            <span className="text-[10px] text-[#a89f91] flex items-center gap-1">
-                              <Shield className="w-3 h-3 text-amber-500" /> Absorb:
-                            </span>
-                            <span className="font-mono text-xs font-bold text-[#d4af37]">
-                              {stats.absorcao}d10
-                            </span>
-                          </div>
+                          {atalhos.map((atalho) => {
+                            const valor = calcularValorAtalho(p, atalho);
+                            const IconeComp = getIconeAtalho(atalho.icone);
+                            const textoExibicao =
+                              atalho.tipoExibicao === 'total' ? `${valor}` : `${valor}d10`;
+                            const formulaDesc = `${MAPA_TRACOS[atalho.traco1]?.label || atalho.traco1}${
+                              atalho.traco2 && atalho.traco2 !== 'nenhum'
+                                ? ` + ${MAPA_TRACOS[atalho.traco2]?.label || atalho.traco2}`
+                                : ''
+                            }`;
 
-                          {/* Iniciativa */}
-                          <div className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between">
-                            <span className="text-[10px] text-[#a89f91] flex items-center gap-1">
-                              <Zap className="w-3 h-3 text-red-400" /> Inic:
-                            </span>
-                            <span className="font-mono text-xs font-bold text-white">
-                              +{stats.iniciativa}
-                            </span>
-                          </div>
-
-                          {/* Percepção / Alerta */}
-                          <div className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between">
-                            <span className="text-[10px] text-[#a89f91] flex items-center gap-1">
-                              <Eye className="w-3 h-3 text-blue-400" /> Alerta:
-                            </span>
-                            <span className="font-mono text-xs font-bold text-[#93c5fd]">
-                              {stats.percepcaoAlerta}d10
-                            </span>
-                          </div>
-
-                          {/* Ataque */}
-                          <div className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between">
-                            <span className="text-[10px] text-[#a89f91] flex items-center gap-1">
-                              <Swords className="w-3 h-3 text-red-500" /> Ataque:
-                            </span>
-                            <span className="font-mono text-xs font-bold text-[#fca5a5]">
-                              {stats.ataqueCorpo}d10
-                            </span>
-                          </div>
-
-                          {/* Esquiva */}
-                          <div className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between">
-                            <span className="text-[10px] text-[#a89f91] flex items-center gap-1">
-                              🏃 Esquiva:
-                            </span>
-                            <span className="font-mono text-xs font-bold text-[#86efac]">
-                              {stats.esquiva}d10
-                            </span>
-                          </div>
+                            return (
+                              <div
+                                key={atalho.id}
+                                className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between gap-1"
+                                title={`${atalho.nome} (${formulaDesc})`}
+                              >
+                                <span className="text-[10px] text-[#a89f91] flex items-center gap-1 truncate pr-1">
+                                  <IconeComp className="w-3 h-3 text-[#d4af37] shrink-0" />
+                                  <span className="truncate">{atalho.nome}:</span>
+                                </span>
+                                <span
+                                  className={`font-mono text-xs font-bold shrink-0 ${
+                                    atalho.tipoExibicao === 'total' ? 'text-white' : 'text-[#d4af37]'
+                                  }`}
+                                >
+                                  {textoExibicao}
+                                </span>
+                              </div>
+                            );
+                          })}
 
                           {/* Vitalidade */}
                           <div className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between truncate">

@@ -9,6 +9,15 @@ export interface User {
   senha?: string;
 }
 
+export interface AtalhoParadaDado {
+  id: string;
+  nome: string;
+  traco1: string;
+  traco2?: string;
+  tipoExibicao: 'total' | 'dados';
+  icone?: string;
+}
+
 export interface ConfiguracaoMesa {
   pontosAtributos: {
     primario: number; // 7
@@ -20,10 +29,11 @@ export interface ConfiguracaoMesa {
     secundario: number; // 7
     terciario: number; // 5
   };
-  pontosDisciplinas: number; // 4
+  pontosDisciplinas: number; // 3
   pontosAntecedentes: number; // 5
   pontosVirtudes: number; // 7
   pontosBonus: number; // 15
+  atalhosCard?: AtalhoParadaDado[];
 }
 
 export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';
