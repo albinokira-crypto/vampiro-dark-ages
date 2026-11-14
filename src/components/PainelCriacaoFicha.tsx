@@ -211,11 +211,11 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     if (jaExiste) {
       novaLista = listaQD.filter((q) => q.id !== jaExiste.id);
     } else {
-      // Validação estrita da regra da 1ª Edição: no máximo 7 pontos de defeitos
+      // Validação: no máximo 7 pontos de defeitos
       if (itemModelo.tipo === 'defeito') {
         if (pontosDefeitosGanhos + itemModelo.pontos > maxDefeitos) {
           setAvisoDefeitos(
-            `Limite atingido! Pelas regras oficiais da 1ª Edição, um personagem pode ter no máximo ${maxDefeitos} pontos de Defeitos (Você já possui ${pontosDefeitosGanhos} pts e tentou adicionar +${itemModelo.pontos} pts).`
+            `Limite atingido! Um personagem pode ter no máximo ${maxDefeitos} pontos de Defeitos (Você já possui ${pontosDefeitosGanhos} pts e tentou adicionar +${itemModelo.pontos} pts).`
           );
           setTimeout(() => setAvisoDefeitos(null), 5000);
           return;
@@ -254,11 +254,11 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
 
     const custoFinal = Math.max(1, pontosCustomQD);
 
-    // Validação estrita da regra da 1ª Edição: no máximo 7 pontos de defeitos
+    // Validação: no máximo 7 pontos de defeitos
     if (tipoCustomQD === 'defeito') {
       if (pontosDefeitosGanhos + custoFinal > maxDefeitos) {
         setAvisoDefeitos(
-          `Limite atingido! Pelas regras oficiais da 1ª Edição, um personagem pode ter no máximo ${maxDefeitos} pontos de Defeitos (Atual: ${pontosDefeitosGanhos} pts, Tentativa: +${custoFinal} pts).`
+          `Limite atingido! Um personagem pode ter no máximo ${maxDefeitos} pontos de Defeitos (Atual: ${pontosDefeitosGanhos} pts, Tentativa: +${custoFinal} pts).`
         );
         setTimeout(() => setAvisoDefeitos(null), 5000);
         return;
@@ -348,24 +348,24 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   return (
     <>
       {/* BARRA HUD DE CRIAÇÃO (Fixada no topo para acompanhar a rolagem em celular e PC) */}
-      <div className="sticky top-0 z-40 bg-[#120a0e]/95 backdrop-blur-md border-b-2 border-[#8b0000] px-3 sm:px-4 py-2.5 shadow-2xl transition-all">
-        <div className="max-w-7xl mx-auto space-y-2.5">
+      <div className="sticky top-0 z-40 bg-[#120a0e]/95 backdrop-blur-md border-b border-[#8b0000] px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-2xl transition-all">
+        <div className="max-w-7xl mx-auto space-y-1.5 sm:space-y-2">
           {/* Linha Superior: Título, Passo e Ações */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] animate-ping" />
+          <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-ping" />
               <h2 className="text-xs sm:text-sm font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-[#ef4444]" />
-                Modo de Criação (1ª Edição Devir 1998)
+                Modo de Criação
               </h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#2b1016] text-[#ef4444] border border-[#5a1e26]">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-[#2b1016] text-[#ef4444] border border-[#5a1e26]">
                 {etapa === 'iniciais'
-                  ? 'Passo 1: Pontos Iniciais'
-                  : `Passo 2: Pontos Bônus (${saldoBonusRestante} restantes)`}
+                  ? 'Passo 1: Iniciais'
+                  : `Passo 2: Bônus (${saldoBonusRestante} rest.)`}
               </span>
               {etapa === 'iniciais' && pontosIniciaisValidos && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-950/60 text-green-400 border border-green-800">
-                  ✓ Iniciais Completos
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-green-950/60 text-green-400 border border-green-800">
+                  ✓ Iniciais OK
                 </span>
               )}
             </div>
@@ -509,16 +509,17 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
               </div>
             </div>
           ) : (
-            /* HUD DA ETAPA DE PONTOS BÔNUS (Com Qualidades & Defeitos integrados) */
-            <div className="bg-[#181014] p-2.5 rounded-xs border border-[#8b0000] flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3 flex-wrap">
+            /* HUD DA ETAPA DE PONTOS BÔNUS (Estrutura Compacta em 2 Linhas: 3 Colunas Cada) */
+            <div className="bg-[#181014] p-1.5 sm:p-2 rounded-xs border border-[#8b0000] space-y-1 sm:space-y-1.5">
+              {/* Linha 1: Saldo Restante ; Base ; Gastos em Traços */}
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 items-center text-xs">
                 {/* Saldo Restante */}
-                <div className="px-3 py-1 bg-[#251016] border border-[#ef4444] rounded-xs text-center">
-                  <span className="text-[9px] uppercase font-bold text-[#a89f91] block">
-                    Saldo Restante
+                <div className="flex items-center justify-between bg-[#251016] border border-[#ef4444] px-2 py-1 rounded-xs min-w-0">
+                  <span className="text-[9px] sm:text-[11px] uppercase font-bold text-[#a89f91] truncate mr-1">
+                    Saldo:
                   </span>
                   <span
-                    className={`text-lg font-black font-mono ${
+                    className={`font-black font-mono text-xs sm:text-sm shrink-0 ${
                       saldoBonusRestante >= 0 ? 'text-[#d4af37]' : 'text-red-400 animate-pulse'
                     }`}
                   >
@@ -526,48 +527,66 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                   </span>
                 </div>
 
-                {/* Discriminação de Pontos */}
-                <div className="flex items-center gap-2 text-[11px] font-mono flex-wrap">
-                  <span className="px-2 py-0.5 bg-[#140e11] border border-[#3b181b] rounded text-[#ded6cb]">
-                    Base: <strong>{config.pontosBonus}</strong>
+                {/* Base */}
+                <div className="flex items-center justify-between bg-[#140e11] border border-[#3b181b] px-2 py-1 rounded-xs min-w-0">
+                  <span className="text-[9px] sm:text-[11px] text-[#a89f91] font-semibold truncate mr-1">
+                    Base:
                   </span>
-                  <span
-                    className={`px-2 py-0.5 rounded border text-[11px] ${
-                      pontosDefeitosGanhos > maxDefeitos
-                        ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
-                        : 'bg-green-950/40 border-green-800 text-green-300'
-                    }`}
-                  >
-                    Defeitos: <strong>+{pontosDefeitosGanhos}/{maxDefeitos} pts</strong>
+                  <strong className="font-mono text-xs sm:text-sm text-[#ded6cb] shrink-0">
+                    {config.pontosBonus} pts
+                  </strong>
+                </div>
+
+                {/* Gastos em Traços */}
+                <div className="flex items-center justify-between bg-[#140e11] border border-[#522228] px-1.5 py-0.5 rounded-xs min-w-0">
+                  <span className="text-[9px] sm:text-[11px] text-[#a89f91] font-semibold truncate mr-1">
+                    Gastos:
                   </span>
-                  <span className="px-2 py-0.5 bg-amber-950/40 border border-amber-800 rounded text-amber-300">
-                    Qualidades: <strong>-{pontosQualidadesGastos}</strong>
-                  </span>
-                  <span className="px-2 py-0.5 bg-[#251419] border border-[#522228] rounded text-[#fca5a5]">
-                    Características: <strong>-{pontosOutrosGastos}</strong>
-                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={totalBonusDisponivel}
+                    value={criacao.pontosBonusGastos || 0}
+                    onChange={(e) =>
+                      onAtualizarFicha({
+                        ...ficha,
+                        criacao: {
+                          ...criacao,
+                          pontosBonusGastos: Math.max(0, parseInt(e.target.value) || 0),
+                        },
+                      })
+                    }
+                    className="w-10 sm:w-14 bg-[#100b0e] border border-[#3b181b] px-1 py-0.5 text-center font-bold font-mono text-xs text-[#d4af37] rounded-xs focus:outline-none focus:border-[#8b0000]"
+                    title="Gastos em características"
+                  />
                 </div>
               </div>
 
-              {/* Controle de outros gastos */}
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-[#a89f91]">Gastos em Traços:</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={totalBonusDisponivel}
-                  value={criacao.pontosBonusGastos || 0}
-                  onChange={(e) =>
-                    onAtualizarFicha({
-                      ...ficha,
-                      criacao: {
-                        ...criacao,
-                        pontosBonusGastos: Math.max(0, parseInt(e.target.value) || 0),
-                      },
-                    })
-                  }
-                  className="w-16 bg-[#100b0e] border border-[#522228] px-2 py-0.5 text-center font-bold text-xs text-[#d4af37] rounded-xs focus:outline-none focus:border-[#8b0000]"
-                />
+              {/* Linha 2: Defeitos ; Qualidades ; Características */}
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 items-center text-xs">
+                {/* Defeitos */}
+                <div
+                  className={`flex items-center justify-between px-2 py-1 rounded-xs border text-[10px] sm:text-[11px] font-mono min-w-0 ${
+                    pontosDefeitosGanhos > maxDefeitos
+                      ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
+                      : 'bg-green-950/40 border-green-800 text-green-300'
+                  }`}
+                >
+                  <span className="truncate mr-1">Defeitos:</span>
+                  <strong className="shrink-0">+{pontosDefeitosGanhos}/{maxDefeitos}</strong>
+                </div>
+
+                {/* Qualidades */}
+                <div className="flex items-center justify-between px-2 py-1 bg-amber-950/40 border border-amber-800 rounded-xs text-amber-300 text-[10px] sm:text-[11px] font-mono min-w-0">
+                  <span className="truncate mr-1">Qualidades:</span>
+                  <strong className="shrink-0">-{pontosQualidadesGastos}</strong>
+                </div>
+
+                {/* Características */}
+                <div className="flex items-center justify-between px-2 py-1 bg-[#251419] border border-[#522228] rounded-xs text-[#fca5a5] text-[10px] sm:text-[11px] font-mono min-w-0">
+                  <span className="truncate mr-1">Caract.:</span>
+                  <strong className="shrink-0">-{pontosOutrosGastos}</strong>
+                </div>
               </div>
             </div>
           )}
@@ -584,10 +603,10 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                 <BookOpen className="w-5 h-5 text-[#d4af37]" />
                 <div>
                   <h2 className="text-base sm:text-lg font-gothic font-bold text-[#d4af37] uppercase tracking-wider">
-                    Qualidades e Defeitos (1ª Edição Devir 1998)
+                    Qualidades e Defeitos
                   </h2>
                   <p className="text-[11px] text-[#a89f91]">
-                    Qualidades custam Pontos Bônus; Defeitos concedem Pontos Bônus adicionais (máximo {maxDefeitos} pontos pela 1ª Edição).
+                    Qualidades custam Pontos Bônus; Defeitos concedem Pontos Bônus adicionais (máximo {maxDefeitos} pontos).
                   </p>
                 </div>
               </div>
@@ -915,7 +934,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                 Definição de Prioridades
               </h2>
               <p className="text-xs text-[#a89f91]">
-                Antes de iniciar a distribuição de pontos, escolha a importância das características do seu personagem conforme as regras da 1ª Edição.
+                Antes de iniciar a distribuição de pontos, escolha a importância das características do seu personagem.
               </p>
             </div>
 

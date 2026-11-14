@@ -384,7 +384,7 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
               </div>
               <div>
                 <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold">
-                  Máx. Defeitos (1ª Ed.)
+                  Máx. Defeitos
                 </label>
                 <input
                   type="number"

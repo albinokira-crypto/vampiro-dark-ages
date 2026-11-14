@@ -1287,7 +1287,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
             if (totalDef > maxDef) {
               alert(
-                `Não é possível finalizar a criação! O personagem possui ${totalDef} pontos em Defeitos, mas a 1ª Edição de Vampiro: A Idade das Trevas permite no máximo ${maxDef} pontos de Defeitos. Remova defeitos excedentes para prosseguir.`
+                `Não é possível finalizar a criação! O personagem possui ${totalDef} pontos em Defeitos, mas o limite máximo permitido é de ${maxDef} pontos de Defeitos. Remova defeitos excedentes para prosseguir.`
               );
               return;
             }
@@ -1982,7 +1982,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   <div>
                     <h3 className="text-sm sm:text-base font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-[#ef4444]" />
-                      Qualidades & Defeitos (1ª Edição Devir 1998)
+                      Qualidades & Defeitos
                     </h3>
                     <p className="text-[11px] text-[#a89f91]">
                       Traços físicos, mentais, sociais ou sobrenaturais escolhidos na criação do personagem.
@@ -2144,7 +2144,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           readonly={!podeEditar}
                         />
                         <div className="text-[10px] text-[#a89f91] mt-0.5">
-                          Base 1ª Edição: Consciência ({ficha.virtudes?.consciencia || 1}) + Autocontrole ({ficha.virtudes?.autocontrole || 1}) = {(ficha.virtudes?.consciencia || 1) + (ficha.virtudes?.autocontrole || 1)}
+                          Base: Consciência ({ficha.virtudes?.consciencia || 1}) + Autocontrole ({ficha.virtudes?.autocontrole || 1}) = {(ficha.virtudes?.consciencia || 1) + (ficha.virtudes?.autocontrole || 1)}
                         </div>
                       </div>
                       <div className="pt-2 sm:pt-4">
@@ -2168,7 +2168,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           Força de Vontade (Permanente)
                         </span>
                         <span className="text-[10px] text-[#a89f91]">
-                          Base 1ª Edição: Igual à Coragem ({ficha.virtudes?.coragem || 1})
+                          Base: Igual à Coragem ({ficha.virtudes?.coragem || 1})
                         </span>
                       </div>
                       <Bolinhas
