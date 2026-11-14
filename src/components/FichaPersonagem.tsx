@@ -28,6 +28,7 @@ import {
   UserCircle,
   AlertTriangle,
   CheckCircle,
+  RotateCcw,
 } from 'lucide-react';
 
 interface FichaPersonagemProps {
@@ -47,6 +48,140 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [abaAtiva, setAbaAtiva] = useState<'secao1' | 'secao2' | 'secao3'>('secao1');
   const [mensagemSalvo, setMensagemSalvo] = useState<boolean>(false);
+
+  // Sistema de Transações de XP e Desfazer
+  interface TransacaoXP {
+    id: string;
+    descricao: string;
+    custoXP: number;
+    estadoAnterior: Personagem;
+  }
+  const [historicoTransacoesXP, setHistoricoTransacoesXP] = useState<TransacaoXP[]>([]);
+  const [avisoXP, setAvisoXP] = useState<string | null>(null);
+  const [sucessoXP, setSucessoXP] = useState<string | null>(null);
+
+  // Cálculo de Custo Exato em XP
+  const calcularCustoXP = (
+    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
+    atual: number,
+    novo: number,
+    extra?: { isPrimaria?: boolean; isClan?: boolean }
+  ): number => {
+    if (novo <= atual) return 0;
+    let total = 0;
+    for (let n = atual; n < novo; n++) {
+      switch (tipo) {
+        case 'atributo':
+          // Atributo: Nível Atual x 4
+          total += n * 4;
+          break;
+        case 'habilidade':
+          // Habilidade nova 1ª bola = 3 XP; Nível atual x 2
+          total += n === 0 ? 3 : n * 2;
+          break;
+        case 'disciplina':
+          // Nova disciplina 1ª bola = 10 XP; Clan = nivel * 5; Outras = nivel * 7
+          if (n === 0) {
+            total += 10;
+          } else if (extra?.isClan) {
+            total += n * 5;
+          } else {
+            total += n * 7;
+          }
+          break;
+        case 'trilha':
+          // Nova trilha 1ª bola = 7 XP; Primária = nivel * 4; Outras = nivel * 5
+          if (n === 0) {
+            total += 7;
+          } else if (extra?.isPrimaria) {
+            total += n * 4;
+          } else {
+            total += n * 5;
+          }
+          break;
+        case 'vontade':
+          // Próximo nível custa o nível atual
+          total += n;
+          break;
+        case 'caminho':
+          // Nível atual x 2
+          total += n * 2;
+          break;
+      }
+    }
+    return total;
+  };
+
+  const tentarEvoluirComXP = (
+    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
+    nomeItem: string,
+    valorAtual: number,
+    novoValor: number,
+    aplicarMudanca: (prev: Personagem) => Personagem,
+    extra?: { isPrimaria?: boolean; isClan?: boolean }
+  ) => {
+    const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+
+    // Se estiver em modo de criação ou diminuindo o valor diretamente
+    if (isEmCriacao || novoValor < valorAtual) {
+      updateFicha(aplicarMudanca);
+      return;
+    }
+
+    if (novoValor === valorAtual) return;
+
+    const custo = calcularCustoXP(tipo, valorAtual, novoValor, extra);
+    const xpDisponivel = ficha.xp.atual || 0;
+
+    if (xpDisponivel < custo) {
+      setAvisoXP(
+        `XP Insuficiente! Você possui ${xpDisponivel} XP, mas evoluir ${nomeItem} de ${valorAtual} para ${novoValor} custa ${custo} XP.`
+      );
+      setTimeout(() => setAvisoXP(null), 5000);
+      return;
+    }
+
+    const estadoAnterior = JSON.parse(JSON.stringify(ficha));
+    const descricao = `${nomeItem} de ${valorAtual} para ${novoValor}`;
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const novaLinhaHistorico = `- ${custo} XP: ${descricao} às ${hora}`;
+
+    setFicha((prev) => {
+      const mutada = aplicarMudanca(prev);
+      return {
+        ...mutada,
+        xp: {
+          ...mutada.xp,
+          atual: Math.max(0, mutada.xp.atual - custo),
+          totalGasto: mutada.xp.totalGasto + custo,
+          historico: novaLinhaHistorico + (mutada.xp.historico ? '\n' + mutada.xp.historico : ''),
+        },
+      };
+    });
+
+    setHistoricoTransacoesXP((prev) => [
+      {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+        descricao,
+        custoXP: custo,
+        estadoAnterior,
+      },
+      ...prev,
+    ]);
+    setHasChanges(true);
+    setSucessoXP(`✓ ${descricao} (-${custo} XP).`);
+    setTimeout(() => setSucessoXP(null), 4000);
+  };
+
+  const handleDesfazerUltimaCompra = () => {
+    if (historicoTransacoesXP.length === 0) return;
+    const [ultima, ...resto] = historicoTransacoesXP;
+    setFicha(ultima.estadoAnterior);
+    setHistoricoTransacoesXP(resto);
+    setHasChanges(true);
+    setSucessoXP(`↩ Revertido: ${ultima.descricao} (+${ultima.custoXP} XP devolvido).`);
+    setTimeout(() => setSucessoXP(null), 4000);
+  };
 
   // Permissão de edição: Mestre pode editar tudo; Jogador só pode editar a sua própria ficha
   const podeEditar =
@@ -112,32 +247,46 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }));
   };
 
-  // Atualização de atributos
+  // Atualização de atributos com cálculo automático de XP
   const handleAtributoChange = (
     nome: keyof Personagem['atributos'],
     valor: number
   ) => {
-    updateFicha((prev) => ({
-      ...prev,
-      atributos: {
-        ...prev.atributos,
-        [nome]: valor,
-      },
-    }));
+    const atual = ficha.atributos[nome];
+    tentarEvoluirComXP(
+      'atributo',
+      `Atributo ${nome.toUpperCase()}`,
+      atual,
+      valor,
+      (prev) => ({
+        ...prev,
+        atributos: {
+          ...prev.atributos,
+          [nome]: valor,
+        },
+      })
+    );
   };
 
-  // Atualização de habilidades
+  // Atualização de habilidades com cálculo automático de XP
   const handleHabilidadeChange = (
     nome: keyof Personagem['habilidades'],
     valor: number
   ) => {
-    updateFicha((prev) => ({
-      ...prev,
-      habilidades: {
-        ...prev.habilidades,
-        [nome]: valor,
-      },
-    }));
+    const atual = ficha.habilidades[nome];
+    tentarEvoluirComXP(
+      'habilidade',
+      `Habilidade ${nome.toUpperCase()}`,
+      atual,
+      valor,
+      (prev) => ({
+        ...prev,
+        habilidades: {
+          ...prev.habilidades,
+          [nome]: valor,
+        },
+      })
+    );
   };
 
   // Disciplinas
@@ -165,12 +314,33 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     campo: 'nome' | 'nivel',
     valor: string | number
   ) => {
-    updateFicha((prev) => ({
-      ...prev,
-      disciplinas: prev.disciplinas.map((d) =>
-        d.id === id ? { ...d, [campo]: valor } : d
-      ),
-    }));
+    if (campo === 'nivel') {
+      const disc = ficha.disciplinas.find((d) => d.id === id);
+      if (!disc) return;
+      const isClan =
+        ficha.criacao?.disciplinasPrimariasIds?.includes(id) ||
+        ficha.disciplinas.findIndex((d) => d.id === id) < 3;
+      tentarEvoluirComXP(
+        'disciplina',
+        `Disciplina ${disc.nome || 'Sem Nome'}`,
+        disc.nivel,
+        Number(valor),
+        (prev) => ({
+          ...prev,
+          disciplinas: prev.disciplinas.map((d) =>
+            d.id === id ? { ...d, nivel: Number(valor) } : d
+          ),
+        }),
+        { isClan }
+      );
+    } else {
+      updateFicha((prev) => ({
+        ...prev,
+        disciplinas: prev.disciplinas.map((d) =>
+          d.id === id ? { ...d, nome: String(valor) } : d
+        ),
+      }));
+    }
   };
 
   // Antecedentes
@@ -361,12 +531,59 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     campo: 'nome' | 'nivel',
     valor: string | number
   ) => {
-    updateFicha((prev) => ({
-      ...prev,
-      linhasTaumaturgia: prev.linhasTaumaturgia.map((l) =>
-        l.id === id ? { ...l, [campo]: valor } : l
-      ),
-    }));
+    if (campo === 'nivel') {
+      const linha = ficha.linhasTaumaturgia.find((l) => l.id === id);
+      if (!linha) return;
+      const isPrimaria = ficha.linhasTaumaturgia.findIndex((l) => l.id === id) === 0;
+      tentarEvoluirComXP(
+        'trilha',
+        `Trilha Taumatúrgica ${linha.nome || 'Sem Nome'}`,
+        linha.nivel,
+        Number(valor),
+        (prev) => ({
+          ...prev,
+          linhasTaumaturgia: prev.linhasTaumaturgia.map((l) =>
+            l.id === id ? { ...l, nivel: Number(valor) } : l
+          ),
+        }),
+        { isPrimaria }
+      );
+    } else {
+      updateFicha((prev) => ({
+        ...prev,
+        linhasTaumaturgia: prev.linhasTaumaturgia.map((l) =>
+          l.id === id ? { ...l, nome: String(valor) } : l
+        ),
+      }));
+    }
+  };
+
+  const handleForcaDeVontadeChange = (novoValor: number) => {
+    const atual = ficha.forcaDeVontade;
+    tentarEvoluirComXP(
+      'vontade',
+      'Força de Vontade',
+      atual,
+      novoValor,
+      (prev) => ({
+        ...prev,
+        forcaDeVontade: novoValor,
+      })
+    );
+  };
+
+  const handleCaminhoChange = (novoValor: number) => {
+    const atual = ficha.caminhoNivel;
+    tentarEvoluirComXP(
+      'caminho',
+      `Caminho (${ficha.caminho || 'Humanidade'})`,
+      atual,
+      novoValor,
+      (prev) => ({
+        ...prev,
+        caminhoNivel: novoValor,
+      })
+    );
   };
 
   // Rituais
@@ -475,6 +692,46 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Alertas Flutuantes de Compra e Erro de XP */}
+      {avisoXP && (
+        <div className="max-w-4xl mx-auto px-4 mt-3 animate-fadeIn">
+          <div className="bg-red-950/90 border border-red-700 text-red-200 px-4 py-2.5 rounded-xs text-xs flex items-center justify-between gap-3 shadow-xl">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+              <span>{avisoXP}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAvisoXP(null)}
+              className="text-red-400 hover:text-white text-xs cursor-pointer px-1"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {sucessoXP && (
+        <div className="max-w-4xl mx-auto px-4 mt-3 animate-fadeIn">
+          <div className="bg-[#1f1016]/95 border border-[#8b0000] text-[#fca5a5] px-4 py-2.5 rounded-xs text-xs flex items-center justify-between gap-3 shadow-xl">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#ef4444] shrink-0" />
+              <span>{sucessoXP}</span>
+            </div>
+            {historicoTransacoesXP.length > 0 && (
+              <button
+                type="button"
+                onClick={handleDesfazerUltimaCompra}
+                className="inline-flex items-center gap-1 font-bold text-amber-300 hover:text-white underline cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Desfazer Ponto</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* PAINEL DE CRIAÇÃO (Se a ficha estiver em modo de criação) */}
       {ficha.criacao?.status === 'em_criacao' && podeEditar && (
@@ -1101,9 +1358,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           max={10}
                           min={1}
                           cor="ouro"
-                          onChange={(v) =>
-                            updateFicha((prev) => ({ ...prev, caminhoNivel: v }))
-                          }
+                          onChange={(v) => handleCaminhoChange(v)}
                           readonly={!podeEditar}
                         />
                       </div>
@@ -1121,9 +1376,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         max={10}
                         min={1}
                         cor="ouro"
-                        onChange={(v) =>
-                          updateFicha((prev) => ({ ...prev, forcaDeVontade: v }))
-                        }
+                        onChange={(v) => handleForcaDeVontadeChange(v)}
                         readonly={!podeEditar}
                       />
                     </div>
@@ -1282,6 +1535,56 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     placeholder="Ex: +3 XP pela sessão 1; -7 XP para aumentar Potência 2 para 3..."
                     readonly={!podeEditar}
                   />
+                </div>
+
+                {/* Desfazer Compras de XP Pendentes */}
+                {historicoTransacoesXP.length > 0 && (
+                  <div className="bg-[#1b1014] border border-amber-800/60 p-3 rounded-xs flex items-center justify-between">
+                    <span className="text-xs text-amber-300 font-semibold flex items-center gap-1.5">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      {historicoTransacoesXP.length} evolução(ões) recente(s) aguardando confirmação ao salvar.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleDesfazerUltimaCompra}
+                      className="px-3 py-1 bg-amber-950/60 hover:bg-amber-900/60 text-amber-200 border border-amber-700 rounded-xs text-xs font-bold cursor-pointer"
+                    >
+                      ↩ Desfazer Última Compra
+                    </button>
+                  </div>
+                )}
+
+                {/* Tabela de Referência de Custos em XP */}
+                <div className="bg-[#0f0a0d] p-3 rounded-xs border border-[#2d1217] space-y-2 text-[11px] text-[#a89f91]">
+                  <span className="font-gothic font-bold uppercase tracking-wider text-[#d4af37] block">
+                    📜 Regras Oficiais de Custo de XP
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
+                      <strong className="text-white block">Atributos</strong>
+                      <span>Nível Atual × 4</span>
+                    </div>
+                    <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
+                      <strong className="text-white block">Habilidades</strong>
+                      <span>Nova: 3 XP • Evolução: Nível Atual × 2</span>
+                    </div>
+                    <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
+                      <strong className="text-white block">Disciplinas</strong>
+                      <span>Nova: 10 XP • Clã: Nível × 5 • Outras: Nível × 7</span>
+                    </div>
+                    <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
+                      <strong className="text-white block">Trilhas Taumatúrgicas</strong>
+                      <span>Nova: 7 XP • Primária: Nível × 4 • Outras: Nível × 5</span>
+                    </div>
+                    <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
+                      <strong className="text-white block">Força de Vontade</strong>
+                      <span>Custo igual ao Nível Atual</span>
+                    </div>
+                    <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
+                      <strong className="text-white block">Caminho / Humanidade</strong>
+                      <span>Nível Atual × 2</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1958,7 +2261,19 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {historicoTransacoesXP.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleDesfazerUltimaCompra}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xs font-gothic text-xs font-bold uppercase tracking-wider bg-[#251419] hover:bg-[#3d1820] text-amber-300 border border-amber-800/80 cursor-pointer shadow-md transition-all active:scale-95"
+                  title="Desfazer a última evolução comprada com XP nesta sessão"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Desfazer Ponto ({historicoTransacoesXP.length})</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleSalvar}

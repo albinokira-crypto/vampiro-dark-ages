@@ -1,6 +1,7 @@
 import type {
   Personagem,
   User,
+  UserRole,
   NivelVitalidade,
   ConfiguracaoMesa,
 } from '../types';
@@ -231,19 +232,19 @@ export const storageService = {
     return encontrado;
   },
 
-  cadastrar(nome: string, email: string, senha?: string): User {
+  cadastrar(nome: string, email: string, senha?: string, role: UserRole = 'jogador'): User {
     const usuarios = this.getUsuarios();
     const jaExiste = usuarios.find(
       (u) => u.email.toLowerCase().trim() === email.toLowerCase().trim()
     );
     if (jaExiste) {
-      throw new Error('Já existe um jogador registrado com este e-mail.');
+      throw new Error('Já existe um usuário registrado com este e-mail.');
     }
     const novo: User = {
       id: 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
       nome,
       email,
-      role: 'jogador',
+      role,
       senha: senha || '123',
     };
     this.salvarUsuario(novo);

@@ -12,6 +12,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [role, setRole] = useState<'jogador' | 'mestre'>('jogador');
   const [erro, setErro] = useState<string | null>(null);
   const [temConvite, setTemConvite] = useState<boolean>(false);
 
@@ -41,7 +42,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
         return;
       }
       try {
-        const novo = storageService.cadastrar(nome, email, senha);
+        const novo = storageService.cadastrar(nome, email, senha, role);
         onLoginSucesso(novo);
       } catch (err: unknown) {
         if (err instanceof Error) {
@@ -133,21 +134,53 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {modo === 'cadastro' && (
-            <div>
-              <label className="block text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-1">
-                Nome do Jogador
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  placeholder="Seu nome real ou alcunha"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="w-full bg-[#181115] border border-[#3b181b] rounded-xs px-3 py-2 text-xs text-white placeholder-[#706456] focus:outline-none focus:border-[#8b0000]"
-                />
+            <>
+              <div>
+                <label className="block text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-1">
+                  Tipo de Conta na Mesa
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole('mestre')}
+                    className={`py-2 px-3 rounded-xs text-xs border flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      role === 'mestre'
+                        ? 'bg-[#2b1f0c] border-[#d4af37] text-[#d4af37] font-bold shadow-[0_0_10px_rgba(212,175,55,0.3)]'
+                        : 'bg-[#181115] border-[#3b181b] text-[#a89f91] hover:text-white'
+                    }`}
+                  >
+                    <span>👑 Mestre da Mesa</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('jogador')}
+                    className={`py-2 px-3 rounded-xs text-xs border flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      role === 'jogador'
+                        ? 'bg-[#2b1016] border-[#ef4444] text-[#ef4444] font-bold shadow-[0_0_10px_rgba(239,68,68,0.3)]'
+                        : 'bg-[#181115] border-[#3b181b] text-[#a89f91] hover:text-white'
+                    }`}
+                  >
+                    <span>🗡️ Jogador</span>
+                  </button>
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-1">
+                  {role === 'mestre' ? 'Nome do Mestre / Narrador' : 'Nome do Jogador'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder={role === 'mestre' ? 'Ex: Narrador Sombrio' : 'Seu nome real ou alcunha'}
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full bg-[#181115] border border-[#3b181b] rounded-xs px-3 py-2 text-xs text-white placeholder-[#706456] focus:outline-none focus:border-[#8b0000]"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div>
