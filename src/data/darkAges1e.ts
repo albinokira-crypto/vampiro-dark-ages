@@ -229,3 +229,64 @@ export function calcularGeracaoEpoolSangue(pontosAntecedenteGeracao: number = 0)
   const pontosClamped = Math.max(0, Math.min(5, Math.floor(pontosAntecedenteGeracao)));
   return TABELA_GERACAO_1E[pontosClamped] || TABELA_GERACAO_1E[0];
 }
+
+/**
+ * Trilhas de Moralidade Oficiais - Vampiro: A Idade das Trevas (Livro Devir 1998)
+ */
+export interface TrilhaDarkAges1e {
+  nome: string;
+  viaLatin: string;
+  descricao: string;
+  virtudes: string;
+}
+
+export const TRILHAS_DARK_AGES_1E: TrilhaDarkAges1e[] = [
+  {
+    nome: 'Caminho da Besta',
+    viaLatin: 'Via Bestiae',
+    descricao: 'Abraça a natureza predatória, sobrevivendo como fera astuta e instintiva em harmonia com a Besta.',
+    virtudes: 'Convicção e Instinto',
+  },
+  {
+    nome: 'Caminho do Sangue',
+    viaLatin: 'Via Sanguinis',
+    descricao: 'Código de Alamut e dos Assamitas: purificação pelo sangue, honra e fidelidade estrita a Haqim.',
+    virtudes: 'Convicção e Autocontrole',
+  },
+  {
+    nome: 'Caminho do Cavaleiro',
+    viaLatin: 'Via Equitis',
+    descricao: 'O código cavalheiresco de honra, nobreza feudal, lealdade inabalável e proteção aos fracos.',
+    virtudes: 'Consciência e Autocontrole',
+  },
+  {
+    nome: 'Caminho do Diabo',
+    viaLatin: 'Via Diabolis',
+    descricao: 'Abraça a maldade e a corrupção consciente, assumindo o papel de emissário do inferno na Terra.',
+    virtudes: 'Convicção e Instinto',
+  },
+  {
+    nome: 'Caminho do Paraíso',
+    viaLatin: 'Via Caeli',
+    descricao: 'A crença cainita na fé divina e na expiação: o vampiro como instrumento ou anjo vingador de Deus.',
+    virtudes: 'Consciência e Autocontrole',
+  },
+  {
+    nome: 'Caminho da Humanidade',
+    viaLatin: 'Via Humanitatis',
+    descricao: 'Preserva a empatia mortal, a razão humana e os laços afetivos para sufocar a Besta interior.',
+    virtudes: 'Consciência e Autocontrole',
+  },
+  {
+    nome: 'Caminho do Paradoxo',
+    viaLatin: 'Via Paradoxi',
+    descricao: 'A filosofia cármica dos Ravnos: desiludir os tolos e quebrar as correntes da ilusão mundana (Maya).',
+    virtudes: 'Convicção e Autocontrole',
+  },
+  {
+    nome: 'Caminho de Tífon',
+    viaLatin: 'Via Typhonis',
+    descricao: 'A via milenar dos Setitas: corrupção espiritual e quebra das amarras para o despertar do deus Set.',
+    virtudes: 'Convicção e Instinto',
+  },
+];

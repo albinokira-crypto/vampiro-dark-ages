@@ -71,6 +71,15 @@ export interface ItemSimplesNivel {
   nivel: number;
 }
 
+export interface QualidadeDefeitoItem {
+  id: string;
+  nome: string;
+  tipo: 'qualidade' | 'defeito';
+  categoria: 'fisico' | 'mental' | 'social' | 'sobrenatural';
+  custo: number; // Valor positivo: se qualidade gasta pontos bônus; se defeito concede pontos bônus
+  descricao?: string;
+}
+
 export interface Arma {
   id: string;
   nome: string;
@@ -185,6 +194,7 @@ export interface Personagem {
   // Vantagens
   disciplinas: ItemSimplesNivel[];
   antecedentes: ItemSimplesNivel[];
+  qualidadesDefeitos?: QualidadeDefeitoItem[];
   virtudes: {
     tipoConsciencia: 'consciencia' | 'conviccao';
     consciencia: number; // 1 a 5/8

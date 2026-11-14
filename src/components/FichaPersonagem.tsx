@@ -25,6 +25,7 @@ import {
   ANTECEDENTES_LIVRO_1E,
   DISCIPLINAS_LIVRO_1E,
   TABELA_GERACAO_1E,
+  TRILHAS_DARK_AGES_1E,
   calcularGeracaoEpoolSangue,
 } from '../data/darkAges1e';
 import {
@@ -376,14 +377,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             ));
 
         if (ehPadrao) {
-          // Substitui diretamente pelas 3 disciplinas canônicas do novo clã
+          // Substitui diretamente pelas 3 disciplinas canônicas do novo clã (zeradas para distribuição livre)
           novasDisciplinas = claEncontrado.disciplinas.map((discNome) => {
             const id = 'disc_' + Math.random().toString(36).substring(2, 9);
             novasPrimariasIds.push(id);
             return {
               id,
               nome: discNome,
-              nivel: 1,
+              nivel: 0,
             };
           });
         } else {
@@ -399,7 +400,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               novasDisciplinas.push({
                 id: novoId,
                 nome: discNome,
-                nivel: 1,
+                nivel: 0,
               });
               novasPrimariasIds.push(novoId);
             }
@@ -691,6 +692,19 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   // Configuração da Mesa e Regras de Prioridades
   const configMesa = storageService.getConfiguracaoMesa();
   const dadosCriacao = ficha.criacao;
+  const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+
+  const listaQD = ficha.qualidadesDefeitos || [];
+  const qualidadesEscolhidas = listaQD.filter((q) => q.tipo === 'qualidade');
+  const defeitosEscolhidos = listaQD.filter((d) => d.tipo === 'defeito');
+
+  const handleRemoverQualidadeDefeito = (id: string) => {
+    if (!isEmCriacao && usuarioAtual.role !== 'mestre') return;
+    updateFicha((prev) => ({
+      ...prev,
+      qualidadesDefeitos: (prev.qualidadesDefeitos || []).filter((q) => q.id !== id),
+    }));
+  };
 
   // Limites e Gastos de Atributos (Base 1 em cada)
   const getLimiteAtributo = (cat: CategoriaAtributo): { max: number; prioridade: string } => {
@@ -1015,6 +1029,39 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         caminhoNivel: novoValor,
       })
     );
+  };
+
+  const handleVirtudeChange = (
+    tipo: 'consciencia' | 'autocontrole' | 'coragem',
+    novoValor: number
+  ) => {
+    updateFicha((prev) => {
+      const novasVirtudes = {
+        ...prev.virtudes,
+        [tipo]: novoValor,
+      };
+
+      let novoCaminhoNivel = prev.caminhoNivel;
+      let novaForcaVontade = prev.forcaDeVontade;
+
+      // Em modo de criação, sincroniza automaticamente Trilha (Consciência + Autocontrole) e Vontade (Coragem)
+      if (prev.criacao?.status === 'em_criacao') {
+        if (tipo === 'consciencia') {
+          novoCaminhoNivel = Math.min(10, Math.max(1, novoValor + prev.virtudes.autocontrole));
+        } else if (tipo === 'autocontrole') {
+          novoCaminhoNivel = Math.min(10, Math.max(1, prev.virtudes.consciencia + novoValor));
+        } else if (tipo === 'coragem') {
+          novaForcaVontade = Math.min(10, Math.max(1, novoValor));
+        }
+      }
+
+      return {
+        ...prev,
+        virtudes: novasVirtudes,
+        caminhoNivel: novoCaminhoNivel,
+        forcaDeVontade: novaForcaVontade,
+      };
+    });
   };
 
   // Rituais
@@ -1671,7 +1718,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                 <Bolinhas
                                   valor={disc.nivel}
                                   max={8}
-                                  min={1}
+                                  min={0}
                                   tamanho="sm"
                                   onChange={(v) => handleEditarDisciplina(disc.id, 'nivel', v)}
                                   readonly={!podeEditar}
@@ -1799,12 +1846,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           valor={ficha.virtudes.consciencia}
                           max={5}
                           min={1}
-                          onChange={(v) =>
-                            updateFicha((prev) => ({
-                              ...prev,
-                              virtudes: { ...prev.virtudes, consciencia: v },
-                            }))
-                          }
+                          onChange={(v) => handleVirtudeChange('consciencia', v)}
                           readonly={!podeEditar}
                         />
                       </div>
@@ -1834,12 +1876,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           valor={ficha.virtudes.autocontrole}
                           max={5}
                           min={1}
-                          onChange={(v) =>
-                            updateFicha((prev) => ({
-                              ...prev,
-                              virtudes: { ...prev.virtudes, autocontrole: v },
-                            }))
-                          }
+                          onChange={(v) => handleVirtudeChange('autocontrole', v)}
                           readonly={!podeEditar}
                         />
                       </div>
@@ -1852,15 +1889,127 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         valor={ficha.virtudes.coragem}
                         max={5}
                         min={1}
-                        onChange={(v) =>
-                          updateFicha((prev) => ({
-                            ...prev,
-                            virtudes: { ...prev.virtudes, coragem: v },
-                          }))
-                        }
+                        onChange={(v) => handleVirtudeChange('coragem', v)}
                         readonly={!podeEditar}
                       />
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO DE QUALIDADES E DEFEITOS (Livro Devir 1998) */}
+              <div className="bg-[#140e11] p-4 sm:p-5 rounded-sm border border-[#2d1217] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#3b181b] pb-2">
+                  <div>
+                    <h3 className="text-sm sm:text-base font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-[#ef4444]" />
+                      Qualidades & Defeitos (1ª Edição Devir 1998)
+                    </h3>
+                    <p className="text-[11px] text-[#a89f91]">
+                      Traços físicos, mentais, sociais ou sobrenaturais escolhidos na criação do personagem.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-mono">
+                    <span className="px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-800">
+                      Qualidades: {qualidadesEscolhidas.length}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-green-950/40 text-green-300 border border-green-800">
+                      Defeitos: {defeitosEscolhidos.length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Coluna 1: Qualidades */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-gothic font-bold uppercase tracking-wider text-amber-400 block border-b border-[#2d1217] pb-1">
+                      Qualidades Adquiridas (Custo em Pontos Bônus)
+                    </span>
+                    {qualidadesEscolhidas.length === 0 ? (
+                      <p className="text-xs text-[#706456] italic py-2">
+                        Nenhuma qualidade selecionada.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {qualidadesEscolhidas.map((q) => (
+                          <div
+                            key={q.id}
+                            className="bg-[#181115] border border-[#3b181b] rounded-xs p-2.5 text-xs flex items-start justify-between gap-2"
+                          >
+                            <div className="space-y-0.5 flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-[#ded6cb]">{q.nome}</span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950/70 text-amber-300 border border-amber-800">
+                                  -{q.custo} pt{q.custo > 1 ? 's' : ''}
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] uppercase font-semibold bg-[#221217] text-[#8e8273]">
+                                  {q.categoria}
+                                </span>
+                              </div>
+                              {q.descricao && (
+                                <p className="text-[11px] text-[#a89f91]">{q.descricao}</p>
+                              )}
+                            </div>
+                            {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoverQualidadeDefeito(q.id)}
+                                className="p-1 text-[#8e8273] hover:text-[#ef4444] rounded-xs cursor-pointer transition-colors shrink-0"
+                                title="Remover qualidade"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Coluna 2: Defeitos */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-gothic font-bold uppercase tracking-wider text-green-400 block border-b border-[#2d1217] pb-1">
+                      Defeitos Assumidos (Bônus em Pontos Bônus)
+                    </span>
+                    {defeitosEscolhidos.length === 0 ? (
+                      <p className="text-xs text-[#706456] italic py-2">
+                        Nenhum defeito selecionado.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {defeitosEscolhidos.map((d) => (
+                          <div
+                            key={d.id}
+                            className="bg-[#181115] border border-[#3b181b] rounded-xs p-2.5 text-xs flex items-start justify-between gap-2"
+                          >
+                            <div className="space-y-0.5 flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-[#ded6cb]">{d.nome}</span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-green-950/70 text-green-300 border border-green-800">
+                                  +{d.custo} pt{d.custo > 1 ? 's' : ''}
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] uppercase font-semibold bg-[#221217] text-[#8e8273]">
+                                  {d.categoria}
+                                </span>
+                              </div>
+                              {d.descricao && (
+                                <p className="text-[11px] text-[#a89f91]">{d.descricao}</p>
+                              )}
+                            </div>
+                            {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoverQualidadeDefeito(d.id)}
+                                className="p-1 text-[#8e8273] hover:text-[#ef4444] rounded-xs cursor-pointer transition-colors shrink-0"
+                                title="Remover defeito"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1873,18 +2022,24 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     Status Atuais & Pontos
                   </h3>
 
-                  {/* Caminho / Humanidade */}
+                  {/* Trilha de Iluminação (Livro Devir 1998) */}
                   <div className="space-y-1.5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <InlineField
-                        label="Caminho / Iluminação"
-                        value={ficha.caminho}
-                        onChange={(val) => handleHeaderChange('caminho', val)}
-                        placeholder="Ex: Humanidade, Caminho dos Reis"
-                        readonly={!podeEditar}
-                        className="flex-1"
-                      />
-                      <div className="pt-2">
+                      <div className="flex-1">
+                        <SelectDarkAgesField
+                          label="Trilha"
+                          value={ficha.caminho}
+                          onChange={(val) => handleHeaderChange('caminho', val)}
+                          opcoes={TRILHAS_DARK_AGES_1E.map((t) => ({
+                            valor: t.nome,
+                            label: `${t.nome} (${t.viaLatin})`,
+                            subtexto: `${t.descricao} [Virtudes: ${t.virtudes}]`,
+                          }))}
+                          placeholder="Selecione a Trilha do livro..."
+                          readonly={!podeEditar}
+                        />
+                      </div>
+                      <div className="pt-2 sm:pt-4">
                         <Bolinhas
                           valor={ficha.caminhoNivel}
                           max={10}

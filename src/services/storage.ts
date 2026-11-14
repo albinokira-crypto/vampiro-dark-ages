@@ -125,6 +125,7 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
   },
   disciplinas: [],
   antecedentes: [],
+  qualidadesDefeitos: [],
   virtudes: {
     tipoConsciencia: 'consciencia',
     consciencia: 1,
@@ -132,7 +133,7 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
     autocontrole: 1,
     coragem: 1,
   },
-  caminho: 'Humanidade',
+  caminho: 'Caminho da Humanidade',
   caminhoNivel: 2,
   forcaDeVontade: 1,
   forcaDeVontadeGasta: 0,
