@@ -235,6 +235,19 @@ export function normalizarPersonagem(p: Personagem): Personagem {
     if (!copia.forcaDeVontade || copia.forcaDeVontade < vontadeEsperada) {
       copia.forcaDeVontade = vontadeEsperada;
     }
+
+    // Se estiver em modo de bônus mas ainda sem snapshot registrado (retrocompatibilidade)
+    if (isEmCriacao && copia.criacao?.etapa === 'bonus' && !copia.criacao.snapshotIniciais) {
+      copia.criacao.snapshotIniciais = {
+        atributos: { ...copia.atributos },
+        habilidades: { ...copia.habilidades },
+        disciplinas: copia.disciplinas?.map((d) => ({ id: d.id, nome: d.nome, nivel: Math.min(d.nivel, 1) })),
+        antecedentes: copia.antecedentes?.map((a) => ({ id: a.id, nome: a.nome, nivel: a.nivel })),
+        virtudes: { ...copia.virtudes },
+        forcaDeVontade: vontadeEsperada,
+        caminhoNivel: trilhaEsperada,
+      };
+    }
   }
 
   // Sincronizar Antecedente Geração se presente

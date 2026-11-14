@@ -21,6 +21,7 @@ import {
   QUALIDADES_DEFEITOS_1E,
   type ModeloQualidadeDefeito,
 } from '../data/qualidadesDefeitos1E';
+import { calcularGastosPontosBonus } from '../data/calculosPontosBonus';
 
 interface PainelCriacaoFichaProps {
   ficha: Personagem;
@@ -167,19 +168,18 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   const pontosIniciaisValidos =
     atributosCompletos && habilidadesCompletas && vantagensCompletas;
 
-  // Cálculos de Qualidades e Defeitos & Saldo de Pontos Bônus
+  // Cálculos 100% Automáticos e Reativos dos Gastos em Pontos Bônus
+  const gastosBonus = calcularGastosPontosBonus(ficha, config);
   const maxDefeitos = config.maxPontosDefeitos ?? 7;
   const listaQD = ficha.qualidadesDefeitos || [];
   const qualidades = listaQD.filter((i) => i.tipo === 'qualidade');
   const defeitos = listaQD.filter((i) => i.tipo === 'defeito');
 
-  const pontosDefeitosGanhos = defeitos.reduce((acc, d) => acc + d.custo, 0);
-  const pontosQualidadesGastos = qualidades.reduce((acc, q) => acc + q.custo, 0);
-
-  const totalBonusDisponivel = config.pontosBonus + pontosDefeitosGanhos;
-  const pontosOutrosGastos = criacao.pontosBonusGastos || 0;
-  const totalBonusGasto = pontosOutrosGastos + pontosQualidadesGastos;
-  const saldoBonusRestante = totalBonusDisponivel - totalBonusGasto;
+  const pontosDefeitosGanhos = gastosBonus.defeitosGanhos;
+  const pontosQualidadesGastos = gastosBonus.qualidades;
+  const totalBonusDisponivel = gastosBonus.totalBonusDisponivel;
+  const totalGastoTraços = gastosBonus.totalGastoTraços;
+  const saldoBonusRestante = gastosBonus.saldoRestante;
 
   // Alternar entre Iniciais e Bônus
   const alternarEtapaBonus = () => {
@@ -190,13 +190,30 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     const trilhaCalc = Math.min(10, Math.max(1, c + a));
     const vontadeCalc = Math.min(10, Math.max(1, cor));
 
+    const novoCaminho = Math.max(ficha.caminhoNivel || 0, trilhaCalc);
+    const novaVontade = Math.max(ficha.forcaDeVontade || 0, vontadeCalc);
+
+    let novoSnapshot = criacao.snapshotIniciais;
+    if (novaEtapa === 'bonus' && !novoSnapshot) {
+      novoSnapshot = {
+        atributos: { ...ficha.atributos },
+        habilidades: { ...ficha.habilidades },
+        disciplinas: ficha.disciplinas.map((d) => ({ id: d.id, nome: d.nome, nivel: d.nivel })),
+        antecedentes: ficha.antecedentes.map((ant) => ({ id: ant.id, nome: ant.nome, nivel: ant.nivel })),
+        virtudes: { ...ficha.virtudes },
+        forcaDeVontade: novaVontade,
+        caminhoNivel: novoCaminho,
+      };
+    }
+
     onAtualizarFicha({
       ...ficha,
-      caminhoNivel: Math.max(ficha.caminhoNivel || 0, trilhaCalc),
-      forcaDeVontade: Math.max(ficha.forcaDeVontade || 0, vontadeCalc),
+      caminhoNivel: novoCaminho,
+      forcaDeVontade: novaVontade,
       criacao: {
         ...criacao,
         etapa: novaEtapa,
+        snapshotIniciais: novoSnapshot,
       },
     });
   };
@@ -514,7 +531,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
               {/* Linha 1: Saldo Restante ; Base ; Gastos em Traços */}
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 items-center text-xs">
                 {/* Saldo Restante */}
-                <div className="flex items-center justify-between bg-[#251016] border border-[#ef4444] px-2 py-1 rounded-xs min-w-0">
+                <div className="flex items-center justify-between bg-[#251016] border border-[#ef4444] px-1.5 sm:px-2 py-1 rounded-xs min-w-0">
                   <span className="text-[9px] sm:text-[11px] uppercase font-bold text-[#a89f91] truncate mr-1">
                     Saldo:
                   </span>
@@ -528,7 +545,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                 </div>
 
                 {/* Base */}
-                <div className="flex items-center justify-between bg-[#140e11] border border-[#3b181b] px-2 py-1 rounded-xs min-w-0">
+                <div className="flex items-center justify-between bg-[#140e11] border border-[#3b181b] px-1.5 sm:px-2 py-1 rounded-xs min-w-0">
                   <span className="text-[9px] sm:text-[11px] text-[#a89f91] font-semibold truncate mr-1">
                     Base:
                   </span>
@@ -537,28 +554,17 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                   </strong>
                 </div>
 
-                {/* Gastos em Traços */}
-                <div className="flex items-center justify-between bg-[#140e11] border border-[#522228] px-1.5 py-0.5 rounded-xs min-w-0">
+                {/* Gastos em Traços (Automático e Reativo) */}
+                <div
+                  className="flex items-center justify-between bg-[#140e11] border border-[#522228] px-1.5 sm:px-2 py-1 rounded-xs min-w-0"
+                  title={`Traços Gastos: Força de Vontade: ${gastosBonus.forcaDeVontade} | Trilha: ${gastosBonus.caminho} | Atributos: ${gastosBonus.atributos} | Habilidades: ${gastosBonus.habilidades} | Disciplinas: ${gastosBonus.disciplinas} | Antecedentes: ${gastosBonus.antecedentes} | Virtudes: ${gastosBonus.virtudes}`}
+                >
                   <span className="text-[9px] sm:text-[11px] text-[#a89f91] font-semibold truncate mr-1">
-                    Gastos:
+                    Traços:
                   </span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={totalBonusDisponivel}
-                    value={criacao.pontosBonusGastos || 0}
-                    onChange={(e) =>
-                      onAtualizarFicha({
-                        ...ficha,
-                        criacao: {
-                          ...criacao,
-                          pontosBonusGastos: Math.max(0, parseInt(e.target.value) || 0),
-                        },
-                      })
-                    }
-                    className="w-10 sm:w-14 bg-[#100b0e] border border-[#3b181b] px-1 py-0.5 text-center font-bold font-mono text-xs text-[#d4af37] rounded-xs focus:outline-none focus:border-[#8b0000]"
-                    title="Gastos em características"
-                  />
+                  <strong className="font-mono text-xs sm:text-sm text-[#fca5a5] shrink-0">
+                    -{totalGastoTraços} pts
+                  </strong>
                 </div>
               </div>
 
@@ -566,7 +572,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 items-center text-xs">
                 {/* Defeitos */}
                 <div
-                  className={`flex items-center justify-between px-2 py-1 rounded-xs border text-[10px] sm:text-[11px] font-mono min-w-0 ${
+                  className={`flex items-center justify-between px-1.5 sm:px-2 py-1 rounded-xs border text-[10px] sm:text-[11px] font-mono min-w-0 ${
                     pontosDefeitosGanhos > maxDefeitos
                       ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
                       : 'bg-green-950/40 border-green-800 text-green-300'
@@ -577,15 +583,18 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                 </div>
 
                 {/* Qualidades */}
-                <div className="flex items-center justify-between px-2 py-1 bg-amber-950/40 border border-amber-800 rounded-xs text-amber-300 text-[10px] sm:text-[11px] font-mono min-w-0">
+                <div className="flex items-center justify-between px-1.5 sm:px-2 py-1 bg-amber-950/40 border border-amber-800 rounded-xs text-amber-300 text-[10px] sm:text-[11px] font-mono min-w-0">
                   <span className="truncate mr-1">Qualidades:</span>
                   <strong className="shrink-0">-{pontosQualidadesGastos}</strong>
                 </div>
 
                 {/* Características */}
-                <div className="flex items-center justify-between px-2 py-1 bg-[#251419] border border-[#522228] rounded-xs text-[#fca5a5] text-[10px] sm:text-[11px] font-mono min-w-0">
+                <div
+                  className="flex items-center justify-between px-1.5 sm:px-2 py-1 bg-[#251419] border border-[#522228] rounded-xs text-[#fca5a5] text-[10px] sm:text-[11px] font-mono min-w-0"
+                  title={`Força de Vontade: ${gastosBonus.forcaDeVontade} | Trilha: ${gastosBonus.caminho}`}
+                >
                   <span className="truncate mr-1">Caract.:</span>
-                  <strong className="shrink-0">-{pontosOutrosGastos}</strong>
+                  <strong className="shrink-0">-{totalGastoTraços}</strong>
                 </div>
               </div>
             </div>
@@ -593,7 +602,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
         </div>
       </div>
 
-      {/* MODAL DE QUALIDADES E DEFEITOS (Livro Devir 1998) */}
+      {/* MODAL DE QUALIDADES E DEFEITOS */}
       {modalQualidadesAberto && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
           <div className="w-full max-w-4xl bg-[#100b0e] border border-[#8b0000] rounded-sm shadow-2xl p-4 sm:p-6 space-y-4 text-[#ded6cb] max-h-[90vh] flex flex-col">
@@ -635,8 +644,8 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                       pontosDefeitosGanhos > maxDefeitos
                         ? 'text-red-400 font-bold animate-pulse'
                         : pontosDefeitosGanhos === maxDefeitos
-                        ? 'text-amber-400 font-bold'
-                        : 'text-green-400'
+                          ? 'text-amber-400 font-bold'
+                          : 'text-green-400'
                     }
                   >
                     {defeitos.length} (+{pontosDefeitosGanhos} / {maxDefeitos} pts máx)
@@ -669,33 +678,30 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                 <button
                   type="button"
                   onClick={() => setFiltroTipoQD('todos')}
-                  className={`flex-1 py-1 rounded-xs font-semibold ${
-                    filtroTipoQD === 'todos'
-                      ? 'bg-[#8b0000] text-white'
-                      : 'text-[#a89f91] hover:text-white'
-                  }`}
+                  className={`flex-1 py-1 rounded-xs font-semibold ${filtroTipoQD === 'todos'
+                    ? 'bg-[#8b0000] text-white'
+                    : 'text-[#a89f91] hover:text-white'
+                    }`}
                 >
                   Todos
                 </button>
                 <button
                   type="button"
                   onClick={() => setFiltroTipoQD('qualidade')}
-                  className={`flex-1 py-1 rounded-xs font-semibold ${
-                    filtroTipoQD === 'qualidade'
-                      ? 'bg-amber-900 text-amber-200'
-                      : 'text-[#a89f91] hover:text-white'
-                  }`}
+                  className={`flex-1 py-1 rounded-xs font-semibold ${filtroTipoQD === 'qualidade'
+                    ? 'bg-amber-900 text-amber-200'
+                    : 'text-[#a89f91] hover:text-white'
+                    }`}
                 >
                   Qualidades
                 </button>
                 <button
                   type="button"
                   onClick={() => setFiltroTipoQD('defeito')}
-                  className={`flex-1 py-1 rounded-xs font-semibold ${
-                    filtroTipoQD === 'defeito'
-                      ? 'bg-green-900 text-green-200'
-                      : 'text-[#a89f91] hover:text-white'
-                  }`}
+                  className={`flex-1 py-1 rounded-xs font-semibold ${filtroTipoQD === 'defeito'
+                    ? 'bg-green-900 text-green-200'
+                    : 'text-[#a89f91] hover:text-white'
+                    }`}
                 >
                   Defeitos
                 </button>
@@ -750,13 +756,12 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                   return (
                     <div
                       key={item.nome}
-                      className={`p-2.5 rounded-xs border text-xs transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                        jaSelecionado
-                          ? 'bg-[#2b1016] border-[#ef4444]'
-                          : bloqueadoDefeito
+                      className={`p-2.5 rounded-xs border text-xs transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${jaSelecionado
+                        ? 'bg-[#2b1016] border-[#ef4444]'
+                        : bloqueadoDefeito
                           ? 'bg-[#120c10] border-[#251016] opacity-60'
                           : 'bg-[#140e11] border-[#2d1217] hover:border-[#522228]'
-                      }`}
+                        }`}
                     >
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -764,11 +769,10 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                             {item.nome}
                           </span>
                           <span
-                            className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold uppercase ${
-                              item.tipo === 'qualidade'
-                                ? 'bg-amber-950/80 text-amber-300 border border-amber-700'
-                                : 'bg-green-950/80 text-green-300 border border-green-700'
-                            }`}
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold uppercase ${item.tipo === 'qualidade'
+                              ? 'bg-amber-950/80 text-amber-300 border border-amber-700'
+                              : 'bg-green-950/80 text-green-300 border border-green-700'
+                              }`}
                           >
                             {item.tipo === 'qualidade'
                               ? `Qualidade (-${item.pontos} pt${item.pontos > 1 ? 's' : ''})`
@@ -792,19 +796,18 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                         type="button"
                         disabled={bloqueadoDefeito}
                         onClick={() => handleToggleQualidadeDefeito(item)}
-                        className={`px-3 py-1 text-xs font-semibold rounded-xs transition-colors shrink-0 ${
-                          jaSelecionado
-                            ? 'bg-[#8b0000] text-white hover:bg-[#a30d12] cursor-pointer'
-                            : bloqueadoDefeito
+                        className={`px-3 py-1 text-xs font-semibold rounded-xs transition-colors shrink-0 ${jaSelecionado
+                          ? 'bg-[#8b0000] text-white hover:bg-[#a30d12] cursor-pointer'
+                          : bloqueadoDefeito
                             ? 'bg-[#1b1216] text-[#706456] border border-[#3b181b] cursor-not-allowed opacity-50'
                             : 'bg-[#221217] hover:bg-[#341822] text-[#d4af37] border border-[#522228] cursor-pointer'
-                        }`}
+                          }`}
                         title={
                           bloqueadoDefeito
                             ? `Limite máximo de ${maxDefeitos} pontos de defeitos atingido`
                             : jaSelecionado
-                            ? 'Remover da ficha'
-                            : 'Adicionar à ficha'
+                              ? 'Remover da ficha'
+                              : 'Adicionar à ficha'
                         }
                       >
                         {jaSelecionado ? '✓ Removível' : bloqueadoDefeito ? `Limite (${maxDefeitos})` : '+ Escolher'}
@@ -825,11 +828,10 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                   {listaQD.map((qd) => (
                     <span
                       key={qd.id}
-                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                        qd.tipo === 'qualidade'
-                          ? 'bg-amber-950/50 text-amber-300 border-amber-800'
-                          : 'bg-green-950/50 text-green-300 border-green-800'
-                      }`}
+                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold border ${qd.tipo === 'qualidade'
+                        ? 'bg-amber-950/50 text-amber-300 border-amber-800'
+                        : 'bg-green-950/50 text-green-300 border-green-800'
+                        }`}
                     >
                       <span>
                         {qd.nome} ({qd.tipo === 'qualidade' ? `-${qd.custo}` : `+${qd.custo}`} pts)

@@ -1019,29 +1019,38 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   };
 
   const handleForcaDeVontadeChange = (novoValor: number) => {
+    const coragemBase = ficha.virtudes?.coragem || 1;
+    const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+    const valorAjustado = isEmCriacao ? Math.max(coragemBase, novoValor) : novoValor;
     const atual = ficha.forcaDeVontade;
     tentarEvoluirComXP(
       'vontade',
       'Força de Vontade',
       atual,
-      novoValor,
+      valorAjustado,
       (prev) => ({
         ...prev,
-        forcaDeVontade: novoValor,
+        forcaDeVontade: valorAjustado,
       })
     );
   };
 
   const handleCaminhoChange = (novoValor: number) => {
+    const trilhaBase = Math.min(
+      10,
+      Math.max(1, (ficha.virtudes?.consciencia || 1) + (ficha.virtudes?.autocontrole || 1))
+    );
+    const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+    const valorAjustado = isEmCriacao ? Math.max(trilhaBase, novoValor) : novoValor;
     const atual = ficha.caminhoNivel;
     tentarEvoluirComXP(
       'caminho',
       `Caminho (${ficha.caminho || 'Humanidade'})`,
       atual,
-      novoValor,
+      valorAjustado,
       (prev) => ({
         ...prev,
-        caminhoNivel: novoValor,
+        caminhoNivel: valorAjustado,
       })
     );
   };
@@ -1976,7 +1985,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 </div>
               </div>
 
-              {/* SEÇÃO DE QUALIDADES E DEFEITOS (Livro Devir 1998) */}
+              {/* SEÇÃO DE QUALIDADES E DEFEITOS */}
               <div className="bg-[#140e11] p-4 sm:p-5 rounded-sm border border-[#2d1217] space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#3b181b] pb-2">
                   <div>
@@ -2127,7 +2136,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     </div>
                   )}
 
-                  {/* Trilha de Iluminação (Livro Devir 1998) */}
+                  {/* Trilha de Iluminação */}
                   <div className="space-y-1.5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex-1">

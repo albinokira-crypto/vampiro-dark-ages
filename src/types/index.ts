@@ -33,12 +33,22 @@ export interface ConfiguracaoMesa {
   pontosAntecedentes: number; // 5
   pontosVirtudes: number; // 7
   pontosBonus: number; // 15
-  maxPontosDefeitos?: number; // 7 padrão oficial 1ª Edição Devir 1998
+  maxPontosDefeitos?: number; // 7 padrão oficial de regras canônicas
   atalhosCard?: AtalhoParadaDado[];
 }
 
 export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';
 export type CategoriaHabilidade = 'talentos' | 'pericias' | 'conhecimentos';
+
+export interface SnapshotIniciais {
+  atributos?: Record<string, number>;
+  habilidades?: Record<string, number>;
+  disciplinas?: { id: string; nome: string; nivel: number }[];
+  antecedentes?: { id: string; nome: string; nivel: number }[];
+  virtudes?: { consciencia: number; autocontrole: number; coragem: number };
+  forcaDeVontade?: number;
+  caminhoNivel?: number;
+}
 
 export interface DadosCriacaoFicha {
   status: 'em_criacao' | 'finalizada';
@@ -55,6 +65,7 @@ export interface DadosCriacaoFicha {
   };
   disciplinasPrimariasIds: string[]; // as 3 primeiras disciplinas travadas (disciplinas de clã)
   pontosBonusGastos: number; // 0 a 15
+  snapshotIniciais?: SnapshotIniciais;
 }
 
 export type TipoDanoVitalidade = 'nenhum' | 'contusao' | 'letal' | 'agravado';
