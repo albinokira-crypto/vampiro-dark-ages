@@ -33,6 +33,7 @@ export interface ConfiguracaoMesa {
   pontosAntecedentes: number; // 5
   pontosVirtudes: number; // 7
   pontosBonus: number; // 15
+  maxPontosDefeitos?: number; // 7 padrão oficial 1ª Edição Devir 1998
   atalhosCard?: AtalhoParadaDado[];
 }
 

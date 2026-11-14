@@ -29,6 +29,7 @@ export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   pontosAntecedentes: 5,
   pontosVirtudes: 7,
   pontosBonus: 15,
+  maxPontosDefeitos: 7,
   atalhosCard: ATALHOS_CARD_PADRAO,
 };
 
@@ -272,6 +273,9 @@ export const storageService = {
       const parsed = JSON.parse(raw);
       if (!parsed.atalhosCard || parsed.atalhosCard.length === 0) {
         parsed.atalhosCard = ATALHOS_CARD_PADRAO;
+      }
+      if (parsed.maxPontosDefeitos === undefined) {
+        parsed.maxPontosDefeitos = 7;
       }
       return { ...CONFIGURACAO_MESA_PADRAO, ...parsed };
     } catch {

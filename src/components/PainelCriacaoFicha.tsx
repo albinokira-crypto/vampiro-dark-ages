@@ -15,6 +15,7 @@ import {
   X,
   Search,
   BookOpen,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   QUALIDADES_DEFEITOS_1E,
@@ -54,6 +55,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   >('fisico');
   const [pontosCustomQD, setPontosCustomQD] = useState<number>(1);
   const [descCustomQD, setDescCustomQD] = useState('');
+  const [avisoDefeitos, setAvisoDefeitos] = useState<string | null>(null);
 
   const criacao = ficha.criacao || {
     status: 'em_criacao',
@@ -166,6 +168,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     atributosCompletos && habilidadesCompletas && vantagensCompletas;
 
   // Cálculos de Qualidades e Defeitos & Saldo de Pontos Bônus
+  const maxDefeitos = config.maxPontosDefeitos ?? 7;
   const listaQD = ficha.qualidadesDefeitos || [];
   const qualidades = listaQD.filter((i) => i.tipo === 'qualidade');
   const defeitos = listaQD.filter((i) => i.tipo === 'defeito');
@@ -208,6 +211,17 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     if (jaExiste) {
       novaLista = listaQD.filter((q) => q.id !== jaExiste.id);
     } else {
+      // Validação estrita da regra da 1ª Edição: no máximo 7 pontos de defeitos
+      if (itemModelo.tipo === 'defeito') {
+        if (pontosDefeitosGanhos + itemModelo.pontos > maxDefeitos) {
+          setAvisoDefeitos(
+            `Limite atingido! Pelas regras oficiais da 1ª Edição, um personagem pode ter no máximo ${maxDefeitos} pontos de Defeitos (Você já possui ${pontosDefeitosGanhos} pts e tentou adicionar +${itemModelo.pontos} pts).`
+          );
+          setTimeout(() => setAvisoDefeitos(null), 5000);
+          return;
+        }
+      }
+
       novaLista = [
         ...listaQD,
         {
@@ -238,12 +252,25 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     e.preventDefault();
     if (!nomeCustomQD.trim()) return;
 
+    const custoFinal = Math.max(1, pontosCustomQD);
+
+    // Validação estrita da regra da 1ª Edição: no máximo 7 pontos de defeitos
+    if (tipoCustomQD === 'defeito') {
+      if (pontosDefeitosGanhos + custoFinal > maxDefeitos) {
+        setAvisoDefeitos(
+          `Limite atingido! Pelas regras oficiais da 1ª Edição, um personagem pode ter no máximo ${maxDefeitos} pontos de Defeitos (Atual: ${pontosDefeitosGanhos} pts, Tentativa: +${custoFinal} pts).`
+        );
+        setTimeout(() => setAvisoDefeitos(null), 5000);
+        return;
+      }
+    }
+
     const novo: QualidadeDefeitoItem = {
       id: 'qd_cust_' + Date.now().toString(36),
       nome: nomeCustomQD.trim(),
       tipo: tipoCustomQD,
       categoria: catCustomQD,
-      custo: Math.max(1, pontosCustomQD),
+      custo: custoFinal,
       descricao: descCustomQD.trim() || undefined,
     };
 
@@ -504,8 +531,14 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                   <span className="px-2 py-0.5 bg-[#140e11] border border-[#3b181b] rounded text-[#ded6cb]">
                     Base: <strong>{config.pontosBonus}</strong>
                   </span>
-                  <span className="px-2 py-0.5 bg-green-950/40 border border-green-800 rounded text-green-300">
-                    Defeitos: <strong>+{pontosDefeitosGanhos}</strong>
+                  <span
+                    className={`px-2 py-0.5 rounded border text-[11px] ${
+                      pontosDefeitosGanhos > maxDefeitos
+                        ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
+                        : 'bg-green-950/40 border-green-800 text-green-300'
+                    }`}
+                  >
+                    Defeitos: <strong>+{pontosDefeitosGanhos}/{maxDefeitos} pts</strong>
                   </span>
                   <span className="px-2 py-0.5 bg-amber-950/40 border border-amber-800 rounded text-amber-300">
                     Qualidades: <strong>-{pontosQualidadesGastos}</strong>
@@ -554,7 +587,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                     Qualidades e Defeitos (1ª Edição Devir 1998)
                   </h2>
                   <p className="text-[11px] text-[#a89f91]">
-                    Qualidades custam Pontos Bônus; Defeitos concedem Pontos Bônus adicionais para a criação.
+                    Qualidades custam Pontos Bônus; Defeitos concedem Pontos Bônus adicionais (máximo {maxDefeitos} pontos pela 1ª Edição).
                   </p>
                 </div>
               </div>
@@ -578,8 +611,16 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                 </span>
                 <span className="text-[#a89f91]">
                   Defeitos Escolhidos:{' '}
-                  <strong className="text-green-400">
-                    {defeitos.length} (+{pontosDefeitosGanhos} pts)
+                  <strong
+                    className={
+                      pontosDefeitosGanhos > maxDefeitos
+                        ? 'text-red-400 font-bold animate-pulse'
+                        : pontosDefeitosGanhos === maxDefeitos
+                        ? 'text-amber-400 font-bold'
+                        : 'text-green-400'
+                    }
+                  >
+                    {defeitos.length} (+{pontosDefeitosGanhos} / {maxDefeitos} pts máx)
                   </strong>
                 </span>
                 <span className="text-[#a89f91]">
@@ -593,6 +634,14 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                 Saldo Final de Bônus: <strong className={saldoBonusRestante >= 0 ? 'text-[#d4af37]' : 'text-red-400'}>{saldoBonusRestante} pts</strong>
               </span>
             </div>
+
+            {/* Alerta de Limite de Defeitos */}
+            {avisoDefeitos && (
+              <div className="p-2.5 bg-red-950/90 border border-red-600 text-red-200 text-xs rounded-xs flex items-center gap-2 animate-fadeIn">
+                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{avisoDefeitos}</span>
+              </div>
+            )}
 
             {/* Barra de Filtros e Busca */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
@@ -674,6 +723,10 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                   const jaSelecionado = listaQD.some(
                     (q) => q.nome.toLowerCase() === item.nome.toLowerCase()
                   );
+                  const bloqueadoDefeito =
+                    !jaSelecionado &&
+                    item.tipo === 'defeito' &&
+                    pontosDefeitosGanhos + item.pontos > maxDefeitos;
 
                   return (
                     <div
@@ -681,6 +734,8 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                       className={`p-2.5 rounded-xs border text-xs transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
                         jaSelecionado
                           ? 'bg-[#2b1016] border-[#ef4444]'
+                          : bloqueadoDefeito
+                          ? 'bg-[#120c10] border-[#251016] opacity-60'
                           : 'bg-[#140e11] border-[#2d1217] hover:border-[#522228]'
                       }`}
                     >
@@ -707,18 +762,33 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                         <p className="text-[11px] text-[#a89f91]">
                           {item.descricao}
                         </p>
+                        {bloqueadoDefeito && (
+                          <p className="text-[10px] text-red-400 font-semibold">
+                            Ultrapassa o limite de {maxDefeitos} pts de defeitos ({pontosDefeitosGanhos} + {item.pontos} = {pontosDefeitosGanhos + item.pontos} pts).
+                          </p>
+                        )}
                       </div>
 
                       <button
                         type="button"
+                        disabled={bloqueadoDefeito}
                         onClick={() => handleToggleQualidadeDefeito(item)}
-                        className={`px-3 py-1 text-xs font-semibold rounded-xs transition-colors shrink-0 cursor-pointer ${
+                        className={`px-3 py-1 text-xs font-semibold rounded-xs transition-colors shrink-0 ${
                           jaSelecionado
-                            ? 'bg-[#8b0000] text-white hover:bg-[#a30d12]'
-                            : 'bg-[#221217] hover:bg-[#341822] text-[#d4af37] border border-[#522228]'
+                            ? 'bg-[#8b0000] text-white hover:bg-[#a30d12] cursor-pointer'
+                            : bloqueadoDefeito
+                            ? 'bg-[#1b1216] text-[#706456] border border-[#3b181b] cursor-not-allowed opacity-50'
+                            : 'bg-[#221217] hover:bg-[#341822] text-[#d4af37] border border-[#522228] cursor-pointer'
                         }`}
+                        title={
+                          bloqueadoDefeito
+                            ? `Limite máximo de ${maxDefeitos} pontos de defeitos atingido`
+                            : jaSelecionado
+                            ? 'Remover da ficha'
+                            : 'Adicionar à ficha'
+                        }
                       >
-                        {jaSelecionado ? '✓ Removível' : '+ Escolher'}
+                        {jaSelecionado ? '✓ Removível' : bloqueadoDefeito ? `Limite (${maxDefeitos})` : '+ Escolher'}
                       </button>
                     </div>
                   );

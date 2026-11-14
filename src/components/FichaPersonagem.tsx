@@ -709,6 +709,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const listaQD = ficha.qualidadesDefeitos || [];
   const qualidadesEscolhidas = listaQD.filter((q) => q.tipo === 'qualidade');
   const defeitosEscolhidos = listaQD.filter((d) => d.tipo === 'defeito');
+  const totalPontosDefeitos = defeitosEscolhidos.reduce((acc, d) => acc + d.custo, 0);
+  const totalPontosQualidades = qualidadesEscolhidas.reduce((acc, q) => acc + q.custo, 0);
+  const maxDefeitosConfig = configMesa.maxPontosDefeitos ?? 7;
 
   const handleRemoverQualidadeDefeito = (id: string) => {
     if (!isEmCriacao && usuarioAtual.role !== 'mestre') return;
@@ -1277,6 +1280,18 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             setHasChanges(true);
           }}
           onFinalizarCriacao={() => {
+            const configMesa = storageService.getConfiguracaoMesa();
+            const maxDef = configMesa.maxPontosDefeitos ?? 7;
+            const defs = (ficha.qualidadesDefeitos || []).filter((qd) => qd.tipo === 'defeito');
+            const totalDef = defs.reduce((acc, d) => acc + d.custo, 0);
+
+            if (totalDef > maxDef) {
+              alert(
+                `Não é possível finalizar a criação! O personagem possui ${totalDef} pontos em Defeitos, mas a 1ª Edição de Vampiro: A Idade das Trevas permite no máximo ${maxDef} pontos de Defeitos. Remova defeitos excedentes para prosseguir.`
+              );
+              return;
+            }
+
             if (
               confirm(
                 'Deseja concluir e finalizar a criação do personagem? A pontuação inicial e os pontos bônus serão consolidados e a ficha passará para o modo de jogo normal.'
@@ -1975,10 +1990,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   </div>
                   <div className="flex items-center gap-2 text-xs font-mono">
                     <span className="px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-800">
-                      Qualidades: {qualidadesEscolhidas.length}
+                      Qualidades: {qualidadesEscolhidas.length} (-{totalPontosQualidades} pts)
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-green-950/40 text-green-300 border border-green-800">
-                      Defeitos: {defeitosEscolhidos.length}
+                    <span
+                      className={`px-2 py-0.5 rounded border ${
+                        totalPontosDefeitos > maxDefeitosConfig
+                          ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
+                          : 'bg-green-950/40 text-green-300 border-green-800'
+                      }`}
+                    >
+                      Defeitos: {defeitosEscolhidos.length} (+{totalPontosDefeitos} / {maxDefeitosConfig} pts máx)
                     </span>
                   </div>
                 </div>
@@ -1987,7 +2008,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   {/* Coluna 1: Qualidades */}
                   <div className="space-y-2">
                     <span className="text-xs font-gothic font-bold uppercase tracking-wider text-amber-400 block border-b border-[#2d1217] pb-1">
-                      Qualidades Adquiridas (Custo em Pontos Bônus)
+                      Qualidades Adquiridas (-{totalPontosQualidades} pts bônus)
                     </span>
                     {qualidadesEscolhidas.length === 0 ? (
                       <p className="text-xs text-[#706456] italic py-2">
@@ -2033,7 +2054,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   {/* Coluna 2: Defeitos */}
                   <div className="space-y-2">
                     <span className="text-xs font-gothic font-bold uppercase tracking-wider text-green-400 block border-b border-[#2d1217] pb-1">
-                      Defeitos Assumidos (Bônus em Pontos Bônus)
+                      Defeitos Assumidos (+{totalPontosDefeitos} / {maxDefeitosConfig} pts máx)
                     </span>
                     {defeitosEscolhidos.length === 0 ? (
                       <p className="text-xs text-[#706456] italic py-2">

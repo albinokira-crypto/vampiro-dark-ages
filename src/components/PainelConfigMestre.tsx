@@ -309,7 +309,7 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
             <h3 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
               Vantagens & Pontos Bônus
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div>
                 <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold">
                   Disciplinas
@@ -380,6 +380,24 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                     })
                   }
                   className="w-full bg-[#1e1317] border border-[#522228] px-3 py-1.5 text-sm font-bold text-center text-[#d4af37] rounded-xs focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold">
+                  Máx. Defeitos (1ª Ed.)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={config.maxPontosDefeitos ?? 7}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      maxPontosDefeitos: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full bg-[#1e1317] border border-[#522228] px-3 py-1.5 text-sm font-bold text-center text-green-400 rounded-xs focus:outline-none"
                 />
               </div>
             </div>
