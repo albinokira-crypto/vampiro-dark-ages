@@ -74,8 +74,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const handleCopiarConvite = () => {
+  const handleCopiarConvite = async () => {
     const url = `${window.location.origin}${window.location.pathname}?convite=dark-ages`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Vampiro: A Idade das Trevas — Fichas & Crônicas',
+          text: 'Você foi convidado para a nossa Crônica de RPG medieval! Crie ou acesse sua ficha cainita aqui:',
+          url,
+        });
+        return;
+      } catch {
+        // Se usuário cancelar o share nativo, copia para a área de transferência
+      }
+    }
+
     navigator.clipboard.writeText(url);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2500);
