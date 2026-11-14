@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    background-color: #0b090a;
+    color: #ded6cb;
+  }
+  
+  h1, h2, h3, h4, .font-gothic {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
+  }
+
+  .font-medieval {
+    font-family: 'MedievalSharp', cursive, serif;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #141113;
+}
+::-webkit-scrollbar-thumb {
+  background: #3b181b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6e1c22;
+}
+
+/* Paper / Pergaminho background effect */
+.bg-parchment-dark {
+  background: linear-gradient(180deg, #181416 0%, #131012 100%);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.7);
+}
+
+.border-gothic {
+  border-color: #4a191d;
+}
