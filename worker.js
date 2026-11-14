@@ -76,7 +76,48 @@ export default {
           return jsonResponse(user);
         }
 
-        // 3. CONFIGURAÇÃO DA CRÔNICA / MESA
+        // 3. RECUPERAÇÃO DE SENHA
+        if (url.pathname === '/api/auth/recuperar-senha' && request.method === 'POST') {
+          const body = await request.json();
+          const { email, novaSenha } = body;
+          if (!email || !novaSenha) {
+            return jsonResponse({ erro: 'Informe o e-mail e a nova senha.' }, 400);
+          }
+
+          const cleanEmail = email.trim().toLowerCase();
+          const user = await db.prepare('SELECT id, nome FROM usuarios WHERE lower(email) = ?').bind(cleanEmail).first();
+          if (!user) {
+            return jsonResponse({ erro: 'E-mail não encontrado no registro da crônica.' }, 404);
+          }
+
+          await db.prepare('UPDATE usuarios SET senha = ? WHERE lower(email) = ?').bind(novaSenha, cleanEmail).run();
+          return jsonResponse({ success: true, mensagem: 'Senha redefinida com sucesso! Você já pode entrar.' });
+        }
+
+        // 4. BUSCAR LOGIN ESQUECIDO (Por Nome de Jogador)
+        if (url.pathname === '/api/auth/buscar-login' && request.method === 'POST') {
+          const body = await request.json();
+          const { nome } = body;
+          if (!nome || nome.trim().length < 2) {
+            return jsonResponse({ erro: 'Digite pelo menos 2 letras do seu nome.' }, 400);
+          }
+
+          const { results } = await db.prepare(
+            'SELECT nome, email, role FROM usuarios WHERE lower(nome) LIKE ? LIMIT 5'
+          ).bind(`%${nome.trim().toLowerCase()}%`).all();
+
+          return jsonResponse(results || []);
+        }
+
+        // 5. LISTAR USUÁRIOS (Para o Mestre gerenciar e ver jogadores cadastrados)
+        if (url.pathname === '/api/usuarios' && request.method === 'GET') {
+          const { results } = await db.prepare(
+            'SELECT id, nome, email, role, criadoEm FROM usuarios ORDER BY criadoEm DESC'
+          ).all();
+          return jsonResponse(results || []);
+        }
+
+        // 6. CONFIGURAÇÃO DA CRÔNICA / MESA
         if (url.pathname === '/api/config') {
           if (request.method === 'GET') {
             const configRow = await db.prepare('SELECT dados FROM configuracao_mesa WHERE id = "padrao"').first();
@@ -96,7 +137,7 @@ export default {
           }
         }
 
-        // 4. PERSONAGENS (LISTAR)
+        // 7. PERSONAGENS (LISTAR)
         if (url.pathname === '/api/personagens' && request.method === 'GET') {
           const usuarioId = url.searchParams.get('usuarioId');
           const role = url.searchParams.get('role');
@@ -124,7 +165,7 @@ export default {
           return jsonResponse(personagens);
         }
 
-        // 5. PERSONAGEM (SALVAR / ATUALIZAR)
+        // 8. PERSONAGEM (SALVAR / ATUALIZAR)
         if (url.pathname === '/api/personagens' && request.method === 'POST') {
           const personagem = await request.json();
           if (!personagem || !personagem.id || !personagem.usuarioId) {
@@ -158,11 +199,58 @@ export default {
           return jsonResponse({ success: true, personagem });
         }
 
-        // 6. PERSONAGEM (EXCLUIR)
+        // 9. PERSONAGEM (EXCLUIR)
         if (url.pathname.startsWith('/api/personagens/') && request.method === 'DELETE') {
           const id = url.pathname.replace('/api/personagens/', '');
           await db.prepare('DELETE FROM personagens WHERE id = ?').bind(id).run();
           return jsonResponse({ success: true });
+        }
+
+        // 10. LOGS DE AUDITORIA EM TEMPO REAL (FEED DO MESTRE)
+        if (url.pathname === '/api/logs') {
+          if (request.method === 'GET') {
+            const { results } = await db.prepare(
+              'SELECT * FROM logs_alteracoes ORDER BY criadoEm DESC LIMIT 80'
+            ).all();
+            return jsonResponse(results || []);
+          }
+
+          if (request.method === 'POST') {
+            const body = await request.json();
+            const {
+              personagemId,
+              personagemNome,
+              jogadorNome,
+              tipo = 'geral',
+              descricao,
+              detalhes = '',
+            } = body;
+
+            if (!descricao) {
+              return jsonResponse({ erro: 'Descrição é obrigatória.' }, 400);
+            }
+
+            const id = 'log_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            await db.prepare(`
+              INSERT INTO logs_alteracoes (id, personagemId, personagemNome, jogadorNome, tipo, descricao, detalhes, criadoEm)
+              VALUES (?, ?, ?, ?, ?, ?, ?, datetime("now"))
+            `).bind(
+              id,
+              personagemId || 'desconhecido',
+              personagemNome || 'Personagem',
+              jogadorNome || 'Jogador',
+              tipo,
+              descricao,
+              detalhes
+            ).run();
+
+            return jsonResponse({ success: true, id });
+          }
+
+          if (request.method === 'DELETE') {
+            await db.prepare('DELETE FROM logs_alteracoes').run();
+            return jsonResponse({ success: true });
+          }
         }
 
         return jsonResponse({ erro: 'Rota da API não encontrada.' }, 404);

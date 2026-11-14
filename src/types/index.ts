@@ -227,3 +227,14 @@ export interface Personagem {
     notas: string;
   };
 }
+
+export interface LogAlteracao {
+  id: string;
+  personagemId: string;
+  personagemNome: string;
+  jogadorNome: string;
+  tipo: 'xp' | 'atributo' | 'habilidade' | 'sangue' | 'vitalidade' | 'disciplina' | 'vontade' | 'caminho' | 'geral';
+  descricao: string;
+  detalhes?: string;
+  criadoEm: string;
+}

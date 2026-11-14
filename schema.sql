@@ -28,6 +28,18 @@ CREATE TABLE IF NOT EXISTS personagens (
   atualizadoEm TEXT NOT NULL
 );
 
+-- Tabela de Logs de Alterações em Tempo Real (Mestre)
+CREATE TABLE IF NOT EXISTS logs_alteracoes (
+  id TEXT PRIMARY KEY,
+  personagemId TEXT NOT NULL,
+  personagemNome TEXT NOT NULL,
+  jogadorNome TEXT NOT NULL,
+  tipo TEXT NOT NULL,
+  descricao TEXT NOT NULL,
+  detalhes TEXT,
+  criadoEm TEXT NOT NULL
+);
+
 -- Inserir usuário mestre padrão se não existir
 INSERT OR IGNORE INTO usuarios (id, nome, email, senha, role, criadoEm)
 VALUES ('mestre_demo', 'Mestre Alucard', 'mestre@darkages.com', '123', 'mestre', datetime('now'));

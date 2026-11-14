@@ -172,6 +172,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     setHasChanges(true);
     setSucessoXP(`✓ ${descricao} (-${custo} XP).`);
     setTimeout(() => setSucessoXP(null), 4000);
+
+    // Registrar log em tempo real para o Mestre da Mesa
+    storageService.registrarLogAlteracao({
+      personagemId: ficha.id,
+      personagemNome: ficha.nome,
+      jogadorNome: ficha.jogador || usuarioAtual.nome,
+      tipo: 'xp',
+      descricao: `Gasto de XP: ${descricao} (-${custo} XP)`,
+      detalhes: `XP Restante: ${xpDisponivel - custo}`,
+    });
   };
 
   const handleDesfazerUltimaCompra = () => {
@@ -182,6 +192,15 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     setHasChanges(true);
     setSucessoXP(`↩ Revertido: ${ultima.descricao} (+${ultima.custoXP} XP devolvido).`);
     setTimeout(() => setSucessoXP(null), 4000);
+
+    // Registrar log em tempo real da reversão para o Mestre
+    storageService.registrarLogAlteracao({
+      personagemId: ficha.id,
+      personagemNome: ficha.nome,
+      jogadorNome: ficha.jogador || usuarioAtual.nome,
+      tipo: 'xp',
+      descricao: `Reversão de Ponto: ${ultima.descricao} (+${ultima.custoXP} XP devolvido)`,
+    });
   };
 
   // Permissão de edição: Mestre pode editar tudo; Jogador só pode editar a sua própria ficha

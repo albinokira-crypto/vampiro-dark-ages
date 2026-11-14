@@ -4,6 +4,7 @@ import type {
   UserRole,
   NivelVitalidade,
   ConfiguracaoMesa,
+  LogAlteracao,
 } from '../types';
 
 const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
@@ -368,6 +369,80 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEY_AUTH);
   },
 
+  async recuperarSenha(email: string, novaSenha: string): Promise<string> {
+    const cleanEmail = email.toLowerCase().trim();
+    try {
+      const res = await fetch('/api/auth/recuperar-senha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, novaSenha }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.erro || 'Falha ao redefinir senha.');
+      }
+      return data.mensagem || 'Senha redefinida com sucesso!';
+    } catch (err: unknown) {
+      if (err instanceof Error) throw err;
+      throw new Error('Erro ao se comunicar com o servidor.');
+    }
+  },
+
+  async buscarLogin(nome: string): Promise<Array<{ nome: string; email: string; role: string }>> {
+    try {
+      const res = await fetch('/api/auth/buscar-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nome.trim() }),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async registrarLogAlteracao(log: {
+    personagemId: string;
+    personagemNome: string;
+    jogadorNome: string;
+    tipo: 'xp' | 'atributo' | 'habilidade' | 'sangue' | 'vitalidade' | 'disciplina' | 'vontade' | 'caminho' | 'geral';
+    descricao: string;
+    detalhes?: string;
+  }): Promise<void> {
+    try {
+      await fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(log),
+      });
+    } catch {
+      // offline / silently ignored
+    }
+  },
+
+  async carregarLogs(): Promise<LogAlteracao[]> {
+    try {
+      const res = await fetch('/api/logs');
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async limparLogs(): Promise<void> {
+    try {
+      await fetch('/api/logs', { method: 'DELETE' });
+    } catch {
+      // offline
+    }
+  },
+
   // Personagens (Sincronização em Nuvem e Cache Local)
   getPersonagens(): Personagem[] {
     const raw = localStorage.getItem(STORAGE_KEY_PERSONAGENS);
@@ -414,6 +489,7 @@ export const storageService = {
   async salvarPersonagem(personagem: Personagem): Promise<void> {
     const todos = this.getPersonagens();
     const idx = todos.findIndex((p) => p.id === personagem.id);
+    const anterior = idx >= 0 ? todos[idx] : null;
     const atualizado = {
       ...personagem,
       updatedAt: new Date().toISOString(),
@@ -424,6 +500,49 @@ export const storageService = {
       todos.unshift(atualizado);
     }
     localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(todos));
+
+    // Detectar alterações importantes para registrar log em tempo real para o Mestre
+    if (anterior) {
+      if (anterior.pontosDeSangueAtual !== atualizado.pontosDeSangueAtual) {
+        this.registrarLogAlteracao({
+          personagemId: atualizado.id,
+          personagemNome: atualizado.nome,
+          jogadorNome: atualizado.jogador || atualizado.usuarioNome,
+          tipo: 'sangue',
+          descricao: `Reserva de Sangue alterada: ${anterior.pontosDeSangueAtual} → ${atualizado.pontosDeSangueAtual} (Máx: ${atualizado.pontosDeSangueMax})`,
+        });
+      }
+      if (anterior.forcaDeVontadeGasta !== atualizado.forcaDeVontadeGasta) {
+        const restoAnt = anterior.forcaDeVontade - (anterior.forcaDeVontadeGasta || 0);
+        const restoAtu = atualizado.forcaDeVontade - (atualizado.forcaDeVontadeGasta || 0);
+        this.registrarLogAlteracao({
+          personagemId: atualizado.id,
+          personagemNome: atualizado.nome,
+          jogadorNome: atualizado.jogador || atualizado.usuarioNome,
+          tipo: 'vontade',
+          descricao: `Força de Vontade modificada: Restam ${restoAtu}/${atualizado.forcaDeVontade} (anterior: ${restoAnt})`,
+        });
+      }
+      const danosAnt = anterior.vitalidade.filter((v) => v.dano !== 'nenhum').length;
+      const danosAtu = atualizado.vitalidade.filter((v) => v.dano !== 'nenhum').length;
+      if (danosAnt !== danosAtu) {
+        this.registrarLogAlteracao({
+          personagemId: atualizado.id,
+          personagemNome: atualizado.nome,
+          jogadorNome: atualizado.jogador || atualizado.usuarioNome,
+          tipo: 'vitalidade',
+          descricao: `Níveis de Vitalidade alterados: ${danosAtu} caixas de dano marcadas`,
+        });
+      }
+    } else {
+      this.registrarLogAlteracao({
+        personagemId: atualizado.id,
+        personagemNome: atualizado.nome,
+        jogadorNome: atualizado.jogador || atualizado.usuarioNome,
+        tipo: 'geral',
+        descricao: `Nova ficha criada na crônica: ${atualizado.nome} (${atualizado.cla || 'Sem Clã'})`,
+      });
+    }
 
     // Sincronizar com Cloudflare D1 em segundo plano
     try {
