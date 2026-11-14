@@ -8,3 +8,8 @@ main = "worker.js"
 directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "vampiro_db"
+database_name = "vampiro-db"
+database_id = "df52024c-17bf-40bb-bf64-f579ea7452d6"

@@ -14,6 +14,7 @@ import { QuadradosStatus } from './QuadradosStatus';
 import { VitalidadeSelector } from './VitalidadeSelector';
 import { InlineField } from './InlineField';
 import { PainelCriacaoFicha } from './PainelCriacaoFicha';
+import { FotoPersonagem } from './FotoPersonagem';
 import { storageService } from '../services/storage';
 import {
   Save,
@@ -784,16 +785,32 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           <div className="absolute right-[-100px] top-[-100px] w-96 h-96 rounded-full bg-[#8b0000]/5 blur-3xl pointer-events-none" />
 
           {/* ========================================================================= */}
-          {/* CABEÇALHO PERMANENTE DA FICHA (Nome, Clã, Geração, etc.) */}
+          {/* CABEÇALHO PERMANENTE DA FICHA (Nome, Retrato, Clã, Geração, etc.) */}
           {/* ========================================================================= */}
           <div className="border-b-2 border-[#522228] pb-6">
-            <div className="text-center mb-6">
-              <span className="text-[10px] tracking-[0.4em] uppercase text-[#a89f91] font-bold">
-                Vampiro: A Idade das Trevas
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-gothic font-black text-[#d4af37] tracking-wider mt-0.5">
-                {ficha.nome || 'Ficha de Personagem'}
-              </h2>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-6">
+              <div className="shrink-0">
+                <FotoPersonagem
+                  foto={ficha.foto}
+                  nome={ficha.nome}
+                  podeEditar={podeEditar}
+                  onFotoChange={(base64) => updateFicha((prev) => ({ ...prev, foto: base64 }))}
+                  onFotoRemover={() => updateFicha((prev) => ({ ...prev, foto: undefined }))}
+                  tamanho="md"
+                />
+              </div>
+
+              <div className="text-center sm:text-left">
+                <span className="text-[10px] tracking-[0.4em] uppercase text-[#a89f91] font-bold block">
+                  Vampiro: A Idade das Trevas
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-gothic font-black text-[#d4af37] tracking-wider mt-0.5">
+                  {ficha.nome || 'Ficha de Personagem'}
+                </h2>
+                <p className="text-xs text-[#a89f91] italic font-serif mt-1">
+                  {ficha.cla || 'Sem Clã'} • {ficha.geracao || 'Geração Indefinida'} • {ficha.caminho || 'Humanidade'}
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 bg-[#160f13]/80 p-4 rounded-sm border border-[#2d1217]">

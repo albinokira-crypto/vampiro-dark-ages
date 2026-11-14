@@ -40,31 +40,24 @@ export const NIVEIS_VITALIDADE_PADRAO: NivelVitalidade[] = [
 
 export const USUARIOS_PADRAO: User[] = [
   {
-    id: 'usr_mestre',
-    nome: 'Mestre da Crônica',
+    id: 'mestre_demo',
+    nome: 'Mestre Alucard',
     email: 'mestre@darkages.com',
     role: 'mestre',
     senha: '123',
   },
   {
-    id: 'usr_jogador1',
-    nome: 'Lady Eléonore',
-    email: 'eleonore@darkages.com',
-    role: 'jogador',
-    senha: '123',
-  },
-  {
-    id: 'usr_jogador2',
-    nome: 'Irmão Guy de Lusignan',
-    email: 'guy@darkages.com',
+    id: 'jogador_demo',
+    nome: 'Julian, o Cavaleiro',
+    email: 'jogador@darkages.com',
     role: 'jogador',
     senha: '123',
   },
 ];
 
 export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'updatedAt'> = {
-  usuarioId: 'usr_mestre',
-  usuarioNome: 'Mestre da Crônica',
+  usuarioId: 'mestre_demo',
+  usuarioNome: 'Mestre Alucard',
   tipo: 'jogador',
   nome: 'Novo Cainita',
   jogador: '',
@@ -83,7 +76,7 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
     pontosBonusGastos: 0,
   },
   atributos: {
-    // Todos começam com a primeira bolinha preenchida obrigatoriamente
+    // Todos começam com 1 ponto base obrigatório
     forca: 1,
     destreza: 1,
     vigor: 1,
@@ -95,7 +88,7 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
     raciocinio: 1,
   },
   habilidades: {
-    // Todas habilidades começam zeradas
+    // Todas começam com 0
     prontidao: 0,
     esportes: 0,
     briga: 0,
@@ -129,14 +122,14 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
   antecedentes: [],
   virtudes: {
     tipoConsciencia: 'consciencia',
-    consciencia: 1, // começa com 1 bolinha preenchida
+    consciencia: 1,
     tipoAutocontrole: 'autocontrole',
-    autocontrole: 1, // começa com 1 bolinha preenchida
-    coragem: 1, // começa com 1 bolinha preenchida
+    autocontrole: 1,
+    coragem: 1,
   },
   caminho: 'Humanidade',
-  caminhoNivel: 2, // Consciência (1) + Autocontrole (1)
-  forcaDeVontade: 1, // Igual à Coragem (1)
+  caminhoNivel: 2,
+  forcaDeVontade: 1,
   forcaDeVontadeGasta: 0,
   pontosDeSangueMax: 10,
   pontosDeSangueAtual: 10,
@@ -145,40 +138,63 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
   xp: {
     atual: 0,
     totalGasto: 0,
-    historico: 'Criação inicial da ficha.',
+    historico: '',
   },
-  armas: [],
-  armaduras: [],
+  armas: [
+    {
+      id: 'arma_espada',
+      nome: 'Espada Larga',
+      dificuldade: '6',
+      dano: 'For+4',
+      ocultacao: 'Bainha no cinto',
+      alcance: 'Corpo a corpo',
+    },
+    {
+      id: 'arma_adaga',
+      nome: 'Adaga de Aço',
+      dificuldade: '4',
+      dano: 'For+1',
+      ocultacao: 'Manga / Bota',
+      alcance: 'Corpo a corpo',
+    },
+  ],
+  armaduras: [
+    {
+      id: 'arm_cota',
+      nome: 'Cota de Malha',
+      classe: '2',
+      penalidade: '-1',
+    },
+  ],
   lacosDeSangue: [],
   perturbacoes: [],
   linhasTaumaturgia: [],
   rituais: [],
   aparencia: {
-    idade: '',
-    idadeAparente: '',
-    abraco: '',
-    cabelos: '',
-    raca: '',
-    olhos: '',
-    sexo: '',
-    nacionalidade: '',
-    altura: '',
-    peso: '',
+    idade: '28 anos',
+    idadeAparente: '25 anos',
+    abraco: '1230 d.C.',
+    cabelos: 'Negros',
+    raca: 'Caucasiana',
+    olhos: 'Castanhos profundos',
+    sexo: 'Masculino',
+    nacionalidade: 'França Medieval',
+    altura: '1,80 m',
+    peso: '78 kg',
   },
   biografia: {
-    historia: '',
-    preludio: '',
-    objetivos: '',
-    notas: '',
+    historia: 'Cavaleiro errante que cruzou a Europa durante as Cruzadas...',
+    preludio: 'Abraçado em uma cripta sob uma catedral em ruínas.',
+    objetivos: 'Proteger seu refúgio e descobrir os segredos de seu senhor.',
+    notas: 'Porta um anel com o brasão de sua antiga linhagem mortal.',
   },
 };
 
 export const storageService = {
-  // Configuração da Mesa pelo Mestre
+  // Configurações da Mesa
   getConfiguracaoMesa(): ConfiguracaoMesa {
     const raw = localStorage.getItem(STORAGE_KEY_CONFIG);
     if (!raw) {
-      this.salvarConfiguracaoMesa(CONFIGURACAO_MESA_PADRAO);
       return CONFIGURACAO_MESA_PADRAO;
     }
     try {
@@ -188,15 +204,40 @@ export const storageService = {
     }
   },
 
-  salvarConfiguracaoMesa(config: ConfiguracaoMesa): void {
-    localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+  async carregarConfiguracaoMesaRemota(): Promise<ConfiguracaoMesa> {
+    try {
+      const res = await fetch('/api/config');
+      if (res.ok) {
+        const config = await res.json();
+        if (config) {
+          const mesclado = { ...CONFIGURACAO_MESA_PADRAO, ...config };
+          localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(mesclado));
+          return mesclado;
+        }
+      }
+    } catch {
+      // Falha de rede: usa cache local
+    }
+    return this.getConfiguracaoMesa();
   },
 
-  // Autenticação e Usuários
+  async salvarConfiguracaoMesa(config: ConfiguracaoMesa): Promise<void> {
+    localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+    try {
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+    } catch {
+      // Ignora erro se estiver offline
+    }
+  },
+
+  // Usuários e Autenticação
   getUsuarios(): User[] {
     const raw = localStorage.getItem(STORAGE_KEY_USERS);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(USUARIOS_PADRAO));
       return USUARIOS_PADRAO;
     }
     try {
@@ -207,7 +248,7 @@ export const storageService = {
     }
   },
 
-  salvarUsuario(user: User): void {
+  salvarUsuarioLocal(user: User): void {
     const todos = this.getUsuarios();
     const idx = todos.findIndex((u) => u.id === user.id);
     if (idx >= 0) {
@@ -218,38 +259,95 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(todos));
   },
 
-  login(email: string, senha?: string): User | null {
+  async login(email: string, senha?: string): Promise<User> {
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. Tentar login direto na nuvem (Cloudflare D1)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, senha: senha || '' }),
+      });
+
+      if (res.ok) {
+        const user: User = await res.json();
+        this.salvarUsuarioLocal(user);
+        this.setUsuarioAtual(user);
+        return user;
+      } else {
+        const erroJson = await res.json().catch(() => null);
+        if (erroJson?.erro) {
+          throw new Error(erroJson.erro);
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && !err.message.includes('fetch')) {
+        throw err;
+      }
+      // Se offline ou rede falhou, tenta verificar localmente
+    }
+
+    // 2. Fallback local se offline
     const usuarios = this.getUsuarios();
     const encontrado = usuarios.find(
-      (u) => u.email.toLowerCase().trim() === email.toLowerCase().trim()
+      (u) => u.email.toLowerCase().trim() === cleanEmail
     );
-    if (!encontrado) return null;
-    // Se tiver senha cadastrada, verifica (ou aceita se estiver vazia para testes)
+    if (!encontrado) {
+      throw new Error('E-mail não encontrado ou credenciais inválidas.');
+    }
     if (encontrado.senha && senha && encontrado.senha !== senha) {
-      return null;
+      throw new Error('Senha incorreta.');
     }
     this.setUsuarioAtual(encontrado);
     return encontrado;
   },
 
-  cadastrar(nome: string, email: string, senha?: string, role: UserRole = 'jogador'): User {
-    const usuarios = this.getUsuarios();
-    const jaExiste = usuarios.find(
-      (u) => u.email.toLowerCase().trim() === email.toLowerCase().trim()
-    );
-    if (jaExiste) {
-      throw new Error('Já existe um usuário registrado com este e-mail.');
+  async cadastrar(nome: string, email: string, senha?: string, role: UserRole = 'jogador'): Promise<User> {
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. Tentar cadastro na nuvem (Cloudflare D1)
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: nome.trim(),
+          email: cleanEmail,
+          senha: senha || '123',
+          role,
+        }),
+      });
+
+      if (res.ok) {
+        const novo: User = await res.json();
+        this.salvarUsuarioLocal(novo);
+        this.setUsuarioAtual(novo);
+        return novo;
+      } else {
+        const erroJson = await res.json().catch(() => null);
+        throw new Error(erroJson?.erro || 'Erro ao registrar usuário no servidor.');
+      }
+    } catch (err) {
+      if (err instanceof Error && !err.message.includes('fetch')) {
+        throw err;
+      }
+      // Fallback local se estiver offline
+      const usuarios = this.getUsuarios();
+      if (usuarios.some((u) => u.email.toLowerCase().trim() === cleanEmail)) {
+        throw new Error('Já existe um usuário com este e-mail no cache local.');
+      }
+      const novo: User = {
+        id: 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
+        nome: nome.trim(),
+        email: cleanEmail,
+        role,
+        senha: senha || '123',
+      };
+      this.salvarUsuarioLocal(novo);
+      this.setUsuarioAtual(novo);
+      return novo;
     }
-    const novo: User = {
-      id: 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
-      nome,
-      email,
-      role,
-      senha: senha || '123',
-    };
-    this.salvarUsuario(novo);
-    this.setUsuarioAtual(novo);
-    return novo;
   },
 
   getUsuarioAtual(): User | null {
@@ -270,7 +368,7 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEY_AUTH);
   },
 
-  // Personagens
+  // Personagens (Sincronização em Nuvem e Cache Local)
   getPersonagens(): Personagem[] {
     const raw = localStorage.getItem(STORAGE_KEY_PERSONAGENS);
     if (!raw) {
@@ -282,6 +380,22 @@ export const storageService = {
     } catch {
       return [];
     }
+  },
+
+  async sincronizarPersonagensRemotos(user: User): Promise<Personagem[]> {
+    try {
+      const res = await fetch(`/api/personagens?usuarioId=${user.id}&role=${user.role}`);
+      if (res.ok) {
+        const remotos: Personagem[] = await res.json();
+        if (Array.isArray(remotos)) {
+          localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(remotos));
+          return remotos;
+        }
+      }
+    } catch {
+      // Ignora erro e cai para os locais
+    }
+    return this.getPersonagensDoUsuario(user);
   },
 
   getPersonagensDoUsuario(user: User): Personagem[] {
@@ -297,7 +411,7 @@ export const storageService = {
     return todos.find((p) => p.id === id) ?? null;
   },
 
-  salvarPersonagem(personagem: Personagem): void {
+  async salvarPersonagem(personagem: Personagem): Promise<void> {
     const todos = this.getPersonagens();
     const idx = todos.findIndex((p) => p.id === personagem.id);
     const atualizado = {
@@ -310,6 +424,17 @@ export const storageService = {
       todos.unshift(atualizado);
     }
     localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(todos));
+
+    // Sincronizar com Cloudflare D1 em segundo plano
+    try {
+      await fetch('/api/personagens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(atualizado),
+      });
+    } catch {
+      // Fica gravado no cache local se estiver offline
+    }
   },
 
   criarNovoPersonagem(autor: User, tipo: 'jogador' | 'npc' = 'jogador'): Personagem {
@@ -335,14 +460,19 @@ export const storageService = {
     return novo;
   },
 
-  excluirPersonagem(id: string): boolean {
+  async excluirPersonagem(id: string): Promise<boolean> {
     const todos = this.getPersonagens();
     const filtrados = todos.filter((p) => p.id !== id);
     if (filtrados.length !== todos.length) {
       localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(filtrados));
+    }
+
+    try {
+      await fetch(`/api/personagens/${id}`, { method: 'DELETE' });
+      return true;
+    } catch {
       return true;
     }
-    return false;
   },
 
   exportarBackup(): string {

@@ -108,6 +108,7 @@ export interface Personagem {
 
   // SEÇÃO 1: CARACTERÍSTICAS PRINCIPAIS
   // Cabeçalho
+  foto?: string; // Imagem em Base64 comprimida
   nome: string;
   jogador: string;
   cronica: string;
