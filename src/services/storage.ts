@@ -273,6 +273,17 @@ export const storageService = {
       const parsed = JSON.parse(raw);
       if (!parsed.atalhosCard || parsed.atalhosCard.length === 0) {
         parsed.atalhosCard = ATALHOS_CARD_PADRAO;
+      } else {
+        // Auto-sincronizar tipos de exibição canônicos: Esquiva (unidade) e Iniciativa (d10)
+        parsed.atalhosCard = parsed.atalhosCard.map((a: any) => {
+          if (a.id === 'esquiva' && a.tipoExibicao === 'dados') {
+            return { ...a, tipoExibicao: 'total' };
+          }
+          if (a.id === 'iniciativa' && a.tipoExibicao === 'total') {
+            return { ...a, tipoExibicao: 'dados' };
+          }
+          return a;
+        });
       }
       if (parsed.maxPontosDefeitos === undefined) {
         parsed.maxPontosDefeitos = 7;
@@ -290,6 +301,17 @@ export const storageService = {
         const config = await res.json();
         if (config) {
           const mesclado = { ...CONFIGURACAO_MESA_PADRAO, ...config };
+          if (Array.isArray(mesclado.atalhosCard)) {
+            mesclado.atalhosCard = mesclado.atalhosCard.map((a: any) => {
+              if (a.id === 'esquiva' && a.tipoExibicao === 'dados') {
+                return { ...a, tipoExibicao: 'total' };
+              }
+              if (a.id === 'iniciativa' && a.tipoExibicao === 'total') {
+                return { ...a, tipoExibicao: 'dados' };
+              }
+              return a;
+            });
+          }
           localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(mesclado));
           return mesclado;
         }

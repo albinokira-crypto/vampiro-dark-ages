@@ -418,8 +418,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           {atalhos.map((atalho) => {
                             const valor = calcularValorAtalho(p, atalho);
                             const IconeComp = getIconeAtalho(atalho.icone);
+                            const tipoEfetivo =
+                              atalho.id === 'esquiva'
+                                ? 'total'
+                                : atalho.id === 'iniciativa'
+                                ? 'dados'
+                                : atalho.tipoExibicao;
                             const textoExibicao =
-                              atalho.tipoExibicao === 'total' ? `${valor}` : `${valor}d10`;
+                              tipoEfetivo === 'total' ? `${valor}` : `${valor}d10`;
                             const formulaDesc = `${MAPA_TRACOS[atalho.traco1]?.label || atalho.traco1}${
                               atalho.traco2 && atalho.traco2 !== 'nenhum'
                                 ? ` + ${MAPA_TRACOS[atalho.traco2]?.label || atalho.traco2}`
@@ -438,7 +444,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 </span>
                                 <span
                                   className={`font-mono text-xs font-bold shrink-0 ${
-                                    atalho.tipoExibicao === 'total' ? 'text-white' : 'text-[#d4af37]'
+                                    tipoEfetivo === 'total' ? 'text-white' : 'text-[#d4af37]'
                                   }`}
                                 >
                                   {textoExibicao}

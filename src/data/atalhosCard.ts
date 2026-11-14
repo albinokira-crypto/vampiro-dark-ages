@@ -77,7 +77,7 @@ export const ATALHOS_CARD_PADRAO: AtalhoParadaDado[] = [
     nome: 'Iniciativa',
     traco1: 'prontidao',
     traco2: 'raciocinio',
-    tipoExibicao: 'total', // mostra o total apenas (ex: 5)
+    tipoExibicao: 'dados', // mostra em d10 (ex: 5d10)
     icone: 'Zap',
   },
   {
@@ -100,8 +100,8 @@ export const ATALHOS_CARD_PADRAO: AtalhoParadaDado[] = [
     id: 'esquiva',
     nome: 'Esquiva',
     traco1: 'esquiva',
-    traco2: 'nenhum', // quantidade de esquiva que ele tiver
-    tipoExibicao: 'dados',
+    traco2: 'nenhum', // quantidade de esquiva como unidade (ex: 4)
+    tipoExibicao: 'total', // mostra como unidade (ex: 4)
     icone: 'Footprints',
   },
   {
