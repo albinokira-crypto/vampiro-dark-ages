@@ -107,10 +107,18 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
       ) : (
         <div className="space-y-1">
           <div className="relative">
+            {/* Caixa visual: mostra apenas o nome limpo (ex: Brujah) quando fechada */}
+            <div className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] text-xs font-semibold text-[#ded6cb] px-2.5 py-1.5 rounded-xs flex items-center justify-between pr-8 transition-colors pointer-events-none truncate min-h-[30px]">
+              <span className={value ? 'text-[#ded6cb]' : 'text-[#706456]'}>
+                {modoCustom ? customTexto || 'Personalizado' : (value || placeholder)}
+              </span>
+            </div>
+
+            {/* Select real invisível sobreposto para acionar as opções nativas completas */}
             <select
               value={modoCustom ? '__custom__' : value || ''}
               onChange={handleSelectChange}
-              className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] focus:border-[#d4af37] text-xs font-semibold text-[#ded6cb] px-2.5 py-1.5 rounded-xs appearance-none pr-8 cursor-pointer focus:outline-hidden transition-colors"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
             >
               <option value="" disabled className="bg-[#120a0e] text-[#706456]">
                 {placeholder}

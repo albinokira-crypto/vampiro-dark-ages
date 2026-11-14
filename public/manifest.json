@@ -1,17 +1,23 @@
 {
   "name": "Vampiro: A Idade das Trevas",
   "short_name": "Idade das Trevas",
-  "description": "Fichas de RPG e Grimório de Vampiro: A Idade das Trevas (1ª Edição)",
+  "description": "Fichas de RPG e Grimório de Vampiro: A Idade das Trevas",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#070506",
+  "background_color": "#080204",
   "theme_color": "#8b0000",
   "icons": [
     {
+      "src": "/bat-icon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/favicon.svg",
-      "sizes": "192x192 512x512",
+      "sizes": "192x192 512x512 any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }

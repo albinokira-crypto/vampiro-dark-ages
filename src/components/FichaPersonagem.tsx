@@ -8,6 +8,8 @@ import type {
   LacoDeSangue,
   Perturbacao,
   Ritual,
+  CategoriaAtributo,
+  CategoriaHabilidade,
 } from '../types';
 import { Bolinhas } from './Bolinhas';
 import { QuadradosStatus } from './QuadradosStatus';
@@ -686,6 +688,125 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     (d) => !ficha.disciplinas.some((fd) => fd.nome.toLowerCase() === d.toLowerCase())
   );
 
+  // Configuração da Mesa e Regras de Prioridades
+  const configMesa = storageService.getConfiguracaoMesa();
+  const dadosCriacao = ficha.criacao;
+
+  // Limites e Gastos de Atributos (Base 1 em cada)
+  const getLimiteAtributo = (cat: CategoriaAtributo): { max: number; prioridade: string } => {
+    const prioridades = dadosCriacao?.prioridadesAtributos || {
+      primario: 'fisicos',
+      secundario: 'sociais',
+      terciario: 'mentais',
+    };
+    if (prioridades.primario === cat) return { max: configMesa.pontosAtributos.primario, prioridade: 'Primário' };
+    if (prioridades.secundario === cat) return { max: configMesa.pontosAtributos.secundario, prioridade: 'Secundário' };
+    return { max: configMesa.pontosAtributos.terciario, prioridade: 'Terciário' };
+  };
+
+  const limiteFisicos = getLimiteAtributo('fisicos');
+  const limiteSociais = getLimiteAtributo('sociais');
+  const limiteMentais = getLimiteAtributo('mentais');
+
+  const gastosFisicos =
+    Math.max(0, ficha.atributos.forca - 1) +
+    Math.max(0, ficha.atributos.destreza - 1) +
+    Math.max(0, ficha.atributos.vigor - 1);
+
+  const gastosSociais =
+    Math.max(0, ficha.atributos.carisma - 1) +
+    Math.max(0, ficha.atributos.manipulacao - 1) +
+    Math.max(0, ficha.atributos.aparencia - 1);
+
+  const gastosMentais =
+    Math.max(0, ficha.atributos.percepcao - 1) +
+    Math.max(0, ficha.atributos.inteligencia - 1) +
+    Math.max(0, ficha.atributos.raciocinio - 1);
+
+  // Limites e Gastos de Habilidades (Base 0)
+  const getLimiteHabilidade = (cat: CategoriaHabilidade): { max: number; prioridade: string } => {
+    const prioridades = dadosCriacao?.prioridadesHabilidades || {
+      primario: 'talentos',
+      secundario: 'pericias',
+      terciario: 'conhecimentos',
+    };
+    if (prioridades.primario === cat) return { max: configMesa.pontosHabilidades.primario, prioridade: 'Primário' };
+    if (prioridades.secundario === cat) return { max: configMesa.pontosHabilidades.secundario, prioridade: 'Secundário' };
+    return { max: configMesa.pontosHabilidades.terciario, prioridade: 'Terciário' };
+  };
+
+  const limiteTalentos = getLimiteHabilidade('talentos');
+  const limitePericias = getLimiteHabilidade('pericias');
+  const limiteConhecimentos = getLimiteHabilidade('conhecimentos');
+
+  const gastosTalentos =
+    ficha.habilidades.prontidao +
+    ficha.habilidades.esportes +
+    ficha.habilidades.briga +
+    ficha.habilidades.esquiva +
+    ficha.habilidades.empatia +
+    ficha.habilidades.expressao +
+    ficha.habilidades.intimidacao +
+    ficha.habilidades.lideranca +
+    ficha.habilidades.ladinagem +
+    ficha.habilidades.manha;
+
+  const gastosPericias =
+    ficha.habilidades.empatiaAnimais +
+    ficha.habilidades.tiroComArco +
+    ficha.habilidades.artesanato +
+    ficha.habilidades.cavalaria +
+    ficha.habilidades.etiqueta +
+    ficha.habilidades.herbalismo +
+    ficha.habilidades.armasBrancas +
+    ficha.habilidades.musica +
+    ficha.habilidades.sobrevivencia;
+
+  const gastosConhecimentos =
+    ficha.habilidades.academicos +
+    ficha.habilidades.sabedoriaPopular +
+    ficha.habilidades.investigacao +
+    ficha.habilidades.direito +
+    ficha.habilidades.linguistica +
+    ficha.habilidades.medicina +
+    ficha.habilidades.ocultismo +
+    ficha.habilidades.politica +
+    ficha.habilidades.senescencia;
+
+  // Limites e Gastos de Vantagens (Disciplinas 3, Antecedentes 5, Virtudes 7)
+  const maxDisciplinas = configMesa.pontosDisciplinas || 3;
+  const gastosDisciplinas = ficha.disciplinas.reduce((acc, d) => acc + d.nivel, 0);
+
+  const maxAntecedentes = configMesa.pontosAntecedentes || 5;
+  const gastosAntecedentes = ficha.antecedentes.reduce((acc, a) => acc + a.nivel, 0);
+
+  const maxVirtudes = configMesa.pontosVirtudes || 7;
+  const gastosVirtudes =
+    Math.max(0, ficha.virtudes.consciencia - 1) +
+    Math.max(0, ficha.virtudes.autocontrole - 1) +
+    Math.max(0, ficha.virtudes.coragem - 1);
+
+  // Helper visual para exibir o contador de pontos ao lado de cada seção
+  const renderBadgePontos = (gastos: number, max: number, prioridadeNome?: string) => {
+    const atingiu = gastos === max;
+    const excedeu = gastos > max;
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[11px] font-sans font-bold tracking-wide transition-all ${
+          atingiu
+            ? 'bg-green-950/80 text-green-400 border border-green-700/80 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
+            : excedeu
+            ? 'bg-red-950 text-red-300 border border-red-600 animate-pulse'
+            : 'bg-[#251015] text-[#d4af37] border border-[#5a1e26]'
+        }`}
+        title={prioridadeNome ? `Prioridade: ${prioridadeNome} (${max} pontos)` : undefined}
+      >
+        <span>{gastos} / {max} pts</span>
+        {atingiu && <CheckCircle className="w-3 h-3 text-green-400 shrink-0" />}
+      </span>
+    );
+  };
+
   // Armas
   const handleAdicionarArma = () => {
     const nova: Arma = {
@@ -1149,8 +1270,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 value={ficha.cla}
                 opcoes={opcoesClas}
                 onChange={handleClanChange}
-                placeholder="Selecione um dos 13 Clãs..."
-                badge="13 Clãs (1ª Edição)"
+                placeholder="Selecione o Clã..."
                 permitirPersonalizado={true}
                 readonly={!podeEditar}
               />
@@ -1160,7 +1280,6 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 opcoes={ARQUETIPOS_PERSONALIDADE_1E}
                 onChange={(val) => handleHeaderChange('natureza', val)}
                 placeholder="Selecione a Natureza..."
-                badge="1ª Edição"
                 permitirPersonalizado={true}
                 readonly={!podeEditar}
               />
@@ -1170,7 +1289,6 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 opcoes={ARQUETIPOS_PERSONALIDADE_1E}
                 onChange={(val) => handleHeaderChange('comportamento', val)}
                 placeholder="Selecione o Comportamento..."
-                badge="1ª Edição"
                 permitirPersonalizado={true}
                 readonly={!podeEditar}
               />
@@ -1179,7 +1297,6 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 value={ficha.geracao || '12ª Geração'}
                 opcoes={opcoesGeracao}
                 onChange={handleGeracaoChange}
-                badge="12ª à 7ª Geração"
                 dica="Base: 12ª Geração. Só cai comprando o Antecedente Geração (1 pt = 1 nível, máx 5 pts = 7ª)."
                 permitirPersonalizado={false}
                 readonly={!podeEditar}
@@ -1217,21 +1334,28 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             <div className="space-y-8 animate-fadeIn">
               {/* ATRIBUTOS */}
               <div>
-                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4 flex-wrap gap-2">
                   <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
                     Atributos (Escala 1 a 8)
                   </h3>
-                  <span className="text-[11px] text-[#8e8273]">
-                    Físicos • Sociais • Mentais
-                  </span>
+                  <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
+                    <span className="text-[#a89f91]">Físicos: <strong className="text-[#ded6cb]">{gastosFisicos}/{limiteFisicos.max}</strong></span>
+                    <span className="text-[#3b181b]">•</span>
+                    <span className="text-[#a89f91]">Sociais: <strong className="text-[#ded6cb]">{gastosSociais}/{limiteSociais.max}</strong></span>
+                    <span className="text-[#3b181b]">•</span>
+                    <span className="text-[#a89f91]">Mentais: <strong className="text-[#ded6cb]">{gastosMentais}/{limiteMentais.max}</strong></span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* FÍSICOS */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-3">
-                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444] border-b border-[#3b181b] pb-1">
-                      Físicos
-                    </h4>
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Físicos
+                      </h4>
+                      {renderBadgePontos(gastosFisicos, limiteFisicos.max, limiteFisicos.prioridade)}
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Força</span>
                       <Bolinhas
@@ -1266,9 +1390,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
                   {/* SOCIAIS */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-3">
-                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444] border-b border-[#3b181b] pb-1">
-                      Sociais
-                    </h4>
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Sociais
+                      </h4>
+                      {renderBadgePontos(gastosSociais, limiteSociais.max, limiteSociais.prioridade)}
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Carisma</span>
                       <Bolinhas
@@ -1303,9 +1430,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
                   {/* MENTAIS */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-3">
-                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444] border-b border-[#3b181b] pb-1">
-                      Mentais
-                    </h4>
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Mentais
+                      </h4>
+                      {renderBadgePontos(gastosMentais, limiteMentais.max, limiteMentais.prioridade)}
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Percepção</span>
                       <Bolinhas
@@ -1342,21 +1472,28 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
               {/* HABILIDADES */}
               <div>
-                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4 flex-wrap gap-2">
                   <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
                     Habilidades (Escala 0 a 8)
                   </h3>
-                  <span className="text-[11px] text-[#8e8273]">
-                    Talentos • Perícias • Conhecimentos
-                  </span>
+                  <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
+                    <span className="text-[#a89f91]">Talentos: <strong className="text-[#ded6cb]">{gastosTalentos}/{limiteTalentos.max}</strong></span>
+                    <span className="text-[#3b181b]">•</span>
+                    <span className="text-[#a89f91]">Perícias: <strong className="text-[#ded6cb]">{gastosPericias}/{limitePericias.max}</strong></span>
+                    <span className="text-[#3b181b]">•</span>
+                    <span className="text-[#a89f91]">Conhecimentos: <strong className="text-[#ded6cb]">{gastosConhecimentos}/{limiteConhecimentos.max}</strong></span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* TALENTOS */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-2">
-                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444] border-b border-[#3b181b] pb-1 mb-2">
-                      Talentos
-                    </h4>
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1 mb-2">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Talentos
+                      </h4>
+                      {renderBadgePontos(gastosTalentos, limiteTalentos.max, limiteTalentos.prioridade)}
+                    </div>
                     {(
                       [
                         ['prontidao', 'Prontidão'],
@@ -1387,9 +1524,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
                   {/* PERÍCIAS */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-2">
-                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444] border-b border-[#3b181b] pb-1 mb-2">
-                      Perícias
-                    </h4>
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1 mb-2">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Perícias
+                      </h4>
+                      {renderBadgePontos(gastosPericias, limitePericias.max, limitePericias.prioridade)}
+                    </div>
                     {(
                       [
                         ['empatiaAnimais', 'Empatia c/ Animais'],
@@ -1419,9 +1559,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
                   {/* CONHECIMENTOS */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-2">
-                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444] border-b border-[#3b181b] pb-1 mb-2">
-                      Conhecimentos
-                    </h4>
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1 mb-2">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Conhecimentos
+                      </h4>
+                      {renderBadgePontos(gastosConhecimentos, limiteConhecimentos.max, limiteConhecimentos.prioridade)}
+                    </div>
                     {(
                       [
                         ['academicos', 'Acadêmicos'],
@@ -1453,13 +1596,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
               {/* VANTAGENS (Disciplinas, Antecedentes, Virtudes) */}
               <div>
-                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4 flex-wrap gap-2">
                   <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
                     Vantagens
                   </h3>
-                  <span className="text-[11px] text-[#8e8273]">
-                    Disciplinas • Antecedentes • Virtudes
-                  </span>
+                  <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
+                    <span className="text-[#a89f91]">Disciplinas: <strong className="text-[#ded6cb]">{gastosDisciplinas}/{maxDisciplinas}</strong></span>
+                    <span className="text-[#3b181b]">•</span>
+                    <span className="text-[#a89f91]">Antecedentes: <strong className="text-[#ded6cb]">{gastosAntecedentes}/{maxAntecedentes}</strong></span>
+                    <span className="text-[#3b181b]">•</span>
+                    <span className="text-[#a89f91]">Virtudes: <strong className="text-[#ded6cb]">{gastosVirtudes}/{maxVirtudes}</strong></span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1470,9 +1617,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                           Disciplinas
                         </h4>
-                        <span className="text-[9px] text-[#d4af37] bg-[#2b1016] border border-[#5a1e26] px-1 rounded-xs">
-                          1ª Edição
-                        </span>
+                        {renderBadgePontos(gastosDisciplinas, maxDisciplinas, 'Inicial')}
                       </div>
                       {podeEditar && (
                         <button
@@ -1556,9 +1701,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                           Antecedentes
                         </h4>
-                        <span className="text-[9px] text-[#d4af37] bg-[#2b1016] border border-[#5a1e26] px-1 rounded-xs">
-                          1ª Edição
-                        </span>
+                        {renderBadgePontos(gastosAntecedentes, maxAntecedentes, 'Inicial')}
                       </div>
                       {podeEditar && (
                         <button
@@ -1625,9 +1768,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
                   {/* VIRTUDES */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-4">
-                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444] border-b border-[#3b181b] pb-1">
-                      Virtudes
-                    </h4>
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Virtudes
+                      </h4>
+                      {renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial')}
+                    </div>
 
                     {/* Consciência ou Convicção */}
                     <div className="space-y-1">
@@ -2680,7 +2826,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         </div>
       )}
 
-      {/* MODAL PARA ADICIONAR DISCIPLINA (1ª Edição - 1996) */}
+      {/* MODAL PARA ADICIONAR DISCIPLINA */}
       {modalAddDisciplinaAberto && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="bg-[#120d10] border border-[#8b0000] rounded-sm max-w-md w-full p-5 space-y-4 shadow-2xl relative">
@@ -2695,12 +2841,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             <div className="flex items-center gap-2 text-[#d4af37]">
               <Sparkles className="w-5 h-5 text-[#ef4444]" />
               <h4 className="text-sm font-gothic font-bold uppercase tracking-wider">
-                Adicionar Disciplina (1ª Edição)
+                Adicionar Disciplina
               </h4>
             </div>
 
             <p className="text-xs text-[#ded6cb] leading-relaxed">
-              Selecione uma das disciplinas do livro básico de Vampiro: A Idade das Trevas ou digite um nome personalizado:
+              Selecione uma das disciplinas do livro básico ou digite um nome personalizado:
             </p>
 
             <div className="space-y-3">
@@ -2716,7 +2862,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   >
                     {discDisponiveis.length > 0 && (
                       <optgroup
-                        label="─── DISCIPLINAS DO LIVRO (1ª EDIÇÃO) ───"
+                        label="─── DISCIPLINAS DO LIVRO ───"
                         className="bg-[#181115] text-[#d4af37] font-gothic font-bold"
                       >
                         {discDisponiveis.map((d) => (
@@ -2788,7 +2934,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         </div>
       )}
 
-      {/* MODAL PARA ADICIONAR ANTECEDENTE (1ª Edição - 1996) */}
+      {/* MODAL PARA ADICIONAR ANTECEDENTE */}
       {modalAddAntecedenteAberto && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="bg-[#120d10] border border-[#8b0000] rounded-sm max-w-md w-full p-5 space-y-4 shadow-2xl relative">
@@ -2803,12 +2949,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             <div className="flex items-center gap-2 text-[#d4af37]">
               <BookOpen className="w-5 h-5 text-[#ef4444]" />
               <h4 className="text-sm font-gothic font-bold uppercase tracking-wider">
-                Adicionar Antecedente (1ª Edição)
+                Adicionar Antecedente
               </h4>
             </div>
 
             <p className="text-xs text-[#ded6cb] leading-relaxed">
-              Escolha um dos antecedentes do livro básico da 1ª Edição ou crie um antecedente personalizado:
+              Escolha um dos antecedentes do livro básico ou crie um antecedente personalizado:
             </p>
 
             <div className="space-y-3">
@@ -2823,7 +2969,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] focus:border-[#d4af37] text-xs font-semibold text-[#ded6cb] px-2.5 py-2 rounded-xs appearance-none pr-8 cursor-pointer focus:outline-hidden"
                   >
                     <optgroup
-                      label="─── ANTECEDENTES DO LIVRO (1ª EDIÇÃO) ───"
+                      label="─── ANTECEDENTES DO LIVRO ───"
                       className="bg-[#181115] text-[#d4af37] font-gothic font-bold"
                     >
                       {ANTECEDENTES_LIVRO_1E.map((a) => (
@@ -2859,7 +3005,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               {(antSelecionado === 'Geração' || antCustomNome.toLowerCase().includes('geração')) && (
                 <div className="p-2.5 bg-[#251015] border border-[#8b0000]/60 rounded-xs text-[11px] text-[#ded6cb] space-y-1 animate-fadeIn">
                   <p className="font-bold text-[#d4af37] flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444]" /> Regra Canônica da 1ª Edição:
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444]" /> Regra de Geração:
                   </p>
                   <p>
                     A geração base é <strong>12ª Geração</strong>. Cada ponto neste antecedente reduz a geração em 1 nível (máx 5 pts = 7ª Geração) e aumenta automaticamente a Reserva de Sangue máxima (de 11 até 20).
