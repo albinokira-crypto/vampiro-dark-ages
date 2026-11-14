@@ -5,6 +5,44 @@ export interface User {
   nome: string;
   email: string;
   role: UserRole;
+  senha?: string;
+}
+
+export interface ConfiguracaoMesa {
+  pontosAtributos: {
+    primario: number; // 7
+    secundario: number; // 5
+    terciario: number; // 3
+  };
+  pontosHabilidades: {
+    primario: number; // 13
+    secundario: number; // 7
+    terciario: number; // 5
+  };
+  pontosDisciplinas: number; // 4
+  pontosAntecedentes: number; // 5
+  pontosVirtudes: number; // 7
+  pontosBonus: number; // 15
+}
+
+export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';
+export type CategoriaHabilidade = 'talentos' | 'pericias' | 'conhecimentos';
+
+export interface DadosCriacaoFicha {
+  status: 'em_criacao' | 'finalizada';
+  etapa: 'prioridades' | 'iniciais' | 'bonus' | 'concluida';
+  prioridadesAtributos?: {
+    primario: CategoriaAtributo;
+    secundario: CategoriaAtributo;
+    terciario: CategoriaAtributo;
+  };
+  prioridadesHabilidades?: {
+    primario: CategoriaHabilidade;
+    secundario: CategoriaHabilidade;
+    terciario: CategoriaHabilidade;
+  };
+  disciplinasPrimariasIds: string[]; // as 3 primeiras disciplinas travadas (disciplinas de clã)
+  pontosBonusGastos: number; // 0 a 15
 }
 
 export type TipoDanoVitalidade = 'nenhum' | 'contusao' | 'letal' | 'agravado';
@@ -64,6 +102,9 @@ export interface Personagem {
   tipo: 'jogador' | 'npc';
   createdAt: string;
   updatedAt: string;
+
+  // Controle do Modo de Criação (Passo a passo com pontos iniciais e bônus)
+  criacao?: DadosCriacaoFicha;
 
   // SEÇÃO 1: CARACTERÍSTICAS PRINCIPAIS
   // Cabeçalho

@@ -1,8 +1,31 @@
-import type { Personagem, User, NivelVitalidade } from '../types';
+import type {
+  Personagem,
+  User,
+  NivelVitalidade,
+  ConfiguracaoMesa,
+} from '../types';
 
 const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
 const STORAGE_KEY_USERS = 'vampiro_dark_ages_users_v1';
 const STORAGE_KEY_AUTH = 'vampiro_dark_ages_auth_v1';
+const STORAGE_KEY_CONFIG = 'vampiro_dark_ages_config_v1';
+
+export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
+  pontosAtributos: {
+    primario: 7,
+    secundario: 5,
+    terciario: 3,
+  },
+  pontosHabilidades: {
+    primario: 13,
+    secundario: 7,
+    terciario: 5,
+  },
+  pontosDisciplinas: 4,
+  pontosAntecedentes: 5,
+  pontosVirtudes: 7,
+  pontosBonus: 15,
+};
 
 export const NIVEIS_VITALIDADE_PADRAO: NivelVitalidade[] = [
   { id: '1', nome: 'Escoriado', penalidade: '0', dano: 'nenhum' },
@@ -20,176 +43,155 @@ export const USUARIOS_PADRAO: User[] = [
     nome: 'Mestre da Crônica',
     email: 'mestre@darkages.com',
     role: 'mestre',
+    senha: '123',
   },
   {
     id: 'usr_jogador1',
     nome: 'Lady Eléonore',
     email: 'eleonore@darkages.com',
     role: 'jogador',
+    senha: '123',
   },
   {
     id: 'usr_jogador2',
     nome: 'Irmão Guy de Lusignan',
     email: 'guy@darkages.com',
     role: 'jogador',
+    senha: '123',
   },
 ];
 
-export const PERSONAGEM_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'updatedAt'> = {
+export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'updatedAt'> = {
   usuarioId: 'usr_mestre',
   usuarioNome: 'Mestre da Crônica',
   tipo: 'jogador',
-  nome: 'Novo Personagem',
+  nome: 'Novo Cainita',
   jogador: '',
-  cronica: 'Sombras da Europa Feudal',
-  comportamento: 'Sobrevivente',
-  cla: 'Lasombra',
-  natureza: 'Autocrata',
-  geracao: '8ª Geração',
-  refugio: 'Cripta da Abadia de Saint-Denis',
-  conceito: 'Nobre Banido',
-  senhor: 'Lorde Guillaume de Montmirail',
+  cronica: 'Idade das Trevas',
+  comportamento: '',
+  cla: '',
+  natureza: '',
+  geracao: '12ª Geração',
+  refugio: '',
+  conceito: '',
+  senhor: '',
+  criacao: {
+    status: 'em_criacao',
+    etapa: 'prioridades',
+    disciplinasPrimariasIds: [],
+    pontosBonusGastos: 0,
+  },
   atributos: {
-    forca: 2,
-    destreza: 3,
-    vigor: 3,
-    carisma: 3,
-    manipulacao: 4,
-    aparencia: 2,
-    percepcao: 3,
-    inteligencia: 3,
-    raciocinio: 3,
+    // Todos começam com a primeira bolinha preenchida obrigatoriamente
+    forca: 1,
+    destreza: 1,
+    vigor: 1,
+    carisma: 1,
+    manipulacao: 1,
+    aparencia: 1,
+    percepcao: 1,
+    inteligencia: 1,
+    raciocinio: 1,
   },
   habilidades: {
-    prontidao: 2,
-    esportes: 1,
-    briga: 2,
-    esquiva: 2,
-    empatia: 1,
-    expressao: 2,
-    intimidacao: 3,
-    lideranca: 3,
-    ladinagem: 1,
-    manha: 1,
+    // Todas habilidades começam zeradas
+    prontidao: 0,
+    esportes: 0,
+    briga: 0,
+    esquiva: 0,
+    empatia: 0,
+    expressao: 0,
+    intimidacao: 0,
+    lideranca: 0,
+    ladinagem: 0,
+    manha: 0,
     empatiaAnimais: 0,
-    tiroComArco: 1,
+    tiroComArco: 0,
     artesanato: 0,
-    cavalaria: 3,
-    etiqueta: 3,
+    cavalaria: 0,
+    etiqueta: 0,
     herbalismo: 0,
-    armasBrancas: 3,
-    musica: 1,
-    sobrevivencia: 2,
-    academicos: 2,
-    sabedoriaPopular: 1,
-    investigacao: 2,
-    direito: 2,
-    linguistica: 2,
-    medicina: 1,
-    ocultismo: 2,
-    politica: 3,
-    senescencia: 1,
+    armasBrancas: 0,
+    musica: 0,
+    sobrevivencia: 0,
+    academicos: 0,
+    sabedoriaPopular: 0,
+    investigacao: 0,
+    direito: 0,
+    linguistica: 0,
+    medicina: 0,
+    ocultismo: 0,
+    politica: 0,
+    senescencia: 0,
   },
-  disciplinas: [
-    { id: '1', nome: 'Obtenebracao', nivel: 3 },
-    { id: '2', nome: 'Potencia', nivel: 2 },
-    { id: '3', nome: 'Dominacao', nivel: 2 },
-  ],
-  antecedentes: [
-    { id: '1', nome: 'Recursos', nivel: 3 },
-    { id: '2', nome: 'Lacaios', nivel: 2 },
-    { id: '3', nome: 'Geracao', nivel: 5 },
-    { id: '4', nome: 'Status', nivel: 2 },
-  ],
+  disciplinas: [],
+  antecedentes: [],
   virtudes: {
-    tipoConsciencia: 'conviccao',
-    consciencia: 3,
-    tipoAutocontrole: 'instinto',
-    autocontrole: 4,
-    coragem: 4,
+    tipoConsciencia: 'consciencia',
+    consciencia: 1, // começa com 1 bolinha preenchida
+    tipoAutocontrole: 'autocontrole',
+    autocontrole: 1, // começa com 1 bolinha preenchida
+    coragem: 1, // começa com 1 bolinha preenchida
   },
-  caminho: 'Caminho dos Reis (Via Regalis)',
-  caminhoNivel: 7,
-  forcaDeVontade: 7,
+  caminho: 'Humanidade',
+  caminhoNivel: 2, // Consciência (1) + Autocontrole (1)
+  forcaDeVontade: 1, // Igual à Coragem (1)
   forcaDeVontadeGasta: 0,
-  pontosDeSangueMax: 15,
-  pontosDeSangueAtual: 12,
-  fraqueza: 'Não produz reflexo em espelhos nem superfícies reflexivas, e sombras ao seu redor tremulam.',
-  vitalidade: NIVEIS_VITALIDADE_PADRAO,
+  pontosDeSangueMax: 10,
+  pontosDeSangueAtual: 10,
+  fraqueza: '',
+  vitalidade: NIVEIS_VITALIDADE_PADRAO.map((n) => ({ ...n })),
   xp: {
-    atual: 6,
-    totalGasto: 24,
-    historico: 'Sessão 1: +4 XP (Sobrevivência ao cerco)\nSessão 2: +3 XP (Negociação com o Príncipe de Paris)\nGasto: -10 XP para Obtenebração 3\nGasto: -14 XP para Dominação 2',
+    atual: 0,
+    totalGasto: 0,
+    historico: 'Criação inicial da ficha.',
   },
-  armas: [
-    {
-      id: '1',
-      nome: 'Espada Bastarda Forjada em Toledo',
-      dificuldade: '6',
-      dano: 'Força + 4',
-      ocultacao: 'Sob o Manto',
-      alcance: 'Corpo a Corpo',
-    },
-    {
-      id: '2',
-      nome: 'Adaga de Misericórdia',
-      dificuldade: '4',
-      dano: 'Força + 1',
-      ocultacao: 'Bolso/Bota',
-      alcance: 'Curto',
-    },
-  ],
-  armaduras: [
-    {
-      id: '1',
-      nome: 'Cota de Malha Nobre',
-      classe: '3 (Absorção +3)',
-      penalidade: '-1 Destreza',
-    },
-  ],
-  lacosDeSangue: [
-    { id: '1', regente: 'Gaspard, Escudeiro Fiel (Ghoule)', nivel: 3 },
-    { id: '2', regente: 'Padre Thomas de Bayeux (Influência)', nivel: 1 },
-  ],
-  perturbacoes: [
-    {
-      id: '1',
-      nome: 'Orgulho Desmedido da Linhagem',
-      descricao: 'Não aceita ser contrariado por vampiros de gerações mais novas sem uma demonstração de força.',
-    },
-  ],
-  linhasTaumaturgia: [
-    { id: '1', nome: 'Senda do Sangue', nivel: 1 },
-  ],
-  rituais: [
-    {
-      id: '1',
-      nome: 'Defesa do Refúgio Sagrado',
-      nivel: '1',
-      anotacoes: 'Impede a entrada de luz solar por 24h na câmara (VDA Livro Básico p. 182)',
-    },
-  ],
+  armas: [],
+  armaduras: [],
+  lacosDeSangue: [],
+  perturbacoes: [],
+  linhasTaumaturgia: [],
+  rituais: [],
   aparencia: {
-    idade: '142 anos',
-    idadeAparente: '28 anos',
-    abraco: 'Ano do Senhor de 1184',
-    cabelos: 'Negros como corvo, longos até os ombros',
-    raca: 'Franco / Normando',
-    olhos: 'Cinza gélido',
-    sexo: 'Feminino',
-    nacionalidade: 'Reino da França',
-    altura: '1.74 m',
-    peso: '60 kg',
+    idade: '',
+    idadeAparente: '',
+    abraco: '',
+    cabelos: '',
+    raca: '',
+    olhos: '',
+    sexo: '',
+    nacionalidade: '',
+    altura: '',
+    peso: '',
   },
   biografia: {
-    historia: 'Nascida em berço de prata na corte de Champagne, Eléonore descobriu as conspirações da noite ao ser prometida em casamento político. O Senhor Guillaume viu nela a frieza e sagacidade necessárias para governar nas sombras do século XII.',
-    preludio: 'Na noite em que sua carruagem foi emboscada por salteadores perto de Troyes, Guillaume emergiu das névoas. Não para salvá-la pela virtude, mas para testar se ela imploraria ou lutaria. Ela pegou a adaga de seu cocheiro caído.',
-    objetivos: 'Estabelecer um domínio seguro nas catedrais góticas em construção ao norte da França e desafiar a hegemonia dos Ventrue locais.',
-    notas: 'Aliada em potencial: Abadessa Hildegarda. Inimigo jurado: Barão Valerius do Clã Ventrue.',
+    historia: '',
+    preludio: '',
+    objetivos: '',
+    notas: '',
   },
 };
 
 export const storageService = {
+  // Configuração da Mesa pelo Mestre
+  getConfiguracaoMesa(): ConfiguracaoMesa {
+    const raw = localStorage.getItem(STORAGE_KEY_CONFIG);
+    if (!raw) {
+      this.salvarConfiguracaoMesa(CONFIGURACAO_MESA_PADRAO);
+      return CONFIGURACAO_MESA_PADRAO;
+    }
+    try {
+      return { ...CONFIGURACAO_MESA_PADRAO, ...JSON.parse(raw) };
+    } catch {
+      return CONFIGURACAO_MESA_PADRAO;
+    }
+  },
+
+  salvarConfiguracaoMesa(config: ConfiguracaoMesa): void {
+    localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+  },
+
+  // Autenticação e Usuários
   getUsuarios(): User[] {
     const raw = localStorage.getItem(STORAGE_KEY_USERS);
     if (!raw) {
@@ -197,87 +199,85 @@ export const storageService = {
       return USUARIOS_PADRAO;
     }
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : USUARIOS_PADRAO;
     } catch {
       return USUARIOS_PADRAO;
     }
   },
 
   salvarUsuario(user: User): void {
-    const usuarios = this.getUsuarios();
-    const idx = usuarios.findIndex((u) => u.id === user.id);
+    const todos = this.getUsuarios();
+    const idx = todos.findIndex((u) => u.id === user.id);
     if (idx >= 0) {
-      usuarios[idx] = user;
+      todos[idx] = user;
     } else {
-      usuarios.push(user);
+      todos.push(user);
     }
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(usuarios));
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(todos));
   },
 
-  getUsuarioAtual(): User {
-    const raw = localStorage.getItem(STORAGE_KEY_AUTH);
-    if (raw) {
-      try {
-        return JSON.parse(raw);
-      } catch {
-        // fallback
-      }
+  login(email: string, senha?: string): User | null {
+    const usuarios = this.getUsuarios();
+    const encontrado = usuarios.find(
+      (u) => u.email.toLowerCase().trim() === email.toLowerCase().trim()
+    );
+    if (!encontrado) return null;
+    // Se tiver senha cadastrada, verifica (ou aceita se estiver vazia para testes)
+    if (encontrado.senha && senha && encontrado.senha !== senha) {
+      return null;
     }
-    const padrao = this.getUsuarios()[0];
-    this.setUsuarioAtual(padrao);
-    return padrao;
+    this.setUsuarioAtual(encontrado);
+    return encontrado;
+  },
+
+  cadastrar(nome: string, email: string, senha?: string): User {
+    const usuarios = this.getUsuarios();
+    const jaExiste = usuarios.find(
+      (u) => u.email.toLowerCase().trim() === email.toLowerCase().trim()
+    );
+    if (jaExiste) {
+      throw new Error('Já existe um jogador registrado com este e-mail.');
+    }
+    const novo: User = {
+      id: 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
+      nome,
+      email,
+      role: 'jogador',
+      senha: senha || '123',
+    };
+    this.salvarUsuario(novo);
+    this.setUsuarioAtual(novo);
+    return novo;
+  },
+
+  getUsuarioAtual(): User | null {
+    const raw = localStorage.getItem(STORAGE_KEY_AUTH);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   },
 
   setUsuarioAtual(user: User): void {
     localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(user));
   },
 
+  logout(): void {
+    localStorage.removeItem(STORAGE_KEY_AUTH);
+  },
+
+  // Personagens
   getPersonagens(): Personagem[] {
     const raw = localStorage.getItem(STORAGE_KEY_PERSONAGENS);
     if (!raw) {
-      const inicial: Personagem = {
-        ...PERSONAGEM_MODELO,
-        id: 'char_inicial_1',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      const inicial2: Personagem = {
-        ...PERSONAGEM_MODELO,
-        id: 'char_inicial_2',
-        usuarioId: 'usr_jogador2',
-        usuarioNome: 'Irmão Guy de Lusignan',
-        nome: 'Irmão Guy de Lusignan',
-        cla: 'Capadócio',
-        natureza: 'Penitente',
-        comportamento: 'Erudito',
-        geracao: '9ª Geração',
-        caminho: 'Caminho dos Ossos (Via Ossis)',
-        tipo: 'jogador',
-        pontosDeSangueMax: 14,
-        pontosDeSangueAtual: 10,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      const npc1: Personagem = {
-        ...PERSONAGEM_MODELO,
-        id: 'char_npc_1',
-        usuarioId: 'usr_mestre',
-        usuarioNome: 'Mestre da Crônica',
-        nome: 'Barão Valerius von Thuringen',
-        cla: 'Ventrue',
-        geracao: '7ª Geração',
-        tipo: 'npc',
-        pontosDeSangueMax: 20,
-        pontosDeSangueAtual: 18,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      const lista = [inicial, inicial2, npc1];
-      localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(lista));
-      return lista;
+      return [];
     }
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -313,15 +313,22 @@ export const storageService = {
 
   criarNovoPersonagem(autor: User, tipo: 'jogador' | 'npc' = 'jogador'): Personagem {
     const novo: Personagem = {
-      ...PERSONAGEM_MODELO,
+      ...PERSONAGEM_ZERADO_MODELO,
       id: 'char_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
       usuarioId: autor.id,
       usuarioNome: autor.nome,
+      jogador: autor.role === 'jogador' ? autor.nome : '',
       tipo,
-      nome: tipo === 'npc' ? 'Novo NPC da Crônica' : 'Novo Vampiro',
+      nome: tipo === 'npc' ? 'Novo NPC da Crônica' : 'Novo Cainita',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       vitalidade: NIVEIS_VITALIDADE_PADRAO.map((n) => ({ ...n })),
+      criacao: {
+        status: 'em_criacao',
+        etapa: 'prioridades',
+        disciplinasPrimariasIds: [],
+        pontosBonusGastos: 0,
+      },
     };
     this.salvarPersonagem(novo);
     return novo;
@@ -341,6 +348,7 @@ export const storageService = {
     const dados = {
       usuarios: this.getUsuarios(),
       personagens: this.getPersonagens(),
+      configuracaoMesa: this.getConfiguracaoMesa(),
       exportadoEm: new Date().toISOString(),
     };
     return JSON.stringify(dados, null, 2);
@@ -354,6 +362,9 @@ export const storageService = {
       }
       if (Array.isArray(parsed.usuarios)) {
         localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(parsed.usuarios));
+      }
+      if (parsed.configuracaoMesa) {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(parsed.configuracaoMesa));
       }
       return true;
     } catch {

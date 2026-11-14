@@ -1,20 +1,33 @@
 import React, { useState } from 'react';
 import type { Personagem, User } from '../types';
 import { storageService } from '../services/storage';
+import {
+  Skull,
+  Shield,
+  Trash2,
+  ExternalLink,
+  Settings,
+  Share2,
+  Check,
+  Sparkles,
+} from 'lucide-react';
 
 interface DashboardProps {
   usuarioAtual: User;
   onAbrirFicha: (personagemId: string) => void;
   onCriarNovo: (tipo: 'jogador' | 'npc') => void;
+  onAbrirConfigMestre?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   usuarioAtual,
   onAbrirFicha,
   onCriarNovo,
+  onAbrirConfigMestre,
 }) => {
   const [busca, setBusca] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'jogador' | 'npc'>('todos');
+  const [copiado, setCopiado] = useState(false);
   const [personagens, setPersonagens] = useState<Personagem[]>(() =>
     storageService.getPersonagensDoUsuario(usuarioAtual)
   );
@@ -25,6 +38,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
       storageService.excluirPersonagem(id);
       setPersonagens(storageService.getPersonagensDoUsuario(usuarioAtual));
     }
+  };
+
+  const handleCopiarConvite = () => {
+    const url = `${window.location.origin}${window.location.pathname}?convite=dark-ages`;
+    navigator.clipboard.writeText(url);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2500);
   };
 
   const filtrados = personagens.filter((p) => {
@@ -67,20 +87,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
 
-        {/* Botões de Ação para Criar Fichas */}
-        <div className="flex items-center gap-2">
+        {/* Botões de Ação para Criar Fichas e Configuração */}
+        <div className="flex flex-wrap items-center gap-2">
+          {usuarioAtual.role === 'mestre' && (
+            <>
+              <button
+                type="button"
+                onClick={handleCopiarConvite}
+                className="px-3 py-2 text-xs font-semibold rounded-xs border border-[#522228] bg-[#1e1317] hover:bg-[#2e1c22] text-[#ded6cb] transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {copiado ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-green-400" />
+                    <span className="text-green-400">Link Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-3.5 h-3.5 text-[#ef4444]" />
+                    <span>Convidar Jogador</span>
+                  </>
+                )}
+              </button>
+
+              {onAbrirConfigMestre && (
+                <button
+                  type="button"
+                  onClick={onAbrirConfigMestre}
+                  className="px-3 py-2 text-xs font-gothic font-bold uppercase rounded-xs border border-[#8b0000] bg-[#251016] text-[#d4af37] hover:bg-[#3d1820] transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                >
+                  <Settings className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>Pontuação Inicial</span>
+                </button>
+              )}
+            </>
+          )}
+
           <button
             type="button"
             onClick={() => onCriarNovo('jogador')}
-            className="px-4 py-2 text-xs sm:text-sm font-gothic font-bold uppercase rounded-xs bg-[#8b0000] text-white hover:bg-[#a10e14] transition-all shadow-[0_0_12px_rgba(139,0,0,0.5)] active:scale-95"
+            className="px-4 py-2 text-xs sm:text-sm font-gothic font-bold uppercase rounded-xs bg-[#8b0000] text-white hover:bg-[#a10e14] transition-all shadow-[0_0_12px_rgba(139,0,0,0.5)] active:scale-95 cursor-pointer flex items-center gap-1.5"
           >
-            ＋ Novo Personagem
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Novo Personagem</span>
           </button>
           {usuarioAtual.role === 'mestre' && (
             <button
               type="button"
               onClick={() => onCriarNovo('npc')}
-              className="px-4 py-2 text-xs sm:text-sm font-gothic font-bold uppercase rounded-xs border border-[#3b181b] bg-[#1a1417] text-[#d4af37] hover:border-[#8b0000] hover:bg-[#2b1013] transition-all active:scale-95"
+              className="px-3 py-2 text-xs sm:text-sm font-gothic font-bold uppercase rounded-xs border border-[#3b181b] bg-[#1a1417] text-[#d4af37] hover:border-[#8b0000] hover:bg-[#2b1013] transition-all active:scale-95 cursor-pointer"
             >
               ＋ Novo NPC
             </button>
@@ -108,10 +162,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
               type="button"
               onClick={() => setFiltroTipo('todos')}
-              className={`px-2.5 py-1 rounded-xs uppercase font-bold text-[10px] transition-colors ${
+              className={`px-2.5 py-1 rounded-xs uppercase font-bold text-[10px] transition-colors cursor-pointer ${
                 filtroTipo === 'todos'
                   ? 'bg-[#8b0000] text-white'
-                  : 'bg-[#1b1719] text-muted hover:text-white'
+                  : 'bg-[#1b1719] text-[#a89f91] hover:text-white'
               }`}
             >
               Todos ({personagens.length})
@@ -119,128 +173,184 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
               type="button"
               onClick={() => setFiltroTipo('jogador')}
-              className={`px-2.5 py-1 rounded-xs uppercase font-bold text-[10px] transition-colors ${
+              className={`px-2.5 py-1 rounded-xs uppercase font-bold text-[10px] transition-colors cursor-pointer ${
                 filtroTipo === 'jogador'
                   ? 'bg-[#8b0000] text-white'
-                  : 'bg-[#1b1719] text-muted hover:text-white'
+                  : 'bg-[#1b1719] text-[#a89f91] hover:text-white'
               }`}
             >
-              Jogadores
+              Jogadores ({personagens.filter((p) => p.tipo === 'jogador').length})
             </button>
             <button
               type="button"
               onClick={() => setFiltroTipo('npc')}
-              className={`px-2.5 py-1 rounded-xs uppercase font-bold text-[10px] transition-colors ${
+              className={`px-2.5 py-1 rounded-xs uppercase font-bold text-[10px] transition-colors cursor-pointer ${
                 filtroTipo === 'npc'
                   ? 'bg-[#8b0000] text-white'
-                  : 'bg-[#1b1719] text-muted hover:text-white'
+                  : 'bg-[#1b1719] text-[#a89f91] hover:text-white'
               }`}
             >
-              NPCs
+              NPCs ({personagens.filter((p) => p.tipo === 'npc').length})
             </button>
           </div>
         )}
       </div>
 
-      {/* Lista de Fichas / Tabela de Resumo */}
+      {/* Grid de Personagens */}
       {filtrados.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-[#3b181b] rounded-xs bg-[#131012]">
-          <span className="text-4xl block mb-2">⚰️</span>
-          <p className="text-base font-gothic font-bold text-[#ded6cb]">
-            Nenhuma ficha encontrada
-          </p>
-          <p className="text-xs text-[#a89f91] mt-1">
+        <div className="text-center py-16 border border-dashed border-[#3b181b] rounded-sm bg-[#120d10] p-6 space-y-4">
+          <Skull className="w-12 h-12 text-[#5a242c] mx-auto animate-pulse" />
+          <h3 className="text-lg font-gothic text-[#d4af37]">Nenhum cainita encontrado</h3>
+          <p className="text-xs text-[#8e8273] max-w-sm mx-auto">
             {busca
-              ? 'Nenhum Caimita corresponde aos termos buscados.'
-              : 'Clique em "+ Novo Personagem" para iniciar sua linhagem.'}
+              ? 'Nenhum registro corresponde aos filtros de busca aplicados.'
+              : 'Nenhuma ficha foi forjada nas sombras ainda. Comece criando um novo personagem.'}
           </p>
+          <button
+            type="button"
+            onClick={() => onCriarNovo('jogador')}
+            className="px-4 py-2 bg-[#8b0000] hover:bg-[#a10e14] text-white font-gothic font-bold text-xs uppercase tracking-wider rounded-xs cursor-pointer shadow-lg"
+          >
+            Criar Primeiro Personagem
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtrados.map((p) => {
-            const vitalidade = getStatusVitalidade(p);
+            const vit = getStatusVitalidade(p);
+            const sangueDisp = p.pontosDeSangueAtual;
+            const sangueMax = p.pontosDeSangueMax;
+            const isEmCriacao = p.criacao?.status === 'em_criacao';
+
             return (
               <div
                 key={p.id}
                 onClick={() => onAbrirFicha(p.id)}
-                className="group relative bg-[#151214] border border-[#3b181b] hover:border-[#8b0000] rounded-xs p-4 transition-all duration-200 hover:shadow-[0_4px_20px_rgba(139,0,0,0.25)] cursor-pointer flex flex-col justify-between"
+                className="group relative bg-[#130d10] border border-[#2b1418] hover:border-[#8b0000] transition-all duration-300 rounded-sm p-5 shadow-lg hover:shadow-[0_4px_25px_rgba(139,0,0,0.3)] flex flex-col justify-between cursor-pointer overflow-hidden"
               >
-                <div>
-                  {/* Topo do Card: Tipo & Dono */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-xs border ${
-                        p.tipo === 'npc'
-                          ? 'border-purple-800 bg-purple-950/60 text-purple-300'
-                          : 'border-red-800 bg-red-950/60 text-red-300'
-                      }`}
-                    >
-                      {p.tipo === 'npc' ? 'NPC / Antagonista' : 'Personagem de Jogador'}
-                    </span>
-                    <span className="text-[10px] text-muted truncate max-w-[120px]">
-                      {p.jogador || p.usuarioNome}
-                    </span>
+                {/* Linha de Sangue Decorativa no Topo */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#8b0000] to-transparent opacity-50 group-hover:opacity-100 transition-opacity" />
+
+                <div className="space-y-4">
+                  {/* Cabeçalho do Card */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-gothic font-bold text-[#d4af37] group-hover:text-white transition-colors truncate max-w-[200px]">
+                          {p.nome || 'Sem Nome'}
+                        </h3>
+                        {p.tipo === 'npc' ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950/60 text-amber-300 border border-amber-800">
+                            NPC
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-red-950/60 text-red-300 border border-red-800">
+                            Jogador
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#8e8273] italic">
+                        {p.cla || 'Sem Clã'} • {p.geracao || 'Geração Indefinida'}
+                      </p>
+                    </div>
+
+                    {/* Badge de Status de Criação */}
+                    <div>
+                      {isEmCriacao ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950/80 text-amber-300 border border-amber-600 animate-pulse">
+                          Em Criação
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-950/40 text-green-400 border border-green-800">
+                          Pronto
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Nome do Personagem */}
-                  <h3 className="text-lg font-gothic font-bold text-[#ded6cb] group-hover:text-[#ef4444] transition-colors truncate">
-                    {p.nome || 'Sem Nome'}
-                  </h3>
-
-                  {/* Clã e Geração */}
-                  <div className="flex items-center gap-2 text-xs text-[#d4af37] mt-0.5 font-medium">
-                    <span>{p.cla || 'Sem Clã'}</span>
-                    <span>·</span>
-                    <span className="text-[#a89f91]">{p.geracao || 'Geração desconhecida'}</span>
+                  {/* Informações Resumidas */}
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-[#251419]">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#706456] block">
+                        Jogador / Dono
+                      </span>
+                      <span className="text-[#ded6cb] font-semibold truncate block">
+                        {p.jogador || p.usuarioNome}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#706456] block">
+                        Natureza / Comp.
+                      </span>
+                      <span className="text-[#ded6cb] truncate block">
+                        {p.natureza || '—'} / {p.comportamento || '—'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Detalhes de Resumo Exigidos: Vitalidade e Pontos de Sangue */}
-                  <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+                  {/* Status de Vitalidade e Sangue */}
+                  <div className="space-y-2 pt-2 border-t border-[#251419]">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] font-gothic text-muted uppercase">Vitalidade:</span>
-                      <span className={`px-2 py-0.5 rounded-xs text-[10px] font-bold border ${vitalidade.cor}`}>
-                        {vitalidade.texto}
+                      <span className="text-[11px] text-[#a89f91] flex items-center gap-1">
+                        <Shield className="w-3.5 h-3.5 text-amber-500" /> Vitalidade:
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${vit.cor}`}
+                      >
+                        {vit.texto}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] font-gothic text-muted uppercase">Pontos de Sangue:</span>
-                      <div className="flex items-center gap-1 font-mono text-xs">
-                        <span className="text-red-400 font-bold">{p.pontosDeSangueAtual}</span>
-                        <span className="text-muted">/</span>
-                        <span className="text-[#ded6cb]">{p.pontosDeSangueMax}</span>
-                        <span className="text-red-500 text-xs">🩸</span>
-                      </div>
+                      <span className="text-[11px] text-[#a89f91] flex items-center gap-1">
+                        🩸 Reserva de Sangue:
+                      </span>
+                      <span className="font-mono text-xs font-bold text-[#ef4444]">
+                        {sangueDisp} / {sangueMax}
+                      </span>
                     </div>
 
-                    {p.caminho && (
-                      <div className="flex items-center justify-between text-xs text-muted pt-1">
-                        <span className="text-[10px] font-gothic uppercase">Trilha:</span>
-                        <span className="text-[11px] text-[#ded6cb] truncate max-w-[150px]">
-                          {p.caminho}
-                        </span>
-                      </div>
-                    )}
+                    {/* Barra visual de sangue */}
+                    <div className="w-full bg-[#1e1317] h-1.5 rounded-full overflow-hidden border border-[#3b181b]">
+                      <div
+                        className="bg-gradient-to-r from-[#8b0000] to-[#ef4444] h-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, (sangueDisp / sangueMax) * 100))}%`,
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Rodapé do Card com Ação "Abrir Ficha" */}
-                <div className="mt-4 pt-3 border-t border-[#261517] flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onAbrirFicha(p.id)}
-                    className="flex-1 py-1.5 px-3 rounded-xs bg-[#241518] hover:bg-[#8b0000] text-[#d4af37] hover:text-white text-xs font-gothic font-bold uppercase transition-colors text-center border border-[#3b181b] hover:border-[#8b0000]"
-                  >
-                    Abrir Ficha 📜
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleExcluir(e, p.id, p.nome)}
-                    title="Excluir Ficha"
-                    className="p-1.5 text-xs text-muted hover:text-red-400 hover:bg-red-950/40 rounded-xs transition-colors"
-                  >
-                    🗑️
-                  </button>
+                {/* Rodapé do Card com Ações */}
+                <div className="flex items-center justify-between gap-2 mt-5 pt-3 border-t border-[#251419]">
+                  <span className="text-[10px] text-[#706456]">
+                    Atualizado em {new Date(p.updatedAt).toLocaleDateString('pt-BR')}
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    {/* Botão Excluir (somente mestre ou dono) */}
+                    {(usuarioAtual.role === 'mestre' || p.usuarioId === usuarioAtual.id) && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleExcluir(e, p.id, p.nome)}
+                        title="Destruir Personagem"
+                        className="p-1.5 text-[#8e8273] hover:text-[#ef4444] hover:bg-[#251419] rounded-xs transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {/* Botão Abrir Ficha */}
+                    <button
+                      type="button"
+                      onClick={() => onAbrirFicha(p.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-[#241318] hover:bg-[#8b0000] text-[#d4af37] hover:text-white border border-[#522228] hover:border-[#8b0000] rounded-xs text-xs font-gothic font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+                    >
+                      <span>Abrir</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

@@ -4,12 +4,15 @@ import { storageService } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
 import { FichaPersonagem } from './components/FichaPersonagem';
+import { TelaLogin } from './components/TelaLogin';
+import { PainelConfigMestre } from './components/PainelConfigMestre';
 
 export function App() {
-  const [usuarioAtual, setUsuarioAtual] = useState<User>(() =>
+  const [usuarioAtual, setUsuarioAtual] = useState<User | null>(() =>
     storageService.getUsuarioAtual()
   );
   const [personagemAtivoId, setPersonagemAtivoId] = useState<string | null>(null);
+  const [modalConfigMestreAberto, setModalConfigMestreAberto] = useState(false);
 
   const handleTrocarUsuario = (novoUsuario: User) => {
     storageService.setUsuarioAtual(novoUsuario);
@@ -24,12 +27,19 @@ export function App() {
     }
   };
 
+  const handleLogout = () => {
+    storageService.logout();
+    setUsuarioAtual(null);
+    setPersonagemAtivoId(null);
+  };
+
   const handleAbrirFicha = (id: string) => {
     setPersonagemAtivoId(id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCriarNovo = (tipo: 'jogador' | 'npc') => {
+    if (!usuarioAtual) return;
     const novo = storageService.criarNovoPersonagem(usuarioAtual, tipo);
     setPersonagemAtivoId(novo.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -44,6 +54,11 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Se não estiver logado, exibe a Tela de Login e Cadastro
+  if (!usuarioAtual) {
+    return <TelaLogin onLoginSucesso={(user) => setUsuarioAtual(user)} />;
+  }
+
   const personagemAtivo = personagemAtivoId
     ? storageService.getPersonagem(personagemAtivoId)
     : null;
@@ -54,6 +69,8 @@ export function App() {
         usuarioAtual={usuarioAtual}
         onTrocarUsuario={handleTrocarUsuario}
         onVoltarDashboard={handleVoltarDashboard}
+        onAbrirConfigMestre={() => setModalConfigMestreAberto(true)}
+        onLogout={handleLogout}
         emFicha={!!personagemAtivoId}
       />
 
@@ -71,9 +88,15 @@ export function App() {
             usuarioAtual={usuarioAtual}
             onAbrirFicha={handleAbrirFicha}
             onCriarNovo={handleCriarNovo}
+            onAbrirConfigMestre={() => setModalConfigMestreAberto(true)}
           />
         )}
       </main>
+
+      {/* Modal de Configuração de Pontuação do Mestre */}
+      {modalConfigMestreAberto && (
+        <PainelConfigMestre onFechar={() => setModalConfigMestreAberto(false)} />
+      )}
     </div>
   );
 }

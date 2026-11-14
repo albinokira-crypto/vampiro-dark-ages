@@ -13,6 +13,8 @@ import { Bolinhas } from './Bolinhas';
 import { QuadradosStatus } from './QuadradosStatus';
 import { VitalidadeSelector } from './VitalidadeSelector';
 import { InlineField } from './InlineField';
+import { PainelCriacaoFicha } from './PainelCriacaoFicha';
+import { storageService } from '../services/storage';
 import {
   Save,
   ArrowLeft,
@@ -473,6 +475,38 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           </div>
         </div>
       </div>
+
+      {/* PAINEL DE CRIAÇÃO (Se a ficha estiver em modo de criação) */}
+      {ficha.criacao?.status === 'em_criacao' && podeEditar && (
+        <PainelCriacaoFicha
+          ficha={ficha}
+          config={storageService.getConfiguracaoMesa()}
+          onAtualizarFicha={(novaFicha) => {
+            setFicha(novaFicha);
+            setHasChanges(true);
+          }}
+          onFinalizarCriacao={() => {
+            if (
+              confirm(
+                'Deseja concluir e finalizar a criação do personagem? A pontuação inicial e os pontos bônus serão consolidados e a ficha passará para o modo de jogo normal.'
+              )
+            ) {
+              const finalizada: Personagem = {
+                ...ficha,
+                criacao: {
+                  ...ficha.criacao!,
+                  status: 'finalizada',
+                  etapa: 'concluida',
+                },
+              };
+              setFicha(finalizada);
+              onSalvar(finalizada);
+              setHasChanges(false);
+              alert('Personagem finalizado com sucesso! Agora você está no modo de jogo padrão.');
+            }
+          }}
+        />
+      )}
 
       {/* Aviso de Modo Somente Leitura */}
       {!podeEditar && (
