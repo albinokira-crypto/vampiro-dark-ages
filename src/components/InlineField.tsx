@@ -52,14 +52,14 @@ export const InlineField: React.FC<InlineFieldProps> = ({
     <div className={`relative flex flex-col ${className}`}>
       {label && (
         <span
-          className={`text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-0.5 ${labelCls}`}
+          className={`text-[9.5px] sm:text-[11px] font-gothic font-bold uppercase tracking-normal sm:tracking-wider text-[#a89f91] mb-0.5 truncate ${labelCls}`}
         >
           {label}
         </span>
       )}
 
       {readonly ? (
-        <div className="py-1 text-sm font-medium text-[#ded6cb] border-b border-white/5">
+        <div className="py-0.5 text-xs sm:text-sm font-medium text-[#ded6cb] border-b border-white/5 truncate">
           {value || placeholder}
         </div>
       ) : editing ? (
@@ -72,7 +72,7 @@ export const InlineField: React.FC<InlineFieldProps> = ({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full bg-[#1b1719] text-[#ded6cb] text-sm p-2 rounded-xs border border-[#8b0000] focus:outline-none focus:ring-1 focus:ring-[#8b0000] resize-y"
+            className="w-full bg-[#1b1719] text-[#ded6cb] text-xs sm:text-sm p-2 rounded-xs border border-[#8b0000] focus:outline-none focus:ring-1 focus:ring-[#8b0000] resize-y"
           />
         ) : (
           <input
@@ -83,7 +83,7 @@ export const InlineField: React.FC<InlineFieldProps> = ({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full bg-[#1b1719] text-[#ded6cb] text-sm px-1.5 py-0.5 rounded-xs border-b-2 border-[#8b0000] focus:outline-none focus:bg-[#241e21]"
+            className="w-full bg-[#1b1719] text-[#ded6cb] text-xs sm:text-sm px-1.5 py-0.5 rounded-xs border-b-2 border-[#8b0000] focus:outline-none focus:bg-[#241e21]"
           />
         )
       ) : (
@@ -91,7 +91,7 @@ export const InlineField: React.FC<InlineFieldProps> = ({
           onClick={() => setEditing(true)}
           title="Clique para editar este campo diretamente"
           className={`
-            cursor-pointer py-0.5 px-1 rounded-xs border-b border-[#3b181b] hover:border-[#8b0000] hover:bg-white/5 transition-all text-sm
+            cursor-pointer py-0.5 px-1 rounded-xs border-b border-[#3b181b] hover:border-[#8b0000] hover:bg-white/5 transition-all text-xs sm:text-sm
             ${value ? 'text-[#ded6cb] font-semibold' : 'text-[#6e645c] italic'}
             ${multiline ? 'whitespace-pre-wrap min-h-[3rem]' : 'truncate'}
           `}

@@ -1352,8 +1352,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           {/* ========================================================================= */}
           {/* CABEÇALHO PERMANENTE DA FICHA (Foto à Esquerda + 3 Linhas de Informações) */}
           {/* ========================================================================= */}
-          <div className="border-b-2 border-[#522228] pb-4">
-            <div className="flex flex-row items-start gap-2.5 sm:gap-4 bg-[#160f13]/90 p-2.5 sm:p-4 rounded-sm border border-[#2d1217]">
+          <div className="border-b-2 border-[#522228] pb-3">
+            <div className="flex flex-row items-start gap-2 sm:gap-4">
               {/* Foto no Canto Superior Esquerdo */}
               <div className="shrink-0 pt-0.5">
                 <FotoPersonagem
@@ -1367,7 +1367,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               </div>
 
               {/* Informações na Mesma Direção da Foto */}
-              <div className="flex-1 min-w-0 space-y-2 sm:space-y-2.5">
+              <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
                 {/* Linha 1: Nome e Jogador */}
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <InlineField
@@ -1424,7 +1424,6 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     value={ficha.geracao || '12ª Geração'}
                     opcoes={opcoesGeracao}
                     onChange={handleGeracaoChange}
-                    dica="Base: 12ª Geração. Só cai comprando o Antecedente Geração (1 pt = 1 nível, máx 5 pts = 7ª)."
                     permitirPersonalizado={false}
                     readonly={!podeEditar}
                   />

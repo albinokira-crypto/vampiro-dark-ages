@@ -89,7 +89,7 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
     <div className={`relative flex flex-col ${className}`}>
       {label && (
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91]">
+          <span className="text-[9.5px] sm:text-[11px] font-gothic font-bold uppercase tracking-normal sm:tracking-wider text-[#a89f91] truncate">
             {label}
           </span>
           {badge && (
@@ -101,15 +101,15 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
       )}
 
       {readonly ? (
-        <div className="w-full bg-[#140e11] border border-[#2d1217] px-2.5 py-1 text-xs text-[#ded6cb] font-semibold rounded-xs truncate">
+        <div className="w-full bg-[#140e11] border border-[#2d1217] px-2 py-1 text-xs text-[#ded6cb] font-semibold rounded-xs truncate">
           {value || placeholder}
         </div>
       ) : (
         <div className="space-y-1">
           <div className="relative">
             {/* Caixa visual: mostra apenas o nome limpo (ex: Brujah) quando fechada */}
-            <div className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] text-xs font-semibold text-[#ded6cb] px-2.5 py-1.5 rounded-xs flex items-center justify-between pr-8 transition-colors pointer-events-none truncate min-h-[30px]">
-              <span className={value ? 'text-[#ded6cb]' : 'text-[#706456]'}>
+            <div className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] text-[11px] sm:text-xs font-semibold text-[#ded6cb] pl-1.5 sm:pl-2.5 pr-5 sm:pr-7 py-1 sm:py-1.5 rounded-xs flex items-center transition-colors pointer-events-none truncate min-h-[28px] sm:min-h-[30px]">
+              <span className={`truncate w-full text-left ${value ? 'text-[#ded6cb]' : 'text-[#706456]'}`}>
                 {modoCustom ? customTexto || 'Personalizado' : (value || placeholder)}
               </span>
             </div>
@@ -179,7 +179,7 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
                 </option>
               )}
             </select>
-            <ChevronDown className="w-4 h-4 text-[#d4af37] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#d4af37] absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
           </div>
 
           {modoCustom && (
