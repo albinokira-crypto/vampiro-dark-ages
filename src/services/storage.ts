@@ -43,6 +43,7 @@ export const USUARIOS_PADRAO: User[] = [
   {
     id: 'mestre_demo',
     nome: 'Mestre Alucard',
+    nick: 'alucard',
     email: 'mestre@darkages.com',
     role: 'mestre',
     senha: '123',
@@ -50,6 +51,7 @@ export const USUARIOS_PADRAO: User[] = [
   {
     id: 'jogador_demo',
     nome: 'Julian, o Cavaleiro',
+    nick: 'julian',
     email: 'jogador@darkages.com',
     role: 'jogador',
     senha: '123',
@@ -260,15 +262,15 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(todos));
   },
 
-  async login(email: string, senha?: string): Promise<User> {
-    const cleanEmail = email.toLowerCase().trim();
+  async login(identificador: string, senha?: string): Promise<User> {
+    const clean = identificador.toLowerCase().trim();
 
-    // 1. Tentar login direto na nuvem (Cloudflare D1)
+    // 1. Tentar login direto na nuvem (Cloudflare D1) por Nick ou Email
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, senha: senha || '' }),
+        body: JSON.stringify({ nick: clean, senha: senha || '' }),
       });
 
       if (res.ok) {
@@ -286,16 +288,18 @@ export const storageService = {
       if (err instanceof Error && !err.message.includes('fetch')) {
         throw err;
       }
-      // Se offline ou rede falhou, tenta verificar localmente
     }
 
     // 2. Fallback local se offline
     const usuarios = this.getUsuarios();
     const encontrado = usuarios.find(
-      (u) => u.email.toLowerCase().trim() === cleanEmail
+      (u) =>
+        (u.nick && u.nick.toLowerCase().trim() === clean) ||
+        (u.email && u.email.toLowerCase().trim() === clean) ||
+        u.nome.toLowerCase().trim() === clean
     );
     if (!encontrado) {
-      throw new Error('E-mail não encontrado ou credenciais inválidas.');
+      throw new Error('Nick não encontrado ou credenciais inválidas.');
     }
     if (encontrado.senha && senha && encontrado.senha !== senha) {
       throw new Error('Senha incorreta.');
@@ -304,8 +308,14 @@ export const storageService = {
     return encontrado;
   },
 
-  async cadastrar(nome: string, email: string, senha?: string, role: UserRole = 'jogador'): Promise<User> {
-    const cleanEmail = email.toLowerCase().trim();
+  async cadastrar(
+    nome: string,
+    nick: string,
+    senha?: string,
+    role: UserRole = 'jogador',
+    email?: string
+  ): Promise<User> {
+    const cleanNick = nick.toLowerCase().trim().replace(/\s+/g, '');
 
     // 1. Tentar cadastro na nuvem (Cloudflare D1)
     try {
@@ -314,9 +324,10 @@ export const storageService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nome: nome.trim(),
-          email: cleanEmail,
+          nick: cleanNick,
           senha: senha || '123',
           role,
+          email: email || '',
         }),
       });
 
@@ -335,13 +346,14 @@ export const storageService = {
       }
       // Fallback local se estiver offline
       const usuarios = this.getUsuarios();
-      if (usuarios.some((u) => u.email.toLowerCase().trim() === cleanEmail)) {
-        throw new Error('Já existe um usuário com este e-mail no cache local.');
+      if (usuarios.some((u) => u.nick && u.nick.toLowerCase() === cleanNick)) {
+        throw new Error('Já existe um jogador com este Nick no cache local.');
       }
       const novo: User = {
         id: 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
         nome: nome.trim(),
-        email: cleanEmail,
+        nick: cleanNick,
+        email: email || `${cleanNick}@darkages.local`,
         role,
         senha: senha || '123',
       };
@@ -369,13 +381,13 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEY_AUTH);
   },
 
-  async recuperarSenha(email: string, novaSenha: string): Promise<string> {
-    const cleanEmail = email.toLowerCase().trim();
+  async recuperarSenha(identificador: string, novaSenha: string): Promise<string> {
+    const clean = identificador.toLowerCase().trim();
     try {
       const res = await fetch('/api/auth/recuperar-senha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, novaSenha }),
+        body: JSON.stringify({ nick: clean, novaSenha }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -388,7 +400,7 @@ export const storageService = {
     }
   },
 
-  async buscarLogin(nome: string): Promise<Array<{ nome: string; email: string; role: string }>> {
+  async buscarLogin(nome: string): Promise<Array<{ nome: string; nick: string; email?: string; role: string }>> {
     try {
       const res = await fetch('/api/auth/buscar-login', {
         method: 'POST',
@@ -401,6 +413,24 @@ export const storageService = {
       return [];
     } catch {
       return [];
+    }
+  },
+
+  async excluirUsuario(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        // Limpar do cache local
+        const todos = this.getUsuarios().filter((u) => u.id !== id);
+        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(todos));
+        // Limpar personagens desse usuário
+        const personagens = this.getPersonagens().filter((p) => p.usuarioId !== id);
+        localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(personagens));
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
     }
   },
 

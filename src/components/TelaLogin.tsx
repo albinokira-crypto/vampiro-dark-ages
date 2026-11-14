@@ -4,7 +4,6 @@ import { storageService } from '../services/storage';
 import {
   Skull,
   KeyRound,
-  Mail,
   UserPlus,
   LogIn,
   Sparkles,
@@ -14,6 +13,7 @@ import {
   Search,
   CheckCircle,
   ArrowLeft,
+  AtSign,
 } from 'lucide-react';
 
 interface TelaLoginProps {
@@ -23,7 +23,7 @@ interface TelaLoginProps {
 export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
   const [modo, setModo] = useState<'login' | 'cadastro' | 'recuperar' | 'buscar_login'>('login');
   const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
+  const [nick, setNick] = useState('');
   const [senha, setSenha] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
@@ -33,7 +33,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
   const [carregando, setCarregando] = useState<boolean>(false);
   const [temConvite, setTemConvite] = useState<boolean>(false);
   const [contasEncontradas, setContasEncontradas] = useState<
-    Array<{ nome: string; email: string; role: string }>
+    Array<{ nome: string; nick: string; email?: string; role: string }>
   >([]);
 
   useEffect(() => {
@@ -54,19 +54,29 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
 
     try {
       if (modo === 'login') {
-        const user = await storageService.login(email, senha);
-        onLoginSucesso(user);
-      } else if (modo === 'cadastro') {
-        if (!nome.trim()) {
-          setErro('Por favor, informe seu nome.');
+        if (!nick.trim()) {
+          setErro('Por favor, informe seu Nick de acesso.');
           setCarregando(false);
           return;
         }
-        const novo = await storageService.cadastrar(nome, email, senha, role);
+        const user = await storageService.login(nick, senha);
+        onLoginSucesso(user);
+      } else if (modo === 'cadastro') {
+        if (!nome.trim()) {
+          setErro('Por favor, informe seu nome real ou de personagem.');
+          setCarregando(false);
+          return;
+        }
+        if (!nick.trim() || nick.trim().length < 2) {
+          setErro('Seu Nick deve conter no mínimo 2 letras (sem espaços).');
+          setCarregando(false);
+          return;
+        }
+        const novo = await storageService.cadastrar(nome, nick, senha, role);
         onLoginSucesso(novo);
       } else if (modo === 'recuperar') {
-        if (!email.trim() || !novaSenha.trim()) {
-          setErro('Preencha seu e-mail e a nova senha desejada.');
+        if (!nick.trim() || !novaSenha.trim()) {
+          setErro('Preencha seu Nick e a nova senha desejada.');
           setCarregando(false);
           return;
         }
@@ -75,27 +85,27 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
           setCarregando(false);
           return;
         }
-        const msg = await storageService.recuperarSenha(email, novaSenha);
+        const msg = await storageService.recuperarSenha(nick, novaSenha);
         setSucesso(msg);
         // Tenta fazer login imediatamente com a nova senha
         setTimeout(async () => {
           try {
-            const user = await storageService.login(email, novaSenha);
+            const user = await storageService.login(nick, novaSenha);
             onLoginSucesso(user);
           } catch {
             setModo('login');
           }
-        }, 1500);
+        }, 1200);
       } else if (modo === 'buscar_login') {
         if (!nome.trim() || nome.trim().length < 2) {
-          setErro('Digite pelo menos 2 caracteres do seu nome para localizar seu e-mail.');
+          setErro('Digite pelo menos 2 caracteres do seu nome para localizar seu Nick.');
           setCarregando(false);
           return;
         }
         const resultados = await storageService.buscarLogin(nome);
         setContasEncontradas(resultados);
         if (resultados.length === 0) {
-          setErro(`Nenhuma conta encontrada com o nome "${nome}".`);
+          setErro(`Nenhum Nick cadastrado encontrado com o nome "${nome}".`);
         }
       }
     } catch (err: unknown) {
@@ -109,18 +119,24 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
     }
   };
 
-  const handleEntradaRapida = async (emailPredefinido: string) => {
+  const handleEntradaRapida = async (nickPredefinido: string) => {
     setErro(null);
     setSucesso(null);
     setCarregando(true);
     try {
-      const user = await storageService.login(emailPredefinido, '123');
+      const user = await storageService.login(nickPredefinido, '123');
       onLoginSucesso(user);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setErro(err.message);
-      } else {
-        setErro('Não foi possível entrar com a conta demo.');
+    } catch {
+      // Se tiver outra senha (ex: Diego)
+      try {
+        const user = await storageService.login(nickPredefinido, 'Irons365.');
+        onLoginSucesso(user);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setErro(err.message);
+        } else {
+          setErro('Não foi possível entrar com a conta demo.');
+        }
       }
     } finally {
       setCarregando(false);
@@ -143,7 +159,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
             Vampiro: A Idade das Trevas
           </h1>
           <p className="text-xs text-[#a89f91] font-serif">
-            Portal da Crônica • Sincronizado em Nuvem (Cloudflare D1)
+            Portal da Crônica • Acesso Rápido por Nick
           </p>
         </div>
 
@@ -152,7 +168,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
           <div className="bg-[#241318] border border-[#8b0000] p-3 rounded-xs text-xs text-[#fca5a5] flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#ef4444] shrink-0" />
             <span>
-              <strong>Convite de Mesa Ativo:</strong> Crie seu cadastro abaixo para ingressar diretamente na crônica!
+              <strong>Convite de Mesa Ativo:</strong> Escolha seu Nick abaixo para ingressar diretamente na crônica!
             </span>
           </div>
         )}
@@ -201,7 +217,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                 Recuperação de Senha
               </h2>
               <p className="text-[11px] text-[#a89f91]">
-                Defina sua nova senha informando o e-mail cadastrado.
+                Informe o seu Nick para redefinir sua senha.
               </p>
             </div>
             <button
@@ -222,10 +238,10 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
           <div className="flex items-center justify-between border-b border-[#2d1217] pb-3">
             <div>
               <h2 className="text-sm font-gothic font-bold text-[#d4af37] uppercase tracking-wider">
-                Descobrir E-mail de Login
+                Descobrir Meu Nick
               </h2>
               <p className="text-[11px] text-[#a89f91]">
-                Localize seu e-mail pelo seu nome de jogador.
+                Localize seu Nick pelo seu nome de jogador.
               </p>
             </div>
             <button
@@ -265,19 +281,39 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
             <>
               <div>
                 <label className="block text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-1">
-                  Nome do Jogador / Mestre
+                  Nome Completo ou do Personagem
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     required
-                    placeholder="Ex: Albino ou Julian de Troyes"
+                    placeholder="Ex: Diego Albino ou Sir Julian"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     className="w-full bg-[#181115] border border-[#3b181b] rounded-xs px-3 py-2.5 pl-9 text-xs text-white placeholder-[#706456] focus:outline-none focus:border-[#8b0000]"
                   />
                   <UserPlus className="w-4 h-4 text-[#706456] absolute left-3 top-3" />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-1">
+                  Seu Nick de Acesso (Único, sem espaços)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: diego, alucard, kira..."
+                    value={nick}
+                    onChange={(e) => setNick(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                    className="w-full bg-[#181115] border border-[#3b181b] rounded-xs px-3 py-2.5 pl-9 text-xs text-[#d4af37] font-mono font-bold placeholder-[#706456] focus:outline-none focus:border-[#8b0000]"
+                  />
+                  <AtSign className="w-4 h-4 text-[#706456] absolute left-3 top-3" />
+                </div>
+                <span className="text-[10px] text-[#706456] mt-0.5 block">
+                  Você usará este Nick para entrar em qualquer celular ou computador.
+                </span>
               </div>
 
               <div>
@@ -296,7 +332,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                   >
                     <span className="text-sm">🗡️</span>
                     <span>Jogador</span>
-                    <span className="text-[9px] text-[#706456] normal-case">Cria e joga com Caimitas</span>
+                    <span className="text-[9px] text-[#706456] normal-case">Cria e joga com Cainitas</span>
                   </button>
 
                   <button
@@ -317,12 +353,12 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
             </>
           )}
 
-          {/* MODO BUSCAR LOGIN */}
+          {/* MODO BUSCAR NICK ESQUECIDO */}
           {modo === 'buscar_login' && (
             <div className="space-y-3">
               <div>
                 <label className="block text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-1">
-                  Seu Nome ou Nome do Jogador
+                  Seu Nome ou Nome do Personagem
                 </label>
                 <div className="relative">
                   <input
@@ -340,22 +376,24 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
               {contasEncontradas.length > 0 && (
                 <div className="space-y-2 bg-[#160f13] p-3 rounded-xs border border-[#3b181b]">
                   <span className="text-[10px] font-gothic uppercase tracking-wider text-[#d4af37] block font-bold">
-                    Contas Encontradas:
+                    Nicks Encontrados:
                   </span>
                   {contasEncontradas.map((conta, idx) => (
                     <div
                       key={idx}
                       onClick={() => {
-                        setEmail(conta.email);
-                        setModo('recuperar');
+                        setNick(conta.nick);
+                        setModo('login');
                       }}
-                      className="p-2 bg-[#1e1317] hover:bg-[#2e1c22] border border-[#522228] rounded-xs cursor-pointer text-xs flex items-center justify-between"
+                      className="p-2.5 bg-[#1e1317] hover:bg-[#2e1c22] border border-[#522228] rounded-xs cursor-pointer text-xs flex items-center justify-between"
                     >
                       <div>
                         <strong className="text-white block">{conta.nome}</strong>
-                        <span className="text-[11px] text-[#d4af37] font-mono">{conta.email}</span>
+                        <span className="text-xs text-[#d4af37] font-mono font-bold">
+                          Nick: @{conta.nick}
+                        </span>
                       </div>
-                      <span className="text-[10px] uppercase font-bold text-[#a89f91]">
+                      <span className="text-[10px] uppercase font-bold text-[#a89f91] bg-[#120d10] px-2 py-0.5 rounded">
                         {conta.role === 'mestre' ? '👑 Mestre' : '🗡️ Jogador'}
                       </span>
                     </div>
@@ -365,22 +403,22 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
             </div>
           )}
 
-          {/* E-MAIL (Usado em login, cadastro e recuperação) */}
-          {modo !== 'buscar_login' && (
+          {/* CAMPO NICK (Login ou Recuperação) */}
+          {(modo === 'login' || modo === 'recuperar') && (
             <div>
               <label className="block text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] mb-1">
-                E-mail de Acesso
+                Seu Nick de Acesso
               </label>
               <div className="relative">
                 <input
-                  type="email"
+                  type="text"
                   required
-                  placeholder="seu.email@dominio.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#181115] border border-[#3b181b] rounded-xs px-3 py-2.5 pl-9 text-xs text-white placeholder-[#706456] focus:outline-none focus:border-[#8b0000]"
+                  placeholder="Ex: diego, alucard, julian..."
+                  value={nick}
+                  onChange={(e) => setNick(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                  className="w-full bg-[#181115] border border-[#3b181b] rounded-xs px-3 py-2.5 pl-9 text-xs text-[#d4af37] font-mono font-bold placeholder-[#706456] focus:outline-none focus:border-[#8b0000]"
                 />
-                <Mail className="w-4 h-4 text-[#706456] absolute left-3 top-3" />
+                <AtSign className="w-4 h-4 text-[#706456] absolute left-3 top-3" />
               </div>
             </div>
           )}
@@ -467,7 +505,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                   }}
                   className="text-[10px] text-[#d4af37] hover:underline cursor-pointer"
                 >
-                  Esqueceu qual e-mail usou? Localizar pelo nome
+                  Esqueceu seu Nick? Localizar pelo seu nome
                 </button>
               </div>
             </>
@@ -502,7 +540,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
             ) : (
               <>
                 <Search className="w-4 h-4" />
-                <span>Pesquisar Meu E-mail</span>
+                <span>Pesquisar Meu Nick</span>
               </>
             )}
           </button>
@@ -511,7 +549,7 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
         {/* Atalhos de Demonstração / Acesso Rápido */}
         <div className="border-t border-[#251419] pt-4 space-y-2">
           <div className="flex items-center justify-between text-[10px] font-gothic uppercase tracking-wider text-[#706456]">
-            <span>Acesso Rápido (D1 Cloud)</span>
+            <span>Acesso Rápido por Nick</span>
             {modo === 'login' && (
               <button
                 type="button"
@@ -523,26 +561,34 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                 className="text-[#a89f91] hover:text-[#d4af37] flex items-center gap-1 cursor-pointer"
               >
                 <HelpCircle className="w-3 h-3" />
-                <span>Localizar Login</span>
+                <span>Localizar Nick</span>
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             <button
               type="button"
               disabled={carregando}
-              onClick={() => handleEntradaRapida('mestre@darkages.com')}
+              onClick={() => handleEntradaRapida('diego')}
               className="px-2 py-2 bg-[#181115] hover:bg-[#251419] border border-[#3b181b] rounded-xs text-[11px] text-[#d4af37] font-semibold text-center cursor-pointer transition-colors"
             >
-              👑 Mestre Alucard
+              👑 @diego
             </button>
             <button
               type="button"
               disabled={carregando}
-              onClick={() => handleEntradaRapida('jogador@darkages.com')}
+              onClick={() => handleEntradaRapida('alucard')}
+              className="px-2 py-2 bg-[#181115] hover:bg-[#251419] border border-[#3b181b] rounded-xs text-[11px] text-[#ded6cb] font-semibold text-center cursor-pointer transition-colors"
+            >
+              👑 @alucard
+            </button>
+            <button
+              type="button"
+              disabled={carregando}
+              onClick={() => handleEntradaRapida('julian')}
               className="px-2 py-2 bg-[#181115] hover:bg-[#251419] border border-[#3b181b] rounded-xs text-[11px] text-[#a89f91] font-semibold text-center cursor-pointer transition-colors"
             >
-              🗡️ Julian (Jogador)
+              🗡️ @julian
             </button>
           </div>
         </div>

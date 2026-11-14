@@ -3,7 +3,8 @@ export type UserRole = 'mestre' | 'jogador';
 export interface User {
   id: string;
   nome: string;
-  email: string;
+  nick: string;
+  email?: string;
   role: UserRole;
   senha?: string;
 }

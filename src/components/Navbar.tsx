@@ -182,8 +182,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <p className="text-[11px] font-bold text-[#d4af37] truncate">
                     {usuarioAtual.nome}
                   </p>
-                  <p className="text-[10px] text-[#8e8273] truncate">
-                    {usuarioAtual.email}
+                  <p className="text-[10px] text-[#a89f91] font-mono truncate">
+                    @{usuarioAtual.nick || usuarioAtual.nome.toLowerCase().replace(/\s+/g, '')}
                   </p>
                 </div>
 

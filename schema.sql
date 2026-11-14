@@ -1,8 +1,9 @@
--- Tabela de Usuários
+-- Tabela de Usuários com suporte a Nick
 CREATE TABLE IF NOT EXISTS usuarios (
   id TEXT PRIMARY KEY,
   nome TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
+  nick TEXT UNIQUE NOT NULL,
+  email TEXT,
   senha TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'jogador',
   criadoEm TEXT NOT NULL
@@ -41,9 +42,9 @@ CREATE TABLE IF NOT EXISTS logs_alteracoes (
 );
 
 -- Inserir usuário mestre padrão se não existir
-INSERT OR IGNORE INTO usuarios (id, nome, email, senha, role, criadoEm)
-VALUES ('mestre_demo', 'Mestre Alucard', 'mestre@darkages.com', '123', 'mestre', datetime('now'));
+INSERT OR IGNORE INTO usuarios (id, nome, nick, email, senha, role, criadoEm)
+VALUES ('mestre_demo', 'Mestre Alucard', 'alucard', 'mestre@darkages.com', '123', 'mestre', datetime('now'));
 
 -- Inserir usuário jogador padrão se não existir
-INSERT OR IGNORE INTO usuarios (id, nome, email, senha, role, criadoEm)
-VALUES ('jogador_demo', 'Julian, o Cavaleiro', 'jogador@darkages.com', '123', 'jogador', datetime('now'));
+INSERT OR IGNORE INTO usuarios (id, nome, nick, email, senha, role, criadoEm)
+VALUES ('jogador_demo', 'Julian, o Cavaleiro', 'julian', 'jogador@darkages.com', '123', 'jogador', datetime('now'));

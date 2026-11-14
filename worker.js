@@ -34,67 +34,105 @@ export default {
       }
 
       try {
-        // 1. REGISTRO DE USUÁRIO
+        // 1. REGISTRO DE USUÁRIO POR NICK
         if (url.pathname === '/api/auth/register' && request.method === 'POST') {
           const body = await request.json();
-          const { nome, email, senha, role = 'jogador' } = body;
-          if (!nome || !email || !senha) {
-            return jsonResponse({ erro: 'Preencha todos os campos obrigatórios.' }, 400);
+          const { nome, nick, senha, role = 'jogador', email = '' } = body;
+          if (!nome || !nick || !senha) {
+            return jsonResponse({ erro: 'Preencha o Nome, Nick e a Senha.' }, 400);
           }
 
-          const cleanEmail = email.trim().toLowerCase();
-          const existente = await db.prepare('SELECT id FROM usuarios WHERE lower(email) = ?').bind(cleanEmail).first();
+          const cleanNick = nick.trim().toLowerCase().replace(/\s+/g, '');
+          if (cleanNick.length < 2) {
+            return jsonResponse({ erro: 'O Nick deve ter pelo menos 2 caracteres.' }, 400);
+          }
+
+          const existente = await db.prepare(
+            'SELECT id FROM usuarios WHERE lower(nick) = ?'
+          ).bind(cleanNick).first();
+
           if (existente) {
-            return jsonResponse({ erro: 'Este e-mail já está cadastrado.' }, 409);
+            return jsonResponse({ erro: 'Este Nick já está em uso por outro membro da crônica. Escolha outro.' }, 409);
           }
 
+          const cleanEmail = email ? email.trim().toLowerCase() : `${cleanNick}@darkages.local`;
           const id = 'usr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-          await db.prepare(
-            'INSERT INTO usuarios (id, nome, email, senha, role, criadoEm) VALUES (?, ?, ?, ?, ?, datetime("now"))'
-          ).bind(id, nome.trim(), cleanEmail, senha, role).run();
 
-          return jsonResponse({ id, nome: nome.trim(), email: cleanEmail, role });
+          await db.prepare(
+            'INSERT INTO usuarios (id, nome, nick, email, senha, role, criadoEm) VALUES (?, ?, ?, ?, ?, ?, datetime("now"))'
+          ).bind(id, nome.trim(), cleanNick, cleanEmail, senha, role).run();
+
+          // Registrar no feed do Mestre
+          await db.prepare(`
+            INSERT INTO logs_alteracoes (id, personagemId, personagemNome, jogadorNome, tipo, descricao, detalhes, criadoEm)
+            VALUES (?, 'sistema', 'Novo Acesso', ?, 'geral', ?, '', datetime("now"))
+          `).bind(
+            'log_' + Date.now().toString(36),
+            cleanNick,
+            `Novo cadastro realizado: "${nome.trim()}" (Nick: @${cleanNick}) como ${role.toUpperCase()}`
+          ).run();
+
+          return jsonResponse({ id, nome: nome.trim(), nick: cleanNick, email: cleanEmail, role });
         }
 
-        // 2. LOGIN
+        // 2. LOGIN POR NICK (Com suporte a e-mail como fallback)
         if (url.pathname === '/api/auth/login' && request.method === 'POST') {
           const body = await request.json();
-          const { email, senha } = body;
-          if (!email || !senha) {
-            return jsonResponse({ erro: 'Informe e-mail e senha.' }, 400);
+          const identificador = (body.nick || body.email || '').trim().toLowerCase();
+          const { senha } = body;
+
+          if (!identificador || !senha) {
+            return jsonResponse({ erro: 'Informe seu Nick e sua Senha.' }, 400);
           }
 
-          const cleanEmail = email.trim().toLowerCase();
-          const user = await db.prepare(
-            'SELECT id, nome, email, role FROM usuarios WHERE lower(email) = ? AND senha = ?'
-          ).bind(cleanEmail, senha).first();
+          const user = await db.prepare(`
+            SELECT id, nome, COALESCE(nick, lower(replace(nome, ' ', ''))) as nick, email, role 
+            FROM usuarios 
+            WHERE (lower(nick) = ? OR lower(email) = ? OR lower(nome) = ?) AND senha = ?
+          `).bind(identificador, identificador, identificador, senha).first();
 
           if (!user) {
-            return jsonResponse({ erro: 'E-mail ou senha incorretos.' }, 401);
+            return jsonResponse({ erro: 'Nick ou Senha incorretos.' }, 401);
           }
 
           return jsonResponse(user);
         }
 
-        // 3. RECUPERAÇÃO DE SENHA
+        // 3. RECUPERAÇÃO DE SENHA POR NICK
         if (url.pathname === '/api/auth/recuperar-senha' && request.method === 'POST') {
           const body = await request.json();
-          const { email, novaSenha } = body;
-          if (!email || !novaSenha) {
-            return jsonResponse({ erro: 'Informe o e-mail e a nova senha.' }, 400);
+          const identificador = (body.nick || body.email || '').trim().toLowerCase();
+          const { novaSenha } = body;
+
+          if (!identificador || !novaSenha) {
+            return jsonResponse({ erro: 'Informe o Nick e a nova senha.' }, 400);
           }
 
-          const cleanEmail = email.trim().toLowerCase();
-          const user = await db.prepare('SELECT id, nome FROM usuarios WHERE lower(email) = ?').bind(cleanEmail).first();
+          const user = await db.prepare(`
+            SELECT id, nome, nick FROM usuarios 
+            WHERE lower(nick) = ? OR lower(email) = ? OR lower(nome) = ?
+          `).bind(identificador, identificador, identificador).first();
+
           if (!user) {
-            return jsonResponse({ erro: 'E-mail não encontrado no registro da crônica.' }, 404);
+            return jsonResponse({ erro: 'Nick não encontrado no registro da crônica.' }, 404);
           }
 
-          await db.prepare('UPDATE usuarios SET senha = ? WHERE lower(email) = ?').bind(novaSenha, cleanEmail).run();
-          return jsonResponse({ success: true, mensagem: 'Senha redefinida com sucesso! Você já pode entrar.' });
+          await db.prepare('UPDATE usuarios SET senha = ? WHERE id = ?').bind(novaSenha, user.id).run();
+
+          // Registrar no feed do Mestre
+          await db.prepare(`
+            INSERT INTO logs_alteracoes (id, personagemId, personagemNome, jogadorNome, tipo, descricao, detalhes, criadoEm)
+            VALUES (?, 'sistema', 'Segurança', ?, 'geral', ?, '', datetime("now"))
+          `).bind(
+            'log_' + Date.now().toString(36),
+            user.nick || user.nome,
+            `Senha do jogador "${user.nome}" (@${user.nick}) foi redefinida.`
+          ).run();
+
+          return jsonResponse({ success: true, mensagem: `Senha do Nick @${user.nick || identificador} alterada com sucesso!` });
         }
 
-        // 4. BUSCAR LOGIN ESQUECIDO (Por Nome de Jogador)
+        // 4. LOCALIZAR NICK ESQUECIDO (Por Nome)
         if (url.pathname === '/api/auth/buscar-login' && request.method === 'POST') {
           const body = await request.json();
           const { nome } = body;
@@ -102,22 +140,55 @@ export default {
             return jsonResponse({ erro: 'Digite pelo menos 2 letras do seu nome.' }, 400);
           }
 
-          const { results } = await db.prepare(
-            'SELECT nome, email, role FROM usuarios WHERE lower(nome) LIKE ? LIMIT 5'
-          ).bind(`%${nome.trim().toLowerCase()}%`).all();
+          const { results } = await db.prepare(`
+            SELECT nome, COALESCE(nick, lower(replace(nome, ' ', ''))) as nick, email, role 
+            FROM usuarios 
+            WHERE lower(nome) LIKE ? OR lower(nick) LIKE ? 
+            LIMIT 5
+          `).bind(`%${nome.trim().toLowerCase()}%`, `%${nome.trim().toLowerCase()}%`).all();
 
           return jsonResponse(results || []);
         }
 
-        // 5. LISTAR USUÁRIOS (Para o Mestre gerenciar e ver jogadores cadastrados)
+        // 5. LISTAR USUÁRIOS (Para o Mestre)
         if (url.pathname === '/api/usuarios' && request.method === 'GET') {
-          const { results } = await db.prepare(
-            'SELECT id, nome, email, role, criadoEm FROM usuarios ORDER BY criadoEm DESC'
-          ).all();
+          const { results } = await db.prepare(`
+            SELECT id, nome, COALESCE(nick, lower(replace(nome, ' ', ''))) as nick, email, role, criadoEm 
+            FROM usuarios 
+            ORDER BY criadoEm DESC
+          `).all();
           return jsonResponse(results || []);
         }
 
-        // 6. CONFIGURAÇÃO DA CRÔNICA / MESA
+        // 6. EXCLUIR CADASTRO DE USUÁRIO (Mestre da Mesa)
+        if (url.pathname.startsWith('/api/usuarios/') && request.method === 'DELETE') {
+          const id = url.pathname.replace('/api/usuarios/', '');
+
+          const user = await db.prepare('SELECT nome, nick FROM usuarios WHERE id = ?').bind(id).first();
+          if (!user) {
+            return jsonResponse({ erro: 'Usuário não encontrado.' }, 404);
+          }
+
+          // Excluir usuário
+          await db.prepare('DELETE FROM usuarios WHERE id = ?').bind(id).run();
+
+          // Excluir fichas associadas a esse usuário
+          await db.prepare('DELETE FROM personagens WHERE usuarioId = ?').bind(id).run();
+
+          // Registrar no feed do Mestre
+          await db.prepare(`
+            INSERT INTO logs_alteracoes (id, personagemId, personagemNome, jogadorNome, tipo, descricao, detalhes, criadoEm)
+            VALUES (?, 'sistema', 'Exclusão de Conta', ?, 'geral', ?, '', datetime("now"))
+          `).bind(
+            'log_' + Date.now().toString(36),
+            'Mestre',
+            `Cadastro do jogador "${user.nome}" (@${user.nick}) e suas fichas foram excluídos definitivamente pelo Mestre.`
+          ).run();
+
+          return jsonResponse({ success: true, mensagem: `Cadastro de @${user.nick} excluído com sucesso.` });
+        }
+
+        // 7. CONFIGURAÇÃO DA CRÔNICA / MESA
         if (url.pathname === '/api/config') {
           if (request.method === 'GET') {
             const configRow = await db.prepare('SELECT dados FROM configuracao_mesa WHERE id = "padrao"').first();
@@ -137,7 +208,7 @@ export default {
           }
         }
 
-        // 7. PERSONAGENS (LISTAR)
+        // 8. PERSONAGENS (LISTAR)
         if (url.pathname === '/api/personagens' && request.method === 'GET') {
           const usuarioId = url.searchParams.get('usuarioId');
           const role = url.searchParams.get('role');
@@ -165,7 +236,7 @@ export default {
           return jsonResponse(personagens);
         }
 
-        // 8. PERSONAGEM (SALVAR / ATUALIZAR)
+        // 9. PERSONAGEM (SALVAR / ATUALIZAR)
         if (url.pathname === '/api/personagens' && request.method === 'POST') {
           const personagem = await request.json();
           if (!personagem || !personagem.id || !personagem.usuarioId) {
@@ -199,14 +270,14 @@ export default {
           return jsonResponse({ success: true, personagem });
         }
 
-        // 9. PERSONAGEM (EXCLUIR)
+        // 10. PERSONAGEM (EXCLUIR)
         if (url.pathname.startsWith('/api/personagens/') && request.method === 'DELETE') {
           const id = url.pathname.replace('/api/personagens/', '');
           await db.prepare('DELETE FROM personagens WHERE id = ?').bind(id).run();
           return jsonResponse({ success: true });
         }
 
-        // 10. LOGS DE AUDITORIA EM TEMPO REAL (FEED DO MESTRE)
+        // 11. LOGS DE AUDITORIA EM TEMPO REAL (FEED DO MESTRE)
         if (url.pathname === '/api/logs') {
           if (request.method === 'GET') {
             const { results } = await db.prepare(
