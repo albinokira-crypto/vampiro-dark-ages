@@ -1350,11 +1350,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           <div className="absolute right-[-100px] top-[-100px] w-96 h-96 rounded-full bg-[#8b0000]/5 blur-3xl pointer-events-none" />
 
           {/* ========================================================================= */}
-          {/* CABEÇALHO PERMANENTE DA FICHA (Nome, Retrato, Clã, Geração, etc.) */}
+          {/* CABEÇALHO PERMANENTE DA FICHA (Foto à Esquerda + 3 Linhas de Informações) */}
           {/* ========================================================================= */}
-          <div className="border-b-2 border-[#522228] pb-6">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-6">
-              <div className="shrink-0">
+          <div className="border-b-2 border-[#522228] pb-4">
+            <div className="flex flex-row items-start gap-2.5 sm:gap-4 bg-[#160f13]/90 p-2.5 sm:p-4 rounded-sm border border-[#2d1217]">
+              {/* Foto no Canto Superior Esquerdo */}
+              <div className="shrink-0 pt-0.5">
                 <FotoPersonagem
                   foto={ficha.foto}
                   nome={ficha.nome}
@@ -1365,99 +1366,83 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 />
               </div>
 
-              <div className="text-center sm:text-left">
-                <span className="text-[10px] tracking-[0.4em] uppercase text-[#a89f91] font-bold block">
-                  Vampiro: A Idade das Trevas
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-gothic font-black text-[#d4af37] tracking-wider mt-0.5">
-                  {ficha.nome || 'Ficha de Personagem'}
-                </h2>
-                <p className="text-xs text-[#a89f91] italic font-serif mt-1">
-                  {ficha.cla || 'Sem Clã'} • {ficha.geracao || 'Geração Indefinida'} • {ficha.caminho || 'Humanidade'}
-                </p>
-              </div>
-            </div>
+              {/* Informações na Mesma Direção da Foto */}
+              <div className="flex-1 min-w-0 space-y-2 sm:space-y-2.5">
+                {/* Linha 1: Nome e Jogador */}
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <InlineField
+                    label="Nome"
+                    value={ficha.nome}
+                    onChange={(val) => handleHeaderChange('nome', val)}
+                    placeholder="Nome do personagem"
+                    readonly={!podeEditar}
+                  />
+                  <InlineField
+                    label="Jogador"
+                    value={ficha.jogador}
+                    onChange={(val) => handleHeaderChange('jogador', val)}
+                    placeholder="Seu nome real"
+                    readonly={!podeEditar}
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 bg-[#160f13]/80 p-4 rounded-sm border border-[#2d1217]">
-              <InlineField
-                label="Nome do Personagem"
-                value={ficha.nome}
-                onChange={(val) => handleHeaderChange('nome', val)}
-                placeholder="Ex: Alistair de Montfort"
-                readonly={!podeEditar}
-              />
-              <InlineField
-                label="Jogador"
-                value={ficha.jogador}
-                onChange={(val) => handleHeaderChange('jogador', val)}
-                placeholder="Seu nome real"
-                readonly={!podeEditar}
-              />
-              <InlineField
-                label="Crônica"
-                value={ficha.cronica}
-                onChange={(val) => handleHeaderChange('cronica', val)}
-                placeholder="Ex: Sombras de Paris"
-                readonly={!podeEditar}
-              />
-              <SelectDarkAgesField
-                label="Clã"
-                value={ficha.cla}
-                opcoes={opcoesClas}
-                onChange={handleClanChange}
-                placeholder="Selecione o Clã..."
-                permitirPersonalizado={true}
-                readonly={!podeEditar}
-              />
-              <SelectDarkAgesField
-                label="Natureza"
-                value={ficha.natureza}
-                opcoes={ARQUETIPOS_PERSONALIDADE_1E}
-                onChange={(val) => handleHeaderChange('natureza', val)}
-                placeholder="Selecione a Natureza..."
-                permitirPersonalizado={true}
-                readonly={!podeEditar}
-              />
-              <SelectDarkAgesField
-                label="Comportamento"
-                value={ficha.comportamento}
-                opcoes={ARQUETIPOS_PERSONALIDADE_1E}
-                onChange={(val) => handleHeaderChange('comportamento', val)}
-                placeholder="Selecione o Comportamento..."
-                permitirPersonalizado={true}
-                readonly={!podeEditar}
-              />
-              <SelectDarkAgesField
-                label="Geração"
-                value={ficha.geracao || '12ª Geração'}
-                opcoes={opcoesGeracao}
-                onChange={handleGeracaoChange}
-                dica="Base: 12ª Geração. Só cai comprando o Antecedente Geração (1 pt = 1 nível, máx 5 pts = 7ª)."
-                permitirPersonalizado={false}
-                readonly={!podeEditar}
-              />
-              <InlineField
-                label="Refúgio"
-                value={ficha.refugio}
-                onChange={(val) => handleHeaderChange('refugio', val)}
-                placeholder="Ex: Cripta da Abadia"
-                readonly={!podeEditar}
-              />
-              <InlineField
-                label="Conceito"
-                value={ficha.conceito}
-                onChange={(val) => handleHeaderChange('conceito', val)}
-                placeholder="Ex: Nobre Banido"
-                readonly={!podeEditar}
-              />
-              <div className="sm:col-span-2 lg:col-span-3">
-                <InlineField
-                  label="Senhor (Sire)"
-                  value={ficha.senhor}
-                  onChange={(val) => handleHeaderChange('senhor', val)}
-                  placeholder="Nome do vampiro que lhe concedeu o Abraço"
-                  readonly={!podeEditar}
-                />
+                {/* Linha 2: Clã, Natureza e Comportamento */}
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
+                  <SelectDarkAgesField
+                    label="Clã"
+                    value={ficha.cla}
+                    opcoes={opcoesClas}
+                    onChange={handleClanChange}
+                    placeholder="Selecione..."
+                    permitirPersonalizado={true}
+                    readonly={!podeEditar}
+                  />
+                  <SelectDarkAgesField
+                    label="Natureza"
+                    value={ficha.natureza}
+                    opcoes={ARQUETIPOS_PERSONALIDADE_1E}
+                    onChange={(val) => handleHeaderChange('natureza', val)}
+                    placeholder="Selecione..."
+                    permitirPersonalizado={true}
+                    readonly={!podeEditar}
+                  />
+                  <SelectDarkAgesField
+                    label="Comportamento"
+                    value={ficha.comportamento}
+                    opcoes={ARQUETIPOS_PERSONALIDADE_1E}
+                    onChange={(val) => handleHeaderChange('comportamento', val)}
+                    placeholder="Selecione..."
+                    permitirPersonalizado={true}
+                    readonly={!podeEditar}
+                  />
+                </div>
+
+                {/* Linha 3: Geração, Crônica e Refúgio */}
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
+                  <SelectDarkAgesField
+                    label="Geração"
+                    value={ficha.geracao || '12ª Geração'}
+                    opcoes={opcoesGeracao}
+                    onChange={handleGeracaoChange}
+                    dica="Base: 12ª Geração. Só cai comprando o Antecedente Geração (1 pt = 1 nível, máx 5 pts = 7ª)."
+                    permitirPersonalizado={false}
+                    readonly={!podeEditar}
+                  />
+                  <InlineField
+                    label="Crônica"
+                    value={ficha.cronica}
+                    onChange={(val) => handleHeaderChange('cronica', val)}
+                    placeholder="Crônica"
+                    readonly={!podeEditar}
+                  />
+                  <InlineField
+                    label="Refúgio"
+                    value={ficha.refugio}
+                    onChange={(val) => handleHeaderChange('refugio', val)}
+                    placeholder="Refúgio"
+                    readonly={!podeEditar}
+                  />
+                </div>
               </div>
             </div>
           </div>

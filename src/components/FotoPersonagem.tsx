@@ -9,6 +9,7 @@ interface FotoPersonagemProps {
   onFotoChange?: (base64: string) => void;
   onFotoRemover?: () => void;
   tamanho?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
 export const FotoPersonagem: React.FC<FotoPersonagemProps> = ({
@@ -18,6 +19,7 @@ export const FotoPersonagem: React.FC<FotoPersonagemProps> = ({
   onFotoChange,
   onFotoRemover,
   tamanho = 'md',
+  className = '',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comprimindo, setComprimindo] = useState(false);
@@ -56,12 +58,12 @@ export const FotoPersonagem: React.FC<FotoPersonagemProps> = ({
 
   const dimensoes = {
     sm: 'w-14 h-14 sm:w-16 sm:h-16',
-    md: 'w-24 h-24 sm:w-28 sm:h-28',
+    md: 'w-20 h-20 sm:w-28 sm:h-28',
     lg: 'w-32 h-32 sm:w-36 sm:h-36',
   }[tamanho];
 
   return (
-    <div className="relative inline-block select-none">
+    <div className={`relative inline-block select-none ${className}`}>
       <input
         ref={fileInputRef}
         type="file"
