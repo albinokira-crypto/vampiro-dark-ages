@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "vampire-dark-ages",
+  "name": "vampiro-dark-ages",
   "account_id": "a0224327c8ee964ff04daa61821290ca",
   "compatibility_date": "2024-09-23",
   "workers_dev": true,
