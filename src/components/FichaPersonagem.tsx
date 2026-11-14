@@ -13,9 +13,18 @@ import { Bolinhas } from './Bolinhas';
 import { QuadradosStatus } from './QuadradosStatus';
 import { VitalidadeSelector } from './VitalidadeSelector';
 import { InlineField } from './InlineField';
+import { SelectDarkAgesField } from './SelectDarkAgesField';
 import { PainelCriacaoFicha } from './PainelCriacaoFicha';
 import { FotoPersonagem } from './FotoPersonagem';
 import { storageService } from '../services/storage';
+import {
+  CLAS_DARK_AGES_1E,
+  ARQUETIPOS_PERSONALIDADE_1E,
+  ANTECEDENTES_LIVRO_1E,
+  DISCIPLINAS_LIVRO_1E,
+  TABELA_GERACAO_1E,
+  calcularGeracaoEpoolSangue,
+} from '../data/darkAges1e';
 import {
   Save,
   ArrowLeft,
@@ -30,6 +39,8 @@ import {
   AlertTriangle,
   CheckCircle,
   RotateCcw,
+  X,
+  ChevronDown,
 } from 'lucide-react';
 
 interface FichaPersonagemProps {
@@ -60,6 +71,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [historicoTransacoesXP, setHistoricoTransacoesXP] = useState<TransacaoXP[]>([]);
   const [avisoXP, setAvisoXP] = useState<string | null>(null);
   const [sucessoXP, setSucessoXP] = useState<string | null>(null);
+
+  // Estados dos Modais de Disciplina e Antecedente (1ª Edição)
+  const [modalAddDisciplinaAberto, setModalAddDisciplinaAberto] = useState(false);
+  const [discSelecionada, setDiscSelecionada] = useState<string>('');
+  const [discCustomNome, setDiscCustomNome] = useState<string>('');
+  const [discNivelInicial, setDiscNivelInicial] = useState<number>(1);
+
+  const [modalAddAntecedenteAberto, setModalAddAntecedenteAberto] = useState(false);
+  const [antSelecionado, setAntSelecionado] = useState<string>('Aliados');
+  const [antCustomNome, setAntCustomNome] = useState<string>('');
+  const [antNivelInicial, setAntNivelInicial] = useState<number>(1);
 
   // Cálculo de Custo Exato em XP
   const calcularCustoXP = (
@@ -309,17 +331,191 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     );
   };
 
-  // Disciplinas
-  const handleAdicionarDisciplina = () => {
-    const nova: ItemSimplesNivel = {
-      id: 'disc_' + Date.now().toString(36),
-      nome: 'Nova Disciplina',
-      nivel: 1,
+  // Sincronizar geração e reserva de sangue baseando-se no antecedente 'Geração' (1ª Edição 1996)
+  const sincronizarGeracaoPorAntecedente = (
+    antecedentes: ItemSimplesNivel[]
+  ): { geracao: string; sangueMax: number } => {
+    const antGeracao = antecedentes.find(
+      (a) =>
+        a.nome.toLowerCase().trim() === 'geração' ||
+        a.nome.toLowerCase().trim() === 'geracao'
+    );
+    const pontos = antGeracao ? antGeracao.nivel : 0;
+    const info = calcularGeracaoEpoolSangue(pontos);
+    return {
+      geracao: info.geracaoNome,
+      sangueMax: info.reservaSangueMax,
     };
+  };
+
+  // Seleção e troca de Clã com inclusão automática das 3 disciplinas canônicas da 1ª Edição
+  const handleClanChange = (novoClaNome: string) => {
+    const claEncontrado = CLAS_DARK_AGES_1E.find(
+      (c) => c.nome.toLowerCase() === novoClaNome.toLowerCase()
+    );
+
+    updateFicha((prev) => {
+      let novasDisciplinas = [...prev.disciplinas];
+      const novasPrimariasIds: string[] = [];
+
+      if (claEncontrado) {
+        const claAnterior = CLAS_DARK_AGES_1E.find(
+          (c) => c.nome.toLowerCase() === (prev.cla || '').toLowerCase()
+        );
+        const ehPadrao =
+          prev.disciplinas.length === 0 ||
+          (claAnterior &&
+            prev.disciplinas.length <= 3 &&
+            prev.disciplinas.every(
+              (d) =>
+                claAnterior.disciplinas.some(
+                  (cd) => cd.toLowerCase() === d.nome.toLowerCase()
+                ) && d.nivel <= 1
+            ));
+
+        if (ehPadrao) {
+          // Substitui diretamente pelas 3 disciplinas canônicas do novo clã
+          novasDisciplinas = claEncontrado.disciplinas.map((discNome) => {
+            const id = 'disc_' + Math.random().toString(36).substring(2, 9);
+            novasPrimariasIds.push(id);
+            return {
+              id,
+              nome: discNome,
+              nivel: 1,
+            };
+          });
+        } else {
+          // Garante que as 3 disciplinas do novo clã estejam na lista
+          claEncontrado.disciplinas.forEach((discNome) => {
+            const existente = novasDisciplinas.find(
+              (d) => d.nome.toLowerCase() === discNome.toLowerCase()
+            );
+            if (existente) {
+              novasPrimariasIds.push(existente.id);
+            } else {
+              const novoId = 'disc_' + Math.random().toString(36).substring(2, 9);
+              novasDisciplinas.push({
+                id: novoId,
+                nome: discNome,
+                nivel: 1,
+              });
+              novasPrimariasIds.push(novoId);
+            }
+          });
+        }
+      }
+
+      // Auto-preenche fraqueza se estiver vazia ou pertencer ao clã anterior
+      let novaFraqueza = prev.fraqueza;
+      if (claEncontrado?.fraqueza) {
+        const claAnterior = CLAS_DARK_AGES_1E.find(
+          (c) => c.nome.toLowerCase() === (prev.cla || '').toLowerCase()
+        );
+        if (!prev.fraqueza || (claAnterior?.fraqueza && prev.fraqueza === claAnterior.fraqueza)) {
+          novaFraqueza = claEncontrado.fraqueza;
+        }
+      }
+
+      return {
+        ...prev,
+        cla: novoClaNome,
+        fraqueza: novaFraqueza,
+        disciplinas: novasDisciplinas,
+        criacao: prev.criacao
+          ? {
+              ...prev.criacao,
+              disciplinasPrimariasIds:
+                novasPrimariasIds.length > 0
+                  ? novasPrimariasIds
+                  : prev.criacao.disciplinasPrimariasIds,
+            }
+          : prev.criacao,
+      };
+    });
+  };
+
+  // Alteração de geração sincronizada com o Antecedente Geração
+  const handleGeracaoChange = (novaGeracaoStr: string) => {
+    let pontos = 0;
+    for (let p = 0; p <= 5; p++) {
+      if (novaGeracaoStr.includes(TABELA_GERACAO_1E[p].geracaoNome)) {
+        pontos = p;
+        break;
+      }
+    }
+
+    const info = calcularGeracaoEpoolSangue(pontos);
+
+    updateFicha((prev) => {
+      let novosAntecedentes = [...prev.antecedentes];
+      const indexGeracao = novosAntecedentes.findIndex(
+        (a) =>
+          a.nome.toLowerCase().trim() === 'geração' ||
+          a.nome.toLowerCase().trim() === 'geracao'
+      );
+
+      if (pontos > 0) {
+        if (indexGeracao >= 0) {
+          novosAntecedentes[indexGeracao] = {
+            ...novosAntecedentes[indexGeracao],
+            nome: 'Geração',
+            nivel: pontos,
+          };
+        } else {
+          novosAntecedentes.push({
+            id: 'ant_geracao_' + Date.now().toString(36),
+            nome: 'Geração',
+            nivel: pontos,
+          });
+        }
+      } else {
+        if (indexGeracao >= 0) {
+          novosAntecedentes = novosAntecedentes.filter((_, i) => i !== indexGeracao);
+        }
+      }
+
+      return {
+        ...prev,
+        geracao: info.geracaoNome,
+        pontosDeSangueMax: info.reservaSangueMax,
+        pontosDeSangueAtual: Math.min(prev.pontosDeSangueAtual, info.reservaSangueMax),
+        antecedentes: novosAntecedentes,
+      };
+    });
+  };
+
+  // Disciplinas
+  const handleAbrirModalAddDisciplina = () => {
+    const disponiveis = DISCIPLINAS_LIVRO_1E.filter(
+      (d) => !ficha.disciplinas.some((fd) => fd.nome.toLowerCase() === d.toLowerCase())
+    );
+    setDiscSelecionada(disponiveis.length > 0 ? disponiveis[0] : '__custom__');
+    setDiscCustomNome('');
+    setDiscNivelInicial(1);
+    setModalAddDisciplinaAberto(true);
+  };
+
+  const handleConfirmarNovaDisciplina = () => {
+    const nomeFinal =
+      discSelecionada === '__custom__'
+        ? discCustomNome.trim()
+        : discSelecionada || 'Nova Disciplina';
+    if (!nomeFinal) return;
+
+    const nova: ItemSimplesNivel = {
+      id: 'disc_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+      nome: nomeFinal,
+      nivel: Math.max(1, Math.min(8, discNivelInicial)),
+    };
+
     updateFicha((prev) => ({
       ...prev,
       disciplinas: [...prev.disciplinas, nova],
     }));
+
+    setModalAddDisciplinaAberto(false);
+    setDiscCustomNome('');
+    setDiscNivelInicial(1);
   };
 
   const handleRemoverDisciplina = (id: string) => {
@@ -337,9 +533,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     if (campo === 'nivel') {
       const disc = ficha.disciplinas.find((d) => d.id === id);
       if (!disc) return;
+      const claEncontrado = CLAS_DARK_AGES_1E.find(
+        (c) => c.nome.toLowerCase() === (ficha.cla || '').toLowerCase()
+      );
       const isClan =
         ficha.criacao?.disciplinasPrimariasIds?.includes(id) ||
+        (claEncontrado &&
+          claEncontrado.disciplinas.some(
+            (cd) => cd.toLowerCase() === disc.nome.toLowerCase()
+          )) ||
         ficha.disciplinas.findIndex((d) => d.id === id) < 3;
+
       tentarEvoluirComXP(
         'disciplina',
         `Disciplina ${disc.nome || 'Sem Nome'}`,
@@ -364,23 +568,56 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   };
 
   // Antecedentes
-  const handleAdicionarAntecedente = () => {
+  const handleAbrirModalAddAntecedente = () => {
+    setAntSelecionado('Aliados');
+    setAntCustomNome('');
+    setAntNivelInicial(1);
+    setModalAddAntecedenteAberto(true);
+  };
+
+  const handleConfirmarNovoAntecedente = () => {
+    const nomeFinal =
+      antSelecionado === '__custom__'
+        ? antCustomNome.trim()
+        : antSelecionado || 'Novo Antecedente';
+    if (!nomeFinal) return;
+
+    const nivelFinal = Math.max(1, Math.min(5, antNivelInicial));
     const novo: ItemSimplesNivel = {
-      id: 'ant_' + Date.now().toString(36),
-      nome: 'Novo Antecedente',
-      nivel: 1,
+      id: 'ant_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+      nome: nomeFinal,
+      nivel: nivelFinal,
     };
-    updateFicha((prev) => ({
-      ...prev,
-      antecedentes: [...prev.antecedentes, novo],
-    }));
+
+    updateFicha((prev) => {
+      const novosAntecedentes = [...prev.antecedentes, novo];
+      const { geracao, sangueMax } = sincronizarGeracaoPorAntecedente(novosAntecedentes);
+      return {
+        ...prev,
+        antecedentes: novosAntecedentes,
+        geracao,
+        pontosDeSangueMax: sangueMax,
+        pontosDeSangueAtual: Math.min(prev.pontosDeSangueAtual, sangueMax),
+      };
+    });
+
+    setModalAddAntecedenteAberto(false);
+    setAntCustomNome('');
+    setAntNivelInicial(1);
   };
 
   const handleRemoverAntecedente = (id: string) => {
-    updateFicha((prev) => ({
-      ...prev,
-      antecedentes: prev.antecedentes.filter((a) => a.id !== id),
-    }));
+    updateFicha((prev) => {
+      const novosAntecedentes = prev.antecedentes.filter((a) => a.id !== id);
+      const { geracao, sangueMax } = sincronizarGeracaoPorAntecedente(novosAntecedentes);
+      return {
+        ...prev,
+        antecedentes: novosAntecedentes,
+        geracao,
+        pontosDeSangueMax: sangueMax,
+        pontosDeSangueAtual: Math.min(prev.pontosDeSangueAtual, sangueMax),
+      };
+    });
   };
 
   const handleEditarAntecedente = (
@@ -388,13 +625,66 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     campo: 'nome' | 'nivel',
     valor: string | number
   ) => {
-    updateFicha((prev) => ({
-      ...prev,
-      antecedentes: prev.antecedentes.map((a) =>
+    updateFicha((prev) => {
+      const novosAntecedentes = prev.antecedentes.map((a) =>
         a.id === id ? { ...a, [campo]: valor } : a
-      ),
-    }));
+      );
+      const { geracao, sangueMax } = sincronizarGeracaoPorAntecedente(novosAntecedentes);
+      return {
+        ...prev,
+        antecedentes: novosAntecedentes,
+        geracao,
+        pontosDeSangueMax: sangueMax,
+        pontosDeSangueAtual: Math.min(prev.pontosDeSangueAtual, sangueMax),
+      };
+    });
   };
+
+  // Opções dos 13 Clãs da 1ª Edição (Altos Clãs e Baixos Clãs)
+  const opcoesClas = [
+    ...CLAS_DARK_AGES_1E.filter((c) => c.tipo === 'alto_cla').map((c) => ({
+      valor: c.nome,
+      label: `${c.nome} (${c.disciplinas.join(', ')})`,
+      grupo: 'Altos Clãs',
+    })),
+    ...CLAS_DARK_AGES_1E.filter((c) => c.tipo === 'baixo_cla').map((c) => ({
+      valor: c.nome,
+      label: `${c.nome} (${c.disciplinas.join(', ')})`,
+      grupo: 'Baixos Clãs',
+    })),
+  ];
+
+  // Opções de Geração da 1ª Edição (12ª à 7ª geração)
+  const opcoesGeracao = [
+    {
+      valor: '12ª Geração',
+      label: '12ª Geração (Base padrão • 0 pts Antecedente • Reserva: 11)',
+    },
+    {
+      valor: '11ª Geração',
+      label: '11ª Geração (1 pt no Antecedente • Reserva: 12)',
+    },
+    {
+      valor: '10ª Geração',
+      label: '10ª Geração (2 pts no Antecedente • Reserva: 13)',
+    },
+    {
+      valor: '9ª Geração',
+      label: '9ª Geração (3 pts no Antecedente • Reserva: 14 • 2 sangues/turno)',
+    },
+    {
+      valor: '8ª Geração',
+      label: '8ª Geração (4 pts no Antecedente • Reserva: 15 • 3 sangues/turno)',
+    },
+    {
+      valor: '7ª Geração',
+      label: '7ª Geração (5 pts no Antecedente • Reserva: 20 • 4 sangues/turno • Atrib máx 6)',
+    },
+  ];
+
+  const discDisponiveis = DISCIPLINAS_LIVRO_1E.filter(
+    (d) => !ficha.disciplinas.some((fd) => fd.nome.toLowerCase() === d.toLowerCase())
+  );
 
   // Armas
   const handleAdicionarArma = () => {
@@ -854,32 +1144,44 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 placeholder="Ex: Sombras de Paris"
                 readonly={!podeEditar}
               />
-              <InlineField
+              <SelectDarkAgesField
                 label="Clã"
                 value={ficha.cla}
-                onChange={(val) => handleHeaderChange('cla', val)}
-                placeholder="Ex: Ventrue, Lasombra, Tremere..."
+                opcoes={opcoesClas}
+                onChange={handleClanChange}
+                placeholder="Selecione um dos 13 Clãs..."
+                badge="13 Clãs (1ª Edição)"
+                permitirPersonalizado={true}
                 readonly={!podeEditar}
               />
-              <InlineField
+              <SelectDarkAgesField
                 label="Natureza"
                 value={ficha.natureza}
+                opcoes={ARQUETIPOS_PERSONALIDADE_1E}
                 onChange={(val) => handleHeaderChange('natureza', val)}
-                placeholder="Ex: Autocrata, Tradicionalista"
+                placeholder="Selecione a Natureza..."
+                badge="1ª Edição"
+                permitirPersonalizado={true}
                 readonly={!podeEditar}
               />
-              <InlineField
+              <SelectDarkAgesField
                 label="Comportamento"
                 value={ficha.comportamento}
+                opcoes={ARQUETIPOS_PERSONALIDADE_1E}
                 onChange={(val) => handleHeaderChange('comportamento', val)}
-                placeholder="Ex: Benfeitor, Rebelde"
+                placeholder="Selecione o Comportamento..."
+                badge="1ª Edição"
+                permitirPersonalizado={true}
                 readonly={!podeEditar}
               />
-              <InlineField
+              <SelectDarkAgesField
                 label="Geração"
-                value={ficha.geracao}
-                onChange={(val) => handleHeaderChange('geracao', val)}
-                placeholder="Ex: 8ª Geração"
+                value={ficha.geracao || '12ª Geração'}
+                opcoes={opcoesGeracao}
+                onChange={handleGeracaoChange}
+                badge="12ª à 7ª Geração"
+                dica="Base: 12ª Geração. Só cai comprando o Antecedente Geração (1 pt = 1 nível, máx 5 pts = 7ª)."
+                permitirPersonalizado={false}
                 readonly={!podeEditar}
               />
               <InlineField
@@ -1164,13 +1466,18 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   {/* DISCIPLINAS */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-3">
                     <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
-                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
-                        Disciplinas
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                          Disciplinas
+                        </h4>
+                        <span className="text-[9px] text-[#d4af37] bg-[#2b1016] border border-[#5a1e26] px-1 rounded-xs">
+                          1ª Edição
+                        </span>
+                      </div>
                       {podeEditar && (
                         <button
                           type="button"
-                          onClick={handleAdicionarDisciplina}
+                          onClick={handleAbrirModalAddDisciplina}
                           className="text-[11px] text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" /> Adicionar
@@ -1178,41 +1485,66 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       )}
                     </div>
                     {ficha.disciplinas.length === 0 ? (
-                      <p className="text-xs text-[#706456] italic">Nenhuma disciplina registrada.</p>
+                      <p className="text-xs text-[#706456] italic">
+                        Nenhuma disciplina registrada. Escolha um Clã para adicionar as disciplinas canônicas automaticamente.
+                      </p>
                     ) : (
                       <div className="space-y-2">
-                        {ficha.disciplinas.map((disc) => (
-                          <div key={disc.id} className="flex items-center justify-between gap-2">
-                            <div className="flex-1">
-                              <InlineField
-                                value={disc.nome}
-                                onChange={(val) => handleEditarDisciplina(disc.id, 'nome', val)}
-                                readonly={!podeEditar}
-                                placeholder="Nome da Disciplina"
-                              />
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <Bolinhas
-                                valor={disc.nivel}
-                                max={8}
-                                min={1}
-                                tamanho="sm"
-                                onChange={(v) => handleEditarDisciplina(disc.id, 'nivel', v)}
-                                readonly={!podeEditar}
-                              />
-                              {podeEditar && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoverDisciplina(disc.id)}
-                                  className="text-[#8e8273] hover:text-[#ef4444] transition-colors p-0.5 cursor-pointer"
-                                  title="Remover Disciplina"
+                        {ficha.disciplinas.map((disc) => {
+                          const claEncontrado = CLAS_DARK_AGES_1E.find(
+                            (c) => c.nome.toLowerCase() === (ficha.cla || '').toLowerCase()
+                          );
+                          const isClan =
+                            ficha.criacao?.disciplinasPrimariasIds?.includes(disc.id) ||
+                            (claEncontrado &&
+                              claEncontrado.disciplinas.some(
+                                (cd) => cd.toLowerCase() === disc.nome.toLowerCase()
+                              ));
+
+                          return (
+                            <div key={disc.id} className="flex items-center justify-between gap-2">
+                              <div className="flex-1 flex items-center gap-2">
+                                <span
+                                  className={`px-1.5 py-0.5 text-[9px] uppercase font-bold rounded-xs shrink-0 ${
+                                    isClan
+                                      ? 'text-[#d4af37] bg-[#2b1016] border border-[#5a1e26]'
+                                      : 'text-[#8e8273] bg-[#1b1216] border border-[#3b181b]'
+                                  }`}
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                                  {isClan ? 'Clã' : 'Outra'}
+                                </span>
+                                <div className="flex-1">
+                                  <InlineField
+                                    value={disc.nome}
+                                    onChange={(val) => handleEditarDisciplina(disc.id, 'nome', val)}
+                                    readonly={!podeEditar}
+                                    placeholder="Nome da Disciplina"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <Bolinhas
+                                  valor={disc.nivel}
+                                  max={8}
+                                  min={1}
+                                  tamanho="sm"
+                                  onChange={(v) => handleEditarDisciplina(disc.id, 'nivel', v)}
+                                  readonly={!podeEditar}
+                                />
+                                {podeEditar && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoverDisciplina(disc.id)}
+                                    className="text-[#8e8273] hover:text-[#ef4444] transition-colors p-0.5 cursor-pointer"
+                                    title="Remover Disciplina"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1220,13 +1552,18 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   {/* ANTECEDENTES */}
                   <div className="bg-[#140e11] p-4 rounded-sm border border-[#2d1217] space-y-3">
                     <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
-                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
-                        Antecedentes
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                          Antecedentes
+                        </h4>
+                        <span className="text-[9px] text-[#d4af37] bg-[#2b1016] border border-[#5a1e26] px-1 rounded-xs">
+                          1ª Edição
+                        </span>
+                      </div>
                       {podeEditar && (
                         <button
                           type="button"
-                          onClick={handleAdicionarAntecedente}
+                          onClick={handleAbrirModalAddAntecedente}
                           className="text-[11px] text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" /> Adicionar
@@ -1237,38 +1574,51 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <p className="text-xs text-[#706456] italic">Nenhum antecedente registrado.</p>
                     ) : (
                       <div className="space-y-2">
-                        {ficha.antecedentes.map((ant) => (
-                          <div key={ant.id} className="flex items-center justify-between gap-2">
-                            <div className="flex-1">
-                              <InlineField
-                                value={ant.nome}
-                                onChange={(val) => handleEditarAntecedente(ant.id, 'nome', val)}
-                                readonly={!podeEditar}
-                                placeholder="Nome do Antecedente"
-                              />
+                        {ficha.antecedentes.map((ant) => {
+                          const ehGeracao =
+                            ant.nome.toLowerCase().trim() === 'geração' ||
+                            ant.nome.toLowerCase().trim() === 'geracao';
+
+                          return (
+                            <div key={ant.id} className="flex items-center justify-between gap-2">
+                              <div className="flex-1 flex items-center gap-2">
+                                {ehGeracao && (
+                                  <span className="px-1.5 py-0.5 text-[9px] uppercase font-bold text-[#ef4444] bg-[#2b1016] border border-[#8b0000]/60 rounded-xs shrink-0">
+                                    Geração
+                                  </span>
+                                )}
+                                <div className="flex-1">
+                                  <InlineField
+                                    value={ant.nome}
+                                    onChange={(val) => handleEditarAntecedente(ant.id, 'nome', val)}
+                                    readonly={!podeEditar}
+                                    placeholder="Nome do Antecedente"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <Bolinhas
+                                  valor={ant.nivel}
+                                  max={ehGeracao ? 5 : 8}
+                                  min={1}
+                                  tamanho="sm"
+                                  onChange={(v) => handleEditarAntecedente(ant.id, 'nivel', v)}
+                                  readonly={!podeEditar}
+                                />
+                                {podeEditar && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoverAntecedente(ant.id)}
+                                    className="text-[#8e8273] hover:text-[#ef4444] transition-colors p-0.5 cursor-pointer"
+                                    title="Remover Antecedente"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <Bolinhas
-                                valor={ant.nivel}
-                                max={8}
-                                min={1}
-                                tamanho="sm"
-                                onChange={(v) => handleEditarAntecedente(ant.id, 'nivel', v)}
-                                readonly={!podeEditar}
-                              />
-                              {podeEditar && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoverAntecedente(ant.id)}
-                                  className="text-[#8e8273] hover:text-[#ef4444] transition-colors p-0.5 cursor-pointer"
-                                  title="Remover Antecedente"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -2324,6 +2674,231 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               >
                 <Save className="w-4 h-4" />
                 <span>Salvar Alterações</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA ADICIONAR DISCIPLINA (1ª Edição - 1996) */}
+      {modalAddDisciplinaAberto && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#120d10] border border-[#8b0000] rounded-sm max-w-md w-full p-5 space-y-4 shadow-2xl relative">
+            <button
+              type="button"
+              onClick={() => setModalAddDisciplinaAberto(false)}
+              className="absolute top-3 right-3 text-[#a89f91] hover:text-white text-xs cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 text-[#d4af37]">
+              <Sparkles className="w-5 h-5 text-[#ef4444]" />
+              <h4 className="text-sm font-gothic font-bold uppercase tracking-wider">
+                Adicionar Disciplina (1ª Edição)
+              </h4>
+            </div>
+
+            <p className="text-xs text-[#ded6cb] leading-relaxed">
+              Selecione uma das disciplinas do livro básico de Vampiro: A Idade das Trevas ou digite um nome personalizado:
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Disciplina
+                </label>
+                <div className="relative">
+                  <select
+                    value={discSelecionada}
+                    onChange={(e) => setDiscSelecionada(e.target.value)}
+                    className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] focus:border-[#d4af37] text-xs font-semibold text-[#ded6cb] px-2.5 py-2 rounded-xs appearance-none pr-8 cursor-pointer focus:outline-hidden"
+                  >
+                    {discDisponiveis.length > 0 && (
+                      <optgroup
+                        label="─── DISCIPLINAS DO LIVRO (1ª EDIÇÃO) ───"
+                        className="bg-[#181115] text-[#d4af37] font-gothic font-bold"
+                      >
+                        {discDisponiveis.map((d) => (
+                          <option key={d} value={d} className="bg-[#120a0e] text-[#ded6cb] font-sans font-normal py-1">
+                            {d}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="__custom__" className="bg-[#241318] text-[#ef4444] font-bold py-1">
+                      ✍️ Outra Disciplina (Digitar Nome Personalizado)
+                    </option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-[#d4af37] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {discSelecionada === '__custom__' && (
+                <div className="animate-fadeIn">
+                  <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                    Nome da Nova Disciplina
+                  </label>
+                  <input
+                    type="text"
+                    value={discCustomNome}
+                    onChange={(e) => setDiscCustomNome(e.target.value)}
+                    placeholder="Ex: Necromancia, Serpentis, etc."
+                    className="w-full bg-[#181115] border border-[#ef4444]/60 focus:border-[#ef4444] text-xs text-white px-2.5 py-1.5 rounded-xs focus:outline-hidden"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Nível Inicial
+                </label>
+                <div className="flex items-center gap-2">
+                  <Bolinhas
+                    valor={discNivelInicial}
+                    max={5}
+                    min={1}
+                    onChange={(v) => setDiscNivelInicial(v)}
+                  />
+                  <span className="text-xs text-[#a89f91] font-serif">
+                    (Nível {discNivelInicial})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#3b181b]">
+              <button
+                type="button"
+                onClick={() => setModalAddDisciplinaAberto(false)}
+                className="px-3 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] rounded-xs border border-[#3b181b] cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarNovaDisciplina}
+                className="px-4 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider text-white bg-[#8b0000] hover:bg-[#a30d12] rounded-xs cursor-pointer shadow-md"
+              >
+                Adicionar à Ficha
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA ADICIONAR ANTECEDENTE (1ª Edição - 1996) */}
+      {modalAddAntecedenteAberto && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#120d10] border border-[#8b0000] rounded-sm max-w-md w-full p-5 space-y-4 shadow-2xl relative">
+            <button
+              type="button"
+              onClick={() => setModalAddAntecedenteAberto(false)}
+              className="absolute top-3 right-3 text-[#a89f91] hover:text-white text-xs cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 text-[#d4af37]">
+              <BookOpen className="w-5 h-5 text-[#ef4444]" />
+              <h4 className="text-sm font-gothic font-bold uppercase tracking-wider">
+                Adicionar Antecedente (1ª Edição)
+              </h4>
+            </div>
+
+            <p className="text-xs text-[#ded6cb] leading-relaxed">
+              Escolha um dos antecedentes do livro básico da 1ª Edição ou crie um antecedente personalizado:
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Antecedente
+                </label>
+                <div className="relative">
+                  <select
+                    value={antSelecionado}
+                    onChange={(e) => setAntSelecionado(e.target.value)}
+                    className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] focus:border-[#d4af37] text-xs font-semibold text-[#ded6cb] px-2.5 py-2 rounded-xs appearance-none pr-8 cursor-pointer focus:outline-hidden"
+                  >
+                    <optgroup
+                      label="─── ANTECEDENTES DO LIVRO (1ª EDIÇÃO) ───"
+                      className="bg-[#181115] text-[#d4af37] font-gothic font-bold"
+                    >
+                      {ANTECEDENTES_LIVRO_1E.map((a) => (
+                        <option key={a} value={a} className="bg-[#120a0e] text-[#ded6cb] font-sans font-normal py-1">
+                          {a}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <option value="__custom__" className="bg-[#241318] text-[#ef4444] font-bold py-1">
+                      ✍️ Outro Antecedente (Digitar Nome Personalizado)
+                    </option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-[#d4af37] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {antSelecionado === '__custom__' && (
+                <div className="animate-fadeIn">
+                  <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                    Nome do Novo Antecedente
+                  </label>
+                  <input
+                    type="text"
+                    value={antCustomNome}
+                    onChange={(e) => setAntCustomNome(e.target.value)}
+                    placeholder="Ex: Domínio, Fama, Lacaios, etc."
+                    className="w-full bg-[#181115] border border-[#ef4444]/60 focus:border-[#ef4444] text-xs text-white px-2.5 py-1.5 rounded-xs focus:outline-hidden"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {(antSelecionado === 'Geração' || antCustomNome.toLowerCase().includes('geração')) && (
+                <div className="p-2.5 bg-[#251015] border border-[#8b0000]/60 rounded-xs text-[11px] text-[#ded6cb] space-y-1 animate-fadeIn">
+                  <p className="font-bold text-[#d4af37] flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444]" /> Regra Canônica da 1ª Edição:
+                  </p>
+                  <p>
+                    A geração base é <strong>12ª Geração</strong>. Cada ponto neste antecedente reduz a geração em 1 nível (máx 5 pts = 7ª Geração) e aumenta automaticamente a Reserva de Sangue máxima (de 11 até 20).
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Nível Inicial
+                </label>
+                <div className="flex items-center gap-2">
+                  <Bolinhas
+                    valor={antNivelInicial}
+                    max={5}
+                    min={1}
+                    onChange={(v) => setAntNivelInicial(v)}
+                  />
+                  <span className="text-xs text-[#a89f91] font-serif">
+                    (Nível {antNivelInicial})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#3b181b]">
+              <button
+                type="button"
+                onClick={() => setModalAddAntecedenteAberto(false)}
+                className="px-3 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] rounded-xs border border-[#3b181b] cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarNovoAntecedente}
+                className="px-4 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider text-white bg-[#8b0000] hover:bg-[#a30d12] rounded-xs cursor-pointer shadow-md"
+              >
+                Adicionar à Ficha
               </button>
             </div>
           </div>

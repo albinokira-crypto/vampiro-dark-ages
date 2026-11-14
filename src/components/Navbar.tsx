@@ -10,6 +10,7 @@ import {
   LogOut,
   Check,
 } from 'lucide-react';
+import { InstaladorPWA } from './InstaladorPWA';
 
 interface NavbarProps {
   usuarioAtual: User;
@@ -101,6 +102,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Ações e Perfil do Usuário */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Botão de Instalar Atalho PWA */}
+          <InstaladorPWA />
+
           {/* Botão de Copiar Link de Convite */}
           <button
             type="button"
