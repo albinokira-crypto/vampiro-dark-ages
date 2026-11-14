@@ -8,108 +8,74 @@ Sistema Web Full-Stack para criação, visualização, armazenamento e edição 
 
 ```
 D:\vampiro-dark-ages\
-├── index.html                  # Metadados, Google Fonts (Cinzel, MedievalSharp, Crimson Pro)
-├── package.json                # React 19, TypeScript, Tailwind CSS v4, Lucide-React
-├── vite.config.ts              # Bundler Vite com plugin Tailwind CSS v4
+├── index.html                     # Metadados, Google Fonts (Cinzel, MedievalSharp, Crimson Pro)
+├── package.json                   # React 19, TypeScript, Tailwind CSS v4, Lucide-React
+├── vite.config.ts                 # Bundler Vite com plugin Tailwind CSS v4
 ├── src/
-│   ├── main.tsx                # Entrada React
-│   ├── App.tsx                 # Roteamento de telas (Dashboard vs Ficha) e gestão de sessão
-│   ├── index.css               # Tema dark gótico, sombras de sangue, estilização de pergaminho
+│   ├── main.tsx                   # Entrada React
+│   ├── App.tsx                    # Roteamento de telas (Login vs Dashboard vs Ficha)
+│   ├── index.css                  # Tema dark gótico, sombras de sangue, estilização de pergaminho
 │   ├── types/
-│   │   └── index.ts            # Tipagens completas do sistema (Atributos 1-8, Habilidades, XP, etc.)
+│   │   └── index.ts               # Tipagens completas (Atributos, Prioridades, Pontos Bônus, RBAC)
 │   ├── services/
-│   │   └── storage.ts          # Persistência local (LocalStorage), dados pré-cadastrados, backup JSON
+│   │   └── storage.ts             # Persistência local, login, cadastro, configurações da mesa
 │   └── components/
-│       ├── Bolinhas.tsx        # Seletor interativo de 1 a 8 bolinhas (pontos) com clique cíclico/desmarcar
-│       ├── QuadradosStatus.tsx # Seletor de caixas de gasto (Força de Vontade e Sangue) com marcação em 'X'
+│       ├── TelaLogin.tsx          # Autenticação, cadastro de jogador e link de convite
+│       ├── PainelConfigMestre.tsx # Painel do Mestre para ajustar pontuação inicial e copiar convite
+│       ├── PainelCriacaoFicha.tsx # Assistente de criação com prioridades, pontos básicos e 15 bônus
+│       ├── Bolinhas.tsx           # Seletor interativo de 1 a 8 bolinhas (pontos)
+│       ├── QuadradosStatus.tsx    # Seletor de caixas de gasto com marcação em 'X'
 │       ├── VitalidadeSelector.tsx # Níveis de saúde (Nenhum -> Contusão / -> Letal X -> Agravado ✱)
-│       ├── InlineField.tsx     # Edição direta no clique estilo ficha de papel (texto e multilinha)
-│       ├── Navbar.tsx          # Cabeçalho com troca de perfil (Mestre vs Jogadores) e Backup JSON
-│       ├── Dashboard.tsx       # Resumo da mesa, busca, cartões com status de saúde e sangue
-│       └── FichaPersonagem.tsx # Ficha completa com 3 seções/abas e barra flutuante de salvar
+│       ├── InlineField.tsx        # Edição direta no clique estilo ficha de papel
+│       ├── Navbar.tsx             # Cabeçalho com convites, troca de perfil e logout
+│       ├── Dashboard.tsx          # Resumo da mesa, busca, cartões com status de saúde e sangue
+│       └── FichaPersonagem.tsx    # Ficha completa com 3 seções/abas e barra flutuante de salvar
 ```
 
 ---
 
 ## ⚔️ Funcionalidades Implementadas
 
-### 1. Sistema de Perfis e Permissões (RBAC)
-- **Mestre da Crônica (Admin):** Visualiza e edita todos os personagens e NPCs da mesa; pode criar personagens para si ou NPCs.
-- **Jogadores:** Visualizam e editam apenas as suas próprias fichas. Fichas de outros jogadores abrem em modo somente leitura com aviso visual.
-- **Seletor de Perfis:** Alternância instantânea no menu superior entre Mestre e Jogadores da crônica para testes e jogatina.
+### 1. Sistema de Autenticação e Link de Convite
+- **Página de Login e Cadastro Dedicada:**
+  - Login com e-mail e senha.
+  - Cadastro de novos jogadores.
+  - Acesso rápido para testes (Mestre ou Jogadores).
+- **Link de Convite da Mesa:**
+  - Botão no cabeçalho e no painel para copiar o link da crônica (`?convite=dark-ages`).
+  - O jogador abre o link e cai direto no cadastro da mesa do Mestre.
 
-### 2. Painel Inicial (Dashboard de Resumo)
-- Filtro por termo (Nome, Clã, Geração, Jogador) e por tipo (Todos / Jogadores / NPCs).
-- Indicador visual dinâmico do status de Vitalidade e penalidade atual (ex: *Intacto*, *Ferido Gravemente (-2)*, *Incapacitado*).
-- Barra de Reserva de Sangue disponível vs. gasto.
-- Ações rápidas: "Abrir Ficha", "Excluir Ficha" (com confirmação da Inquisição) e "Criar Novo Personagem / NPC".
+### 2. Configuração de Pontuação Inicial pelo Mestre
+- Painel exclusivo onde o Mestre customiza a pontuação inicial da crônica:
+  - Atributos (Primário: 7, Secundário: 5, Terciário: 3).
+  - Habilidades (Primária: 13, Secundária: 7, Terciária: 5).
+  - Disciplinas: 4 pontos.
+  - Antecedentes: 5 pontos.
+  - Virtudes: 7 pontos.
+  - Pontos Bônus: 15 pontos.
+  - Botão para restaurar os padrões oficiais a qualquer momento.
 
-### 3. Edição Direta Visual (Inline Editing)
-- Textos e anotações podem ser clicados e editados diretamente na própria ficha, sem formulários modais separados.
-- Atalho global de teclado: `Ctrl + S` para salvar alterações instantaneamente.
-- Barra fixa flutuante no rodapé: sempre visível, com detector de alterações pendentes e botão "Salvar Alterações".
-
-### 4. Sistema de Bolinhas (1 a 8 Pontos)
-- Componente `Bolinhas.tsx` para Atributos, Habilidades, Disciplinas, Antecedentes e Trilhas Taumatúrgicas.
-- Suporte a gerações antigas (até 8 pontos).
-- Clique no mesmo ponto preenchido desmarca 1 ponto, permitindo ajuste rápido de valores.
-
-### 5. Estrutura da Ficha em 3 Abas
-- **Seção 1 (Características Principais):**
-  - Cabeçalho: Nome, Jogador, Crônica, Clã, Natureza, Comportamento, Geração, Refúgio, Conceito, Senhor.
-  - Atributos (1 a 8): Físicos, Sociais e Mentais.
-  - Habilidades (0 a 8): Talentos, Perícias e Conhecimentos.
-  - Vantagens: Disciplinas dinâmicas, Antecedentes dinâmicos e Virtudes (Consciência/Convicção, Autocontrole/Instinto, Coragem).
-  - Status Atuais: Caminho/Humanidade (1-10), Força de Vontade permanente + temporária em caixas 'X', Pontos de Sangue com reserva/gasto e Fraqueza de Clã.
-  - Vitalidade: Escoriado a Incapacitado com ciclos de dano (Contusão `/`, Letal `X` e Agravado `✱`).
-- **Seção 2 (Experiência, Combate e Laços):**
-  - XP: Experiência Atual, Total Gasto, Total Acumulado e Histórico de transações.
-  - Combate: Tabela dinâmica de Armas (Dificuldade, Dano, Ocultação, Alcance) e Armaduras (Classe, Penalidade).
-  - Relações: Laços de Sangue / Vinculi (1 a 3 goles) e Perturbações Mentais com descrição.
-- **Seção 3 (Magia de Sangue, Biografia e Aparência):**
-  - Magia de Sangue / Taumaturgia: Trilhas (1 a 8 bolinhas) e Grimório de Rituais (Nome, Nível, Notas/Páginas).
-  - Aparência: Idade, Idade Aparente, Abraço, Cabelos, Olhos, Raça, Sexo, Nacionalidade, Altura, Peso.
-  - Memórias e Destino: História, Prelúdio, Objetivos e Notas Secretas.
-
----
-
-## 🚀 Como Executar Localmente
-
-1. Navegue até a pasta do projeto:
-   ```powershell
-   cd D:\vampiro-dark-ages
-   ```
-
-2. Instale as dependências (já executado):
-   ```powershell
-   npm install
-   ```
-
-3. Inicie o servidor de desenvolvimento:
-   ```powershell
-   npm run dev
-   ```
-   Acesse a URL informada (ex: `http://localhost:5173`).
-
----
-
-## ☁️ Como Publicar no Cloudflare Pages
-
-O projeto gera uma SPA estática otimizada sem necessidade de servidor Node.js em produção:
-
-1. **Compilar a aplicação:**
-   ```powershell
-   npm run build
-   ```
-   Os arquivos finais são gerados na pasta `dist/`.
-
-2. **Opção A - Via Dashboard do Cloudflare Pages (Deploy via Git):**
-   - Conecte o repositório GitHub ao Cloudflare Pages.
-   - **Framework preset:** `Vite`
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-
-3. **Opção B - Via Wrangler CLI (Deploy Direto):**
-   ```powershell
-   npx wrangler pages deploy dist --project-name vampiro-dark-ages
-   ```
+### 3. Assistente de Criação de Ficha
+- **Ficha Zerada:**
+  - Atributos: Todos começam com **1 bolinha** obrigatória.
+  - Virtudes: Consciência/Convicção, Autocontrole/Instinto e Coragem começam com **1 bolinha** obrigatória.
+  - Habilidades, Disciplinas e Antecedentes: Começam zerados (**0 bolinhas**).
+  - Caminho inicial = Consciência + Autocontrole.
+  - Força de Vontade inicial = Coragem.
+- **Passo 1 (Definição de Prioridades):**
+  - Jogador escolhe quais categorias são Primárias, Secundárias e Terciárias de Atributos e Habilidades.
+- **Passo 2 (Distribuição dos Pontos Iniciais):**
+  - Régua em tempo real indicando gastos vs. limite permitido.
+  - Indicador visual verde quando a distribuição estiver completa.
+- **Passo 3 (Distribuição dos 15 Pontos Bônus):**
+  - Atributos: 5 pts por bola.
+  - Habilidades: 2 pts por bola.
+  - Antecedentes: 1 pt por bola.
+  - Força de Vontade: 1 pt por bola.
+  - Virtudes: 2 pts por bola.
+  - Caminho: 1 pt por bola.
+  - 3 Primeiras Disciplinas de Clã: 5 pts por bola (travadas como disciplinas iniciais).
+  - Outras Disciplinas existentes: 7 pts por bola.
+  - Nova Disciplina: 10 pts (1ª bola) / 7 pts (demais bolas).
+- **Finalização:**
+  - Botão "Finalizar Personagem" consolida a criação e libera a ficha para o modo de jogo padrão.
