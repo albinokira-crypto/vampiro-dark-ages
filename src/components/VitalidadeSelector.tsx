@@ -85,7 +85,14 @@ export const VitalidadeSelector: React.FC<VitalidadeSelectorProps> = ({
             key={n.id}
             className="flex items-center justify-between py-0.5 px-2 rounded-xs hover:bg-white/5 transition-colors text-xs"
           >
-            <span className="text-[#ded6cb] font-medium">{n.nome}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#ded6cb] font-medium">{n.nome}</span>
+              {n.id === '1_extra' && (
+                <span className="text-[9px] font-mono font-bold px-1 rounded bg-[#2a1318] text-[#d4af37] border border-[#4a2228]">
+                  Corpo Grande
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <span className="w-14 text-right font-mono text-[11px] text-[#a89f91]">
                 {n.penalidade}

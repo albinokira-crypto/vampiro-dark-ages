@@ -19,7 +19,7 @@ import { InlineField } from './InlineField';
 import { SelectDarkAgesField } from './SelectDarkAgesField';
 import { PainelCriacaoFicha } from './PainelCriacaoFicha';
 import { FotoPersonagem } from './FotoPersonagem';
-import { storageService, normalizarPersonagem } from '../services/storage';
+import { storageService, normalizarPersonagem, ajustarVitalidadeCorpoGrande } from '../services/storage';
 import {
   CLAS_DARK_AGES_1E,
   ARQUETIPOS_PERSONALIDADE_1E,
@@ -46,6 +46,7 @@ import {
   X,
   ChevronDown,
   SlidersHorizontal,
+  Pencil,
 } from 'lucide-react';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 
@@ -727,9 +728,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
   const handleRemoverQualidadeDefeito = (id: string) => {
     if (!isEmCriacao && usuarioAtual.role !== 'mestre' && !podeEditar) return;
+    const novaLista = (ficha.qualidadesDefeitos || []).filter((q) => q.id !== id);
+    const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
     updateFicha((prev) => ({
       ...prev,
-      qualidadesDefeitos: (prev.qualidadesDefeitos || []).filter((q) => q.id !== id),
+      qualidadesDefeitos: novaLista,
+      vitalidade: novaVitalidade,
     }));
   };
 
@@ -740,6 +744,62 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [catCustomQD, setCatCustomQD] = useState<'fisico' | 'mental' | 'social' | 'sobrenatural'>('fisico');
   const [pontosCustomQD, setPontosCustomQD] = useState<number>(1);
   const [descCustomQD, setDescCustomQD] = useState('');
+
+  // Estado e handlers para edição de Qualidades/Defeitos (Exclusivo Mestre)
+  const [itemEditandoQD, setItemEditandoQD] = useState<QualidadeDefeitoItem | null>(null);
+  const [formEditQD, setFormEditQD] = useState<{
+    nome: string;
+    tipo: 'qualidade' | 'defeito';
+    custo: number;
+    categoria: 'fisico' | 'mental' | 'social' | 'sobrenatural';
+    descricao: string;
+  }>({
+    nome: '',
+    tipo: 'qualidade',
+    custo: 1,
+    categoria: 'fisico',
+    descricao: '',
+  });
+
+  const handleAbrirEdicaoQD = (item: QualidadeDefeitoItem) => {
+    setItemEditandoQD(item);
+    setFormEditQD({
+      nome: item.nome,
+      tipo: item.tipo,
+      custo: item.custo,
+      categoria: item.categoria,
+      descricao: item.descricao || '',
+    });
+  };
+
+  const handleSalvarEdicaoQD = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemEditandoQD || !formEditQD.nome.trim()) return;
+
+    const novaLista = (ficha.qualidadesDefeitos || []).map((q) => {
+      if (q.id === itemEditandoQD.id) {
+        return {
+          ...q,
+          nome: formEditQD.nome.trim(),
+          tipo: formEditQD.tipo,
+          custo: Math.max(1, formEditQD.custo),
+          categoria: formEditQD.categoria,
+          descricao: formEditQD.descricao.trim() || undefined,
+        };
+      }
+      return q;
+    });
+
+    const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
+
+    updateFicha((prev) => ({
+      ...prev,
+      qualidadesDefeitos: novaLista,
+      vitalidade: novaVitalidade,
+    }));
+
+    setItemEditandoQD(null);
+  };
 
   const handleAdicionarCustomQD = (e: React.FormEvent) => {
     e.preventDefault();
@@ -753,9 +813,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       custo: custoFinal,
       descricao: descCustomQD.trim() || undefined,
     };
+    const novaLista = [...(ficha.qualidadesDefeitos || []), novo];
+    const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
     updateFicha((prev) => ({
       ...prev,
-      qualidadesDefeitos: [...(prev.qualidadesDefeitos || []), novo],
+      qualidadesDefeitos: novaLista,
+      vitalidade: novaVitalidade,
     }));
     setNomeCustomQD('');
     setDescCustomQD('');
@@ -2162,16 +2225,28 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                 <p className="text-[11px] text-[#a89f91]">{q.descricao}</p>
                               )}
                             </div>
-                            {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoverQualidadeDefeito(q.id)}
-                                className="p-1 text-[#8e8273] hover:text-[#ef4444] rounded-xs cursor-pointer transition-colors shrink-0"
-                                title="Remover qualidade"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {usuarioAtual.role === 'mestre' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAbrirEdicaoQD(q)}
+                                  className="p-1 text-[#8e8273] hover:text-[#d4af37] hover:bg-[#251419] rounded-xs cursor-pointer transition-colors"
+                                  title="Editar qualidade (Exclusivo Mestre)"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoverQualidadeDefeito(q.id)}
+                                  className="p-1 text-[#8e8273] hover:text-[#ef4444] hover:bg-[#251419] rounded-xs cursor-pointer transition-colors"
+                                  title="Remover qualidade"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2208,16 +2283,28 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                 <p className="text-[11px] text-[#a89f91]">{d.descricao}</p>
                               )}
                             </div>
-                            {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoverQualidadeDefeito(d.id)}
-                                className="p-1 text-[#8e8273] hover:text-[#ef4444] rounded-xs cursor-pointer transition-colors shrink-0"
-                                title="Remover defeito"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {usuarioAtual.role === 'mestre' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAbrirEdicaoQD(d)}
+                                  className="p-1 text-[#8e8273] hover:text-[#d4af37] hover:bg-[#251419] rounded-xs cursor-pointer transition-colors"
+                                  title="Editar defeito (Exclusivo Mestre)"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoverQualidadeDefeito(d.id)}
+                                  className="p-1 text-[#8e8273] hover:text-[#ef4444] hover:bg-[#251419] rounded-xs cursor-pointer transition-colors"
+                                  title="Remover defeito"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -3463,6 +3550,139 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           }}
           onFechar={() => setModalAtalhosAberto(false)}
         />
+      )}
+
+      {/* MODAL DE EDIÇÃO DE QUALIDADE / DEFEITO (EXCLUSIVO MESTRE) */}
+      {itemEditandoQD && usuarioAtual.role === 'mestre' && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#120d10] border border-[#d4af37] rounded-sm max-w-md w-full p-5 space-y-4 shadow-2xl relative">
+            <button
+              type="button"
+              onClick={() => setItemEditandoQD(null)}
+              className="absolute top-3 right-3 text-[#a89f91] hover:text-white text-xs cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 text-[#d4af37]">
+              <Pencil className="w-4 h-4 text-[#d4af37]" />
+              <h4 className="text-sm font-gothic font-bold uppercase tracking-wider">
+                Editar {itemEditandoQD.tipo === 'qualidade' ? 'Qualidade' : 'Defeito'} (Mestre)
+              </h4>
+            </div>
+
+            <p className="text-xs text-[#a89f91]">
+              Ajuste as propriedades do traço na ficha. Alterações de pontos e vitalidade recalculam automaticamente os bônus e a trilha de saúde.
+            </p>
+
+            <form onSubmit={handleSalvarEdicaoQD} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Nome do Traço
+                </label>
+                <input
+                  type="text"
+                  value={formEditQD.nome}
+                  onChange={(e) => setFormEditQD((prev) => ({ ...prev, nome: e.target.value }))}
+                  required
+                  className="w-full bg-[#181115] border border-[#4a2228] focus:border-[#d4af37] text-xs text-[#ded6cb] px-2.5 py-1.5 rounded-xs focus:outline-hidden"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                    Tipo
+                  </label>
+                  <select
+                    value={formEditQD.tipo}
+                    onChange={(e) =>
+                      setFormEditQD((prev) => ({
+                        ...prev,
+                        tipo: e.target.value as 'qualidade' | 'defeito',
+                      }))
+                    }
+                    className="w-full bg-[#181115] border border-[#4a2228] focus:border-[#d4af37] text-xs text-[#ded6cb] px-2.5 py-1.5 rounded-xs focus:outline-hidden"
+                  >
+                    <option value="qualidade">Qualidade (Custo)</option>
+                    <option value="defeito">Defeito (Bônus)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                    Pontos / Custo
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formEditQD.custo}
+                    onChange={(e) =>
+                      setFormEditQD((prev) => ({
+                        ...prev,
+                        custo: parseInt(e.target.value) || 1,
+                      }))
+                    }
+                    className="w-full bg-[#181115] border border-[#4a2228] focus:border-[#d4af37] text-xs text-[#ded6cb] px-2.5 py-1.5 rounded-xs focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Categoria
+                </label>
+                <select
+                  value={formEditQD.categoria}
+                  onChange={(e) =>
+                    setFormEditQD((prev) => ({
+                      ...prev,
+                      categoria: e.target.value as 'fisico' | 'mental' | 'social' | 'sobrenatural',
+                    }))
+                  }
+                  className="w-full bg-[#181115] border border-[#4a2228] focus:border-[#d4af37] text-xs text-[#ded6cb] px-2.5 py-1.5 rounded-xs focus:outline-hidden"
+                >
+                  <option value="fisico">Físico</option>
+                  <option value="mental">Mental</option>
+                  <option value="social">Social</option>
+                  <option value="sobrenatural">Sobrenatural</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Descrição / Regra
+                </label>
+                <textarea
+                  rows={3}
+                  value={formEditQD.descricao}
+                  onChange={(e) =>
+                    setFormEditQD((prev) => ({ ...prev, descricao: e.target.value }))
+                  }
+                  placeholder="Descrição opcional do efeito do traço..."
+                  className="w-full bg-[#181115] border border-[#4a2228] focus:border-[#d4af37] text-xs text-[#ded6cb] p-2 rounded-xs focus:outline-hidden resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#2d1217]">
+                <button
+                  type="button"
+                  onClick={() => setItemEditandoQD(null)}
+                  className="px-3 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] rounded-xs border border-[#3b181b] cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider text-black bg-[#d4af37] hover:bg-[#e5c158] rounded-xs cursor-pointer shadow-md"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

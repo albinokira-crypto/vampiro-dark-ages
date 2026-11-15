@@ -5,6 +5,7 @@ import type {
   NivelVitalidade,
   ConfiguracaoMesa,
   LogAlteracao,
+  QualidadeDefeitoItem,
 } from '../types';
 import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
 import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
@@ -42,6 +43,51 @@ export const NIVEIS_VITALIDADE_PADRAO: NivelVitalidade[] = [
   { id: '6', nome: 'Aleijado', penalidade: '-5', dano: 'nenhum' },
   { id: '7', nome: 'Incapacitado', penalidade: 'Incapaz', dano: 'nenhum' },
 ];
+
+/**
+ * Sincroniza os níveis de vitalidade do personagem conforme a qualidade 'Corpo Grande':
+ * - Se possui 'Corpo Grande', recebe 1 nível extra de Escoriado (2 caixas de Escoriado no total).
+ * - Se não possui, mantém 1 único nível de Escoriado.
+ */
+export function ajustarVitalidadeCorpoGrande(
+  vitalidade: NivelVitalidade[] = NIVEIS_VITALIDADE_PADRAO,
+  qualidadesDefeitos?: QualidadeDefeitoItem[]
+): NivelVitalidade[] {
+  const temCorpoGrande = (qualidadesDefeitos || []).some(
+    (qd) => qd.nome?.toLowerCase().trim() === 'corpo grande'
+  );
+
+  const base = Array.isArray(vitalidade) && vitalidade.length > 0
+    ? vitalidade.map((n) => ({ ...n }))
+    : NIVEIS_VITALIDADE_PADRAO.map((n) => ({ ...n }));
+
+  const escoriados = base.filter((v) => v.nome.toLowerCase().trim() === 'escoriado');
+
+  if (temCorpoGrande) {
+    if (escoriados.length === 1) {
+      const idx = base.findIndex((v) => v.nome.toLowerCase().trim() === 'escoriado');
+      base.splice(idx + 1, 0, {
+        id: '1_extra',
+        nome: 'Escoriado',
+        penalidade: '0',
+        dano: 'nenhum',
+      });
+      return base;
+    }
+  } else {
+    if (escoriados.length > 1) {
+      const extraIdx = base.findIndex(
+        (v, i) => v.nome.toLowerCase().trim() === 'escoriado' && (v.id === '1_extra' || i > 0)
+      );
+      if (extraIdx !== -1) {
+        base.splice(extraIdx, 1);
+        return base;
+      }
+    }
+  }
+
+  return base;
+}
 
 export const USUARIOS_PADRAO: User[] = [
   {
@@ -318,6 +364,19 @@ export function normalizarPersonagem(p: Personagem): Personagem {
       ciencia: h.ciencia ?? 0,
       senescalia: h.senescalia ?? h.senescencia ?? 0,
     };
+  }
+
+  // Sincronizar Vitalidade com a qualidade 'Corpo Grande'
+  copia.vitalidade = ajustarVitalidadeCorpoGrande(copia.vitalidade, copia.qualidadesDefeitos);
+
+  // Normalização retroativa de Objetivo Condutor para o valor canônico da 1ª Edição (2 pontos)
+  if (copia.qualidadesDefeitos && Array.isArray(copia.qualidadesDefeitos)) {
+    copia.qualidadesDefeitos = copia.qualidadesDefeitos.map((qd) => {
+      if (qd.nome?.toLowerCase().trim() === 'objetivo condutor' && qd.custo === 3) {
+        return { ...qd, custo: 2 };
+      }
+      return qd;
+    });
   }
 
   return copia;

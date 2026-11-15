@@ -22,6 +22,7 @@ import {
   type ModeloQualidadeDefeito,
 } from '../data/qualidadesDefeitos1E';
 import { calcularGastosPontosBonus } from '../data/calculosPontosBonus';
+import { ajustarVitalidadeCorpoGrande } from '../services/storage';
 
 interface PainelCriacaoFichaProps {
   ficha: Personagem;
@@ -254,16 +255,22 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
       ];
     }
 
+    const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
+
     onAtualizarFicha({
       ...ficha,
       qualidadesDefeitos: novaLista,
+      vitalidade: novaVitalidade,
     });
   };
 
   const handleRemoverQD = (id: string) => {
+    const novaLista = listaQD.filter((q) => q.id !== id);
+    const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
     onAtualizarFicha({
       ...ficha,
-      qualidadesDefeitos: listaQD.filter((q) => q.id !== id),
+      qualidadesDefeitos: novaLista,
+      vitalidade: novaVitalidade,
     });
   };
 
@@ -293,9 +300,13 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
       descricao: descCustomQD.trim() || undefined,
     };
 
+    const novaLista = [...listaQD, novo];
+    const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
+
     onAtualizarFicha({
       ...ficha,
-      qualidadesDefeitos: [...listaQD, novo],
+      qualidadesDefeitos: novaLista,
+      vitalidade: novaVitalidade,
     });
 
     setNomeCustomQD('');

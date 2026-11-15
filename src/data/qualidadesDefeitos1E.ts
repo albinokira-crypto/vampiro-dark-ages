@@ -219,7 +219,7 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     nome: 'Objetivo Condutor',
     tipo: 'defeito',
     categoria: 'mental',
-    pontos: 3,
+    pontos: 2,
     descricao: 'Você tem uma meta pessoal e obsessiva que direciona suas ações. Deve gastar Força de Vontade para ignorar oportunidades de avançar nesse objetivo, mesmo sob perigo iminente.',
   },
   {
