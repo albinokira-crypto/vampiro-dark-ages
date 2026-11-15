@@ -55,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const handleExportar = () => {
-    const json = storageService.exportarBackup();
+    const json = storageService.exportarBackup(usuarioAtual);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -70,7 +70,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setSincronizando(true);
     try {
       const remotos = await storageService.sincronizarPersonagensRemotos(usuarioAtual);
-      setPersonagens(remotos);
+      const listaSegura =
+        usuarioAtual.role === 'jogador'
+          ? remotos.filter((p) => p.usuarioId === usuarioAtual.id && p.tipo !== 'npc')
+          : remotos;
+      setPersonagens(listaSegura);
       const confRemota = await storageService.carregarConfiguracaoMesaRemota();
       setConfig(confRemota);
     } finally {
@@ -111,18 +115,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setTimeout(() => setCopiado(false), 2500);
   };
 
-  const filtrados = personagens.filter((p) => {
-    const termo = busca.toLowerCase();
-    const bateBusca =
-      p.nome.toLowerCase().includes(termo) ||
-      p.cla.toLowerCase().includes(termo) ||
-      p.geracao.toLowerCase().includes(termo) ||
-      p.jogador.toLowerCase().includes(termo);
+  const filtrados = personagens
+    .filter((p) => {
+      // Regra de Sigilo Absoluto: Jogador NUNCA vê fichas ou NPCs criados pelo Mestre
+      if (usuarioAtual.role === 'jogador') {
+        if (p.usuarioId !== usuarioAtual.id || p.tipo === 'npc') {
+          return false;
+        }
+      }
+      return true;
+    })
+    .filter((p) => {
+      const termo = busca.toLowerCase();
+      const bateBusca =
+        p.nome.toLowerCase().includes(termo) ||
+        p.cla.toLowerCase().includes(termo) ||
+        p.geracao.toLowerCase().includes(termo) ||
+        p.jogador.toLowerCase().includes(termo);
 
-    const bateTipo = filtroTipo === 'todos' ? true : p.tipo === filtroTipo;
+      const bateTipo = filtroTipo === 'todos' ? true : p.tipo === filtroTipo;
 
-    return bateBusca && bateTipo;
-  });
+      return bateBusca && bateTipo;
+    });
 
   // Função auxiliar para calcular penalidade de vitalidade
   const getStatusVitalidade = (p: Personagem) => {

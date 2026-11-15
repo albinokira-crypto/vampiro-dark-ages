@@ -816,27 +816,37 @@ export const storageService = {
         const remotos: Personagem[] = await res.json();
         if (Array.isArray(remotos)) {
           const normalizados = remotos.map(normalizarPersonagem);
-          localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(normalizados));
 
-          // Se algum personagem remoto estava desatualizado no Cloudflare D1, atualiza no D1
-          normalizados.forEach(async (p, idx) => {
-            const original = remotos[idx];
-            if (
-              p.caminhoNivel !== original.caminhoNivel ||
-              p.forcaDeVontade !== original.forcaDeVontade ||
-              p.pontosDeSangueMax !== original.pontosDeSangueMax
-            ) {
-              try {
-                await fetch('/api/personagens', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(p),
-                });
-              } catch {}
-            }
-          });
+          // Regra de Sigilo Absoluto: Jogador só armazena e visualiza seus próprios personagens (nunca NPCs ou fichas do Mestre)
+          if (user.role === 'jogador') {
+            const apenasDoJogador = normalizados.filter(
+              (p) => p.usuarioId === user.id && p.tipo !== 'npc'
+            );
+            localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(apenasDoJogador));
+            return apenasDoJogador;
+          } else {
+            localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(normalizados));
 
-          return normalizados;
+            // Se algum personagem remoto estava desatualizado no Cloudflare D1, atualiza no D1
+            normalizados.forEach(async (p, idx) => {
+              const original = remotos[idx];
+              if (
+                p.caminhoNivel !== original.caminhoNivel ||
+                p.forcaDeVontade !== original.forcaDeVontade ||
+                p.pontosDeSangueMax !== original.pontosDeSangueMax
+              ) {
+                try {
+                  await fetch('/api/personagens', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(p),
+                  });
+                } catch {}
+              }
+            });
+
+            return normalizados;
+          }
         }
       }
     } catch {
@@ -850,13 +860,19 @@ export const storageService = {
     if (user.role === 'mestre') {
       return todos;
     }
-    return todos.filter((p) => p.usuarioId === user.id);
+    // Regra estrita de sigilo: Jogador só acessa fichas onde usuarioId === user.id e nunca NPCs
+    return todos.filter((p) => p.usuarioId === user.id && p.tipo !== 'npc');
   },
 
-  getPersonagem(id: string): Personagem | null {
+  getPersonagem(id: string, user?: User | null): Personagem | null {
     const todos = this.getPersonagens();
     const p = todos.find((item) => item.id === id) ?? null;
-    return p ? normalizarPersonagem(p) : null;
+    if (!p) return null;
+    // Bloqueio de sigilo: Se o usuário informado for jogador, impede acesso a fichas que não sejam dele ou NPCs
+    if (user && user.role === 'jogador' && (p.usuarioId !== user.id || p.tipo === 'npc')) {
+      return null;
+    }
+    return normalizarPersonagem(p);
   },
 
   async salvarPersonagem(personagem: Personagem): Promise<void> {
@@ -971,10 +987,15 @@ export const storageService = {
     }
   },
 
-  exportarBackup(): string {
+  exportarBackup(usuarioAtual?: User | null): string {
+    const isJogador = usuarioAtual?.role === 'jogador';
+    const personagensExportar = isJogador
+      ? this.getPersonagensDoUsuario(usuarioAtual)
+      : this.getPersonagens();
+
     const dados = {
-      usuarios: this.getUsuarios(),
-      personagens: this.getPersonagens(),
+      usuarios: isJogador ? (usuarioAtual ? [usuarioAtual] : []) : this.getUsuarios(),
+      personagens: personagensExportar,
       configuracaoMesa: this.getConfiguracaoMesa(),
       exportadoEm: new Date().toISOString(),
     };

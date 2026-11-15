@@ -291,20 +291,33 @@ export default {
           }
         }
 
-        // 8. PERSONAGENS (LISTAR)
+        // 8. PERSONAGENS (LISTAR) - Sigilo Absoluto das Fichas e NPCs do Mestre
         if (url.pathname === '/api/personagens' && request.method === 'GET') {
           const usuarioId = url.searchParams.get('usuarioId');
           const role = url.searchParams.get('role');
 
-          let query = 'SELECT dados FROM personagens ORDER BY atualizadoEm DESC';
-          let stmt;
+          if (!usuarioId) {
+            return jsonResponse([]);
+          }
+
+          let isMestreAutenticado = false;
 
           if (role === 'mestre') {
-            stmt = db.prepare(query);
-          } else if (usuarioId) {
-            stmt = db.prepare('SELECT dados FROM personagens WHERE usuarioId = ? ORDER BY atualizadoEm DESC').bind(usuarioId);
+            const mestreRow = await db.prepare(
+              "SELECT id FROM usuarios WHERE id = ? AND role = 'mestre'"
+            ).bind(usuarioId).first();
+            if (mestreRow) {
+              isMestreAutenticado = true;
+            }
+          }
+
+          let stmt;
+          if (isMestreAutenticado) {
+            // Mestre autenticado tem visão completa de todas as fichas e NPCs da crônica
+            stmt = db.prepare('SELECT dados FROM personagens ORDER BY atualizadoEm DESC');
           } else {
-            return jsonResponse([]);
+            // Jogador: Acesso estritamente restrito apenas aos seus próprios personagens (nunca NPCs ou fichas do Mestre)
+            stmt = db.prepare('SELECT dados FROM personagens WHERE usuarioId = ? ORDER BY atualizadoEm DESC').bind(usuarioId);
           }
 
           const { results } = await stmt.all();
@@ -314,7 +327,15 @@ export default {
             } catch {
               return null;
             }
-          }).filter(Boolean);
+          }).filter(p => {
+            if (!p) return false;
+            if (!isMestreAutenticado) {
+              // Garantia adicional de sigilo em nível de backend:
+              // Se não for o Mestre autenticado, nunca retorna fichas de outros usuários nem NPCs
+              return p.usuarioId === usuarioId && p.tipo !== 'npc';
+            }
+            return true;
+          });
 
           return jsonResponse(personagens);
         }
@@ -360,9 +381,16 @@ export default {
           return jsonResponse({ success: true });
         }
 
-        // 11. LOGS DE AUDITORIA EM TEMPO REAL (FEED DO MESTRE)
+        // 11. LOGS DE AUDITORIA EM TEMPO REAL (FEED EXCLUSIVO DO MESTRE)
         if (url.pathname === '/api/logs') {
           if (request.method === 'GET') {
+            const usuarioId = url.searchParams.get('usuarioId');
+            if (usuarioId) {
+              const mestre = await db.prepare("SELECT id FROM usuarios WHERE id = ? AND role = 'mestre'").bind(usuarioId).first();
+              if (!mestre) {
+                return jsonResponse([]);
+              }
+            }
             const { results } = await db.prepare(
               'SELECT * FROM logs_alteracoes ORDER BY criadoEm DESC LIMIT 80'
             ).all();

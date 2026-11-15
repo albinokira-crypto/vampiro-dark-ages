@@ -318,9 +318,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     });
   };
 
-  // Permissão de edição: Mestre pode editar tudo; Jogador só pode editar a sua própria ficha
+  // Permissão de edição: Mestre pode editar tudo; Jogador só pode editar a sua própria ficha (nunca NPCs)
   const podeEditar =
-    usuarioAtual.role === 'mestre' || ficha.usuarioId === usuarioAtual.id;
+    usuarioAtual.role === 'mestre' || (ficha.usuarioId === usuarioAtual.id && ficha.tipo !== 'npc');
 
   // Atualizar quando mudar o personagem passado por prop e normalizar automaticamente
   useEffect(() => {
@@ -1566,6 +1566,29 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       setTimeout(() => setSucessoXP(null), 4000);
     }
   };
+
+  // Bloqueio de sigilo do Narrador: se o usuário atual for jogador e a ficha não for dele ou for NPC, bloqueia visualização
+  if (usuarioAtual.role === 'jogador' && (ficha.usuarioId !== usuarioAtual.id || ficha.tipo === 'npc')) {
+    return (
+      <div className="min-h-screen bg-[#070506] flex items-center justify-center p-4">
+        <div className="bg-[#180e13] border border-[#522228] p-6 rounded-sm text-center max-w-md space-y-4 shadow-2xl">
+          <h2 className="text-lg font-gothic text-[#ef4444] font-bold uppercase tracking-wider">
+            Acesso Restrito ao Narrador
+          </h2>
+          <p className="text-xs text-[#a89f91]">
+            Esta ficha é estritamente confidencial do Mestre da Crônica e não pode ser visualizada por jogadores.
+          </p>
+          <button
+            type="button"
+            onClick={onVoltar}
+            className="px-4 py-2 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic uppercase tracking-wider rounded-xs cursor-pointer shadow-md"
+          >
+            Voltar ao Painel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#070506] pb-28 text-[#ded6cb]">
