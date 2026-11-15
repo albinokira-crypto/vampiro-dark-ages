@@ -42,6 +42,7 @@ import {
   UserCircle,
   AlertTriangle,
   CheckCircle,
+  Check,
   RotateCcw,
   X,
   ChevronDown,
@@ -82,6 +83,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [historicoTransacoesXP, setHistoricoTransacoesXP] = useState<TransacaoXP[]>([]);
   const [avisoXP, setAvisoXP] = useState<string | null>(null);
   const [sucessoXP, setSucessoXP] = useState<string | null>(null);
+  // Controle de Edição Livre pelo Mestre (permite alterar traços diretamente sem consumir XP)
+  const [modoEdicaoLivre, setModoEdicaoLivre] = useState<boolean>(false);
 
   useEffect(() => {
     storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
@@ -152,7 +155,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
   // Cálculo de Custo Exato em XP
   const calcularCustoXP = (
-    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
+    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
     atual: number,
     novo: number,
     extra?: { isPrimaria?: boolean; isClan?: boolean }
@@ -197,13 +200,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           // Nível atual x 2
           total += n * 2;
           break;
+        case 'virtude':
+          // Virtude: Nível atual x 2 (1ª Edição 1996)
+          total += n * 2;
+          break;
       }
     }
     return total;
   };
 
   const tentarEvoluirComXP = (
-    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
+    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
     nomeItem: string,
     valorAtual: number,
     novoValor: number,
@@ -211,10 +218,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     extra?: { isPrimaria?: boolean; isClan?: boolean }
   ) => {
     const isEmCriacao = ficha.criacao?.status === 'em_criacao';
-    const isNpc = ficha.tipo === 'npc';
 
-    // Se estiver em modo de criação, for NPC ou diminuindo o valor diretamente
-    if (isNpc || isEmCriacao || novoValor < valorAtual) {
+    // Se o Mestre ativou o modo de edição livre, ou a ficha está em criação, ou está diminuindo o valor
+    if (modoEdicaoLivre || isEmCriacao || novoValor < valorAtual) {
       updateFicha(aplicarMudanca);
       return;
     }
@@ -222,7 +228,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     if (novoValor === valorAtual) return;
 
     const custo = calcularCustoXP(tipo, valorAtual, novoValor, extra);
-    const xpDisponivel = ficha.xp.atual || 0;
+    const xpDisponivel = ficha.xp?.atual || 0;
 
     if (xpDisponivel < custo) {
       setAvisoXP(
@@ -243,9 +249,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         ...mutada,
         xp: {
           ...mutada.xp,
-          atual: Math.max(0, mutada.xp.atual - custo),
-          totalGasto: mutada.xp.totalGasto + custo,
-          historico: novaLinhaHistorico + (mutada.xp.historico ? '\n' + mutada.xp.historico : ''),
+          atual: Math.max(0, (mutada.xp?.atual || 0) - custo),
+          totalGasto: (mutada.xp?.totalGasto || 0) + custo,
+          historico: novaLinhaHistorico + (mutada.xp?.historico ? '\n' + mutada.xp.historico : ''),
         },
       };
     });
@@ -1308,43 +1314,57 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     tipo: 'consciencia' | 'autocontrole' | 'coragem',
     novoValor: number
   ) => {
-    updateFicha((prev) => {
-      const novasVirtudes = {
-        ...prev.virtudes,
-        [tipo]: novoValor,
-      };
+    const valorAtual = ficha.virtudes[tipo] || 1;
+    const nomeAmigavel =
+      tipo === 'consciencia'
+        ? ficha.virtudes.tipoConsciencia === 'conviccao' ? 'Convicção' : 'Consciência'
+        : tipo === 'autocontrole'
+        ? ficha.virtudes.tipoAutocontrole === 'instinto' ? 'Instinto' : 'Autocontrole'
+        : 'Coragem';
 
-      const c = tipo === 'consciencia' ? novoValor : (novasVirtudes.consciencia || 1);
-      const a = tipo === 'autocontrole' ? novoValor : (novasVirtudes.autocontrole || 1);
-      const cor = tipo === 'coragem' ? novoValor : (novasVirtudes.coragem || 1);
+    tentarEvoluirComXP(
+      'virtude',
+      `Virtude (${nomeAmigavel})`,
+      valorAtual,
+      novoValor,
+      (prev) => {
+        const novasVirtudes = {
+          ...prev.virtudes,
+          [tipo]: novoValor,
+        };
 
-      const trilhaBase = Math.min(10, Math.max(1, c + a));
-      const vontadeBase = Math.min(10, Math.max(1, cor));
+        const c = tipo === 'consciencia' ? novoValor : (novasVirtudes.consciencia || 1);
+        const a = tipo === 'autocontrole' ? novoValor : (novasVirtudes.autocontrole || 1);
+        const cor = tipo === 'coragem' ? novoValor : (novasVirtudes.coragem || 1);
 
-      let novoCaminhoNivel = prev.caminhoNivel;
-      let novaForcaVontade = prev.forcaDeVontade;
+        const trilhaBase = Math.min(10, Math.max(1, c + a));
+        const vontadeBase = Math.min(10, Math.max(1, cor));
 
-      if (prev.criacao?.status === 'em_criacao') {
-        if (prev.criacao.etapa === 'iniciais' || prev.criacao.etapa === 'prioridades') {
-          novoCaminhoNivel = trilhaBase;
-          novaForcaVontade = vontadeBase;
+        let novoCaminhoNivel = prev.caminhoNivel;
+        let novaForcaVontade = prev.forcaDeVontade;
+
+        if (prev.criacao?.status === 'em_criacao') {
+          if (prev.criacao.etapa === 'iniciais' || prev.criacao.etapa === 'prioridades') {
+            novoCaminhoNivel = trilhaBase;
+            novaForcaVontade = vontadeBase;
+          } else {
+            // Na etapa bônus, não pode ser menor que a base das virtudes
+            novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
+            novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
+          }
         } else {
-          // Na etapa bônus, não pode ser menor que a base das virtudes
           novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
           novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
         }
-      } else {
-        novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
-        novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
-      }
 
-      return {
-        ...prev,
-        virtudes: novasVirtudes,
-        caminhoNivel: novoCaminhoNivel,
-        forcaDeVontade: novaForcaVontade,
-      };
-    });
+        return {
+          ...prev,
+          virtudes: novasVirtudes,
+          caminhoNivel: novoCaminhoNivel,
+          forcaDeVontade: novaForcaVontade,
+        };
+      }
+    );
   };
 
   const handleSincronizarTrilhaEVontade = () => {
@@ -1413,6 +1433,78 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         r.id === id ? { ...r, [campo]: valor } : r
       ),
     }));
+  };
+
+  // Conceder XP diretamente pelo Mestre com registro de histórico
+  const handleAdicionarRapidoXP = () => {
+    const qtdStr = prompt(
+      `Conceder Experiência (XP) a ${ficha.nome || 'este personagem'}:\nDigite a quantidade de XP a conceder (ex: 5, 10, 20):`,
+      '5'
+    );
+    if (!qtdStr) return;
+    const qtd = parseInt(qtdStr, 10);
+    if (isNaN(qtd) || qtd <= 0) {
+      alert('Por favor, informe um número inteiro positivo de XP.');
+      return;
+    }
+
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const logXP = `+ ${qtd} XP concedidos às ${hora}`;
+
+    updateFicha((prev) => ({
+      ...prev,
+      xp: {
+        ...prev.xp,
+        atual: (prev.xp?.atual || 0) + qtd,
+        historico: logXP + (prev.xp?.historico ? '\n' + prev.xp.historico : ''),
+      },
+    }));
+
+    setSucessoXP(`✓ +${qtd} XP concedidos com sucesso! Novo saldo: ${(ficha.xp?.atual || 0) + qtd} XP.`);
+    setTimeout(() => setSucessoXP(null), 4000);
+
+    storageService.registrarLogAlteracao({
+      personagemId: ficha.id,
+      personagemNome: ficha.nome,
+      jogadorNome: ficha.jogador || usuarioAtual.nome,
+      tipo: 'xp',
+      descricao: `XP Concedido pelo Mestre: +${qtd} XP`,
+      detalhes: `Novo saldo: ${(ficha.xp?.atual || 0) + qtd} XP`,
+    });
+  };
+
+  // Finalizar a criação do NPC e ativar o modo oficial de evolução por XP
+  const handleFinalizarCriacaoNPC = () => {
+    if (
+      confirm(
+        'Deseja finalizar a criação deste NPC? A ficha passará a utilizar o sistema oficial de evolução por XP (com opção de alternar para Edição Livre quando o Mestre desejar).'
+      )
+    ) {
+      const c = ficha.virtudes?.consciencia || 1;
+      const a = ficha.virtudes?.autocontrole || 1;
+      const cor = ficha.virtudes?.coragem || 1;
+      const trilhaMin = Math.min(10, Math.max(1, c + a));
+      const vontadeMin = Math.min(10, Math.max(1, cor));
+
+      const finalizada: Personagem = {
+        ...ficha,
+        caminhoNivel: Math.max(ficha.caminhoNivel || 0, trilhaMin),
+        forcaDeVontade: Math.max(ficha.forcaDeVontade || 0, vontadeMin),
+        criacao: {
+          ...(ficha.criacao || {
+            disciplinasPrimariasIds: [],
+            pontosBonusGastos: 0,
+          }),
+          status: 'finalizada',
+          etapa: 'concluida',
+        },
+      };
+      setFicha(finalizada);
+      onSalvar(finalizada);
+      setHasChanges(false);
+      setSucessoXP('✓ Criação do NPC finalizada! O sistema de XP agora está ativo.');
+      setTimeout(() => setSucessoXP(null), 4000);
+    }
   };
 
   return (
@@ -1488,7 +1580,45 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
           {/* Botões de Ação Superior */}
           {podeEditar && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Badge Dinâmico de XP e Alternador de Modo */}
+              <div className="flex items-center gap-1.5 bg-[#160d11] border border-[#3b181b] px-2.5 py-1 rounded-xs">
+                <span className="text-[10px] font-gothic font-bold uppercase tracking-wider text-[#a89f91]">
+                  XP:
+                </span>
+                <span className="text-xs font-mono font-bold text-[#d4af37]">
+                  {ficha.xp?.atual || 0} pts
+                </span>
+                {usuarioAtual.role === 'mestre' && (
+                  <button
+                    type="button"
+                    onClick={handleAdicionarRapidoXP}
+                    title="Conceder pontos de experiência (XP) diretamente"
+                    className="p-0.5 text-xs text-[#a89f91] hover:text-[#d4af37] cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                )}
+                {usuarioAtual.role === 'mestre' && ficha.criacao?.status !== 'em_criacao' && (
+                  <button
+                    type="button"
+                    onClick={() => setModoEdicaoLivre((prev) => !prev)}
+                    title={
+                      modoEdicaoLivre
+                        ? 'Edição Livre ativa (não consome XP). Clique para ativar modo XP.'
+                        : 'Modo XP ativo (evolução gasta XP automaticamente). Clique para ativar edição livre.'
+                    }
+                    className={`ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase transition-colors cursor-pointer border ${
+                      modoEdicaoLivre
+                        ? 'bg-amber-950/80 text-amber-300 border-amber-600'
+                        : 'bg-green-950/80 text-green-300 border-green-600'
+                    }`}
+                  >
+                    {modoEdicaoLivre ? 'Edição Livre' : 'Modo XP'}
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={handleAbrirModalHistoria}
@@ -1602,6 +1732,28 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             }
           }}
         />
+      )}
+
+      {/* BANNER DE CRIAÇÃO DO NPC (Se o NPC ainda estiver em modo de criação) */}
+      {isNpc && ficha.criacao?.status === 'em_criacao' && podeEditar && (
+        <div className="max-w-7xl mx-auto px-4 mt-3 animate-fadeIn">
+          <div className="bg-[#1f1016] border border-[#ef4444]/60 p-3 rounded-sm flex items-center justify-between flex-wrap gap-2 text-xs shadow-md">
+            <div className="flex items-center gap-2 text-[#d4af37]">
+              <Sparkles className="w-4 h-4 text-[#ef4444] shrink-0" />
+              <span>
+                <strong>Modo de Criação do NPC:</strong> Você pode distribuir atributos, habilidades e disciplinas livremente (sem travas ou custos de XP).
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleFinalizarCriacaoNPC}
+              className="px-3.5 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-all flex items-center gap-1.5"
+            >
+              <Check className="w-3.5 h-3.5 text-green-400" />
+              <span>Finalizar Criação do NPC (Ativar Modo XP)</span>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Aviso de Modo Somente Leitura */}

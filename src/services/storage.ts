@@ -369,13 +369,24 @@ export function normalizarPersonagem(p: Personagem): Personagem {
   // Sincronizar Vitalidade com a qualidade 'Corpo Grande'
   copia.vitalidade = ajustarVitalidadeCorpoGrande(copia.vitalidade, copia.qualidadesDefeitos);
 
-  // NPCs ficam sempre em modo livre de edição e nunca possuem status 'em_criacao'
+  // Normalização de criação para NPCs (preserva status se já definido ou padrão finalizada)
   if (copia.tipo === 'npc') {
     copia.criacao = {
-      status: 'finalizada',
-      etapa: 'concluida',
+      status: copia.criacao?.status || 'finalizada',
+      etapa: copia.criacao?.etapa || 'concluida',
       disciplinasPrimariasIds: copia.criacao?.disciplinasPrimariasIds || [],
-      pontosBonusGastos: 0,
+      pontosBonusGastos: copia.criacao?.pontosBonusGastos || 0,
+    };
+  }
+
+  // Garantir integridade do objeto de Experiência (XP)
+  if (!copia.xp) {
+    copia.xp = { atual: 0, totalGasto: 0, historico: '' };
+  } else {
+    copia.xp = {
+      atual: Number(copia.xp.atual) || 0,
+      totalGasto: Number(copia.xp.totalGasto) || 0,
+      historico: copia.xp.historico || '',
     };
   }
 
@@ -933,9 +944,9 @@ export const storageService = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       vitalidade: NIVEIS_VITALIDADE_PADRAO.map((n) => ({ ...n })),
-      // NPCs não possuem assistente travando distribuição de pontos: iniciam no modo livre completo!
+      // NPCs iniciam em criação para distribuição livre de traços; após finalizar, passam a usar XP
       criacao: {
-        status: tipoFinal === 'npc' ? 'finalizada' : 'em_criacao',
+        status: 'em_criacao',
         etapa: tipoFinal === 'npc' ? 'concluida' : 'prioridades',
         disciplinasPrimariasIds: [],
         pontosBonusGastos: 0,
