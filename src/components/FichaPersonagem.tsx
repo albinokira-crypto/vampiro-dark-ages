@@ -10,6 +10,7 @@ import type {
   Ritual,
   CategoriaAtributo,
   CategoriaHabilidade,
+  QualidadeDefeitoItem,
 } from '../types';
 import { Bolinhas } from './Bolinhas';
 import { QuadradosStatus } from './QuadradosStatus';
@@ -725,11 +726,41 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const maxDefeitosConfig = configMesa.maxPontosDefeitos ?? 7;
 
   const handleRemoverQualidadeDefeito = (id: string) => {
-    if (!isEmCriacao && usuarioAtual.role !== 'mestre') return;
+    if (!isEmCriacao && usuarioAtual.role !== 'mestre' && !podeEditar) return;
     updateFicha((prev) => ({
       ...prev,
       qualidadesDefeitos: (prev.qualidadesDefeitos || []).filter((q) => q.id !== id),
     }));
+  };
+
+  // Estado e handler para cadastro manual de Qualidades / Defeitos
+  const [mostrarFormCustomQD, setMostrarFormCustomQD] = useState(false);
+  const [nomeCustomQD, setNomeCustomQD] = useState('');
+  const [tipoCustomQD, setTipoCustomQD] = useState<'qualidade' | 'defeito'>('qualidade');
+  const [catCustomQD, setCatCustomQD] = useState<'fisico' | 'mental' | 'social' | 'sobrenatural'>('fisico');
+  const [pontosCustomQD, setPontosCustomQD] = useState<number>(1);
+  const [descCustomQD, setDescCustomQD] = useState('');
+
+  const handleAdicionarCustomQD = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nomeCustomQD.trim() || !podeEditar) return;
+    const custoFinal = Math.max(1, pontosCustomQD);
+    const novo: QualidadeDefeitoItem = {
+      id: 'qd_cust_' + Date.now().toString(36),
+      nome: nomeCustomQD.trim(),
+      tipo: tipoCustomQD,
+      categoria: catCustomQD,
+      custo: custoFinal,
+      descricao: descCustomQD.trim() || undefined,
+    };
+    updateFicha((prev) => ({
+      ...prev,
+      qualidadesDefeitos: [...(prev.qualidadesDefeitos || []), novo],
+    }));
+    setNomeCustomQD('');
+    setDescCustomQD('');
+    setPontosCustomQD(1);
+    setMostrarFormCustomQD(false);
   };
 
   // Limites e Gastos de Atributos (Base 1 em cada)
@@ -2008,7 +2039,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       Traços físicos, mentais, sociais ou sobrenaturais escolhidos na criação do personagem.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs font-mono">
+                  <div className="flex items-center gap-2 text-xs font-mono flex-wrap">
                     <span className="px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-800">
                       Qualidades: {qualidadesEscolhidas.length} (-{totalPontosQualidades} pts)
                     </span>
@@ -2021,8 +2052,84 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     >
                       Defeitos: {defeitosEscolhidos.length} (+{totalPontosDefeitos} / {maxDefeitosConfig} pts máx)
                     </span>
+                    {podeEditar && (
+                      <button
+                        type="button"
+                        onClick={() => setMostrarFormCustomQD(!mostrarFormCustomQD)}
+                        className="px-2 py-0.5 text-xs font-semibold bg-[#2d1217] text-[#d4af37] hover:bg-[#3d1a21] border border-[#5a252d] rounded-xs cursor-pointer transition-colors flex items-center gap-1"
+                        title="Adicionar qualidade ou defeito personalizado de outras edições ou livros"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        {mostrarFormCustomQD ? 'Fechar' : '+ Personalizado'}
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {mostrarFormCustomQD && podeEditar && (
+                  <form
+                    onSubmit={handleAdicionarCustomQD}
+                    className="bg-[#181115] p-3 rounded-xs border border-[#3b181b] space-y-2 text-xs"
+                  >
+                    <span className="text-[10px] font-gothic font-bold uppercase tracking-wider text-[#d4af37] block">
+                      + Adicionar Qualidade ou Defeito Personalizado (Outros Livros / Versões)
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nome do Traço..."
+                        value={nomeCustomQD}
+                        onChange={(e) => setNomeCustomQD(e.target.value)}
+                        className="sm:col-span-2 bg-[#1b1216] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                        required
+                      />
+                      <select
+                        value={tipoCustomQD}
+                        onChange={(e) => setTipoCustomQD(e.target.value as 'qualidade' | 'defeito')}
+                        className="bg-[#1b1216] border border-[#3b181b] px-2 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                      >
+                        <option value="qualidade">Qualidade (Custo)</option>
+                        <option value="defeito">Defeito (Bônus)</option>
+                      </select>
+                      <select
+                        value={catCustomQD}
+                        onChange={(e) => setCatCustomQD(e.target.value as any)}
+                        className="bg-[#1b1216] border border-[#3b181b] px-2 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                      >
+                        <option value="fisico">Físico</option>
+                        <option value="mental">Mental</option>
+                        <option value="social">Social</option>
+                        <option value="sobrenatural">Sobrenatural</option>
+                      </select>
+                      <div className="flex items-center gap-1">
+                        <label className="text-[10px] text-[#8e8273]">Pts:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="7"
+                          value={pontosCustomQD}
+                          onChange={(e) => setPontosCustomQD(parseInt(e.target.value, 10) || 1)}
+                          className="w-14 bg-[#1b1216] border border-[#3b181b] px-2 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none text-center"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Descrição ou efeito mecânico (opcional)..."
+                        value={descCustomQD}
+                        onChange={(e) => setDescCustomQD(e.target.value)}
+                        className="flex-1 bg-[#1b1216] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="px-3 py-1 bg-[#3d1a21] hover:bg-[#5a252d] text-[#d4af37] border border-[#722f37] rounded-xs cursor-pointer font-bold transition-colors shrink-0"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Coluna 1: Qualidades */}

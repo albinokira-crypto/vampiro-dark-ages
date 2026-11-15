@@ -216,6 +216,13 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Sem recordação da vida mortal anterior ao Abraço e de quem realizou a transformação.',
   },
   {
+    nome: 'Objetivo Condutor',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 3,
+    descricao: 'Você tem uma meta pessoal e obsessiva que direciona suas ações. Deve gastar Força de Vontade para ignorar oportunidades de avançar nesse objetivo, mesmo sob perigo iminente.',
+  },
+  {
     nome: 'Excesso de Confiança',
     tipo: 'defeito',
     categoria: 'mental',
