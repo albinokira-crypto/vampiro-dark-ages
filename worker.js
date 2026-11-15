@@ -312,12 +312,22 @@ export default {
           }
 
           let stmt;
+          let mestreId = null;
+          const mestreRow = await db.prepare("SELECT id FROM usuarios WHERE role = 'mestre'").first();
+          if (mestreRow) {
+            mestreId = mestreRow.id;
+          }
+
           if (isMestreAutenticado) {
             // Mestre autenticado tem visão completa de todas as fichas e NPCs da crônica
             stmt = db.prepare('SELECT dados FROM personagens ORDER BY atualizadoEm DESC');
           } else {
-            // Jogador: Acesso estritamente restrito apenas aos seus próprios personagens (nunca NPCs ou fichas do Mestre)
-            stmt = db.prepare('SELECT dados FROM personagens WHERE usuarioId = ? ORDER BY atualizadoEm DESC').bind(usuarioId);
+            // Jogador: Tem visão dos seus personagens e de outros jogadores, mas NUNCA NPCs ou fichas criadas pelo Mestre
+            if (mestreId) {
+              stmt = db.prepare('SELECT dados FROM personagens WHERE tipo != "npc" AND usuarioId != ? ORDER BY atualizadoEm DESC').bind(mestreId);
+            } else {
+              stmt = db.prepare('SELECT dados FROM personagens WHERE tipo != "npc" ORDER BY atualizadoEm DESC');
+            }
           }
 
           const { results } = await stmt.all();
@@ -331,8 +341,9 @@ export default {
             if (!p) return false;
             if (!isMestreAutenticado) {
               // Garantia adicional de sigilo em nível de backend:
-              // Se não for o Mestre autenticado, nunca retorna fichas de outros usuários nem NPCs
-              return p.usuarioId === usuarioId && p.tipo !== 'npc';
+              // Se não for o Mestre autenticado, nunca retorna fichas do Mestre nem NPCs
+              if (p.tipo === 'npc') return false;
+              if (mestreId && p.usuarioId === mestreId) return false;
             }
             return true;
           });

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import type { User } from '../types';
 import { storageService } from '../services/storage';
 import {
-  Skull,
   Settings,
   Share2,
   Download,
@@ -11,6 +10,7 @@ import {
   Check,
 } from 'lucide-react';
 import { InstaladorPWA } from './InstaladorPWA';
+import logoDarkAges from '../assets/vampire-dark-ages-logo.png';
 
 interface NavbarProps {
   usuarioAtual: User;
@@ -98,19 +98,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div
             onClick={onVoltarDashboard}
-            className="flex items-center gap-2 cursor-pointer select-none group"
+            className="flex items-center cursor-pointer select-none group py-0.5"
+            title="Vampire: The Dark Ages"
           >
-            <div className="w-8 h-8 rounded-full bg-[#241014] border border-[#8b0000] flex items-center justify-center text-[#ef4444] shadow-[0_0_10px_rgba(239,68,68,0.4)] group-hover:scale-105 transition-transform">
-              <Skull className="w-4 h-4" />
-            </div>
-            <div>
-              <h1 className="text-base sm:text-lg font-gothic font-black text-[#d4af37] tracking-wider leading-none">
-                Vampiro
-              </h1>
-              <span className="text-[10px] uppercase font-gothic tracking-widest text-[#a89f91] block">
-                A Idade das Trevas
-              </span>
-            </div>
+            <img
+              src={logoDarkAges}
+              alt="Vampire: The Dark Ages"
+              className="h-9 sm:h-11 w-auto max-w-[210px] sm:max-w-[270px] object-contain drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)] group-hover:brightness-110 transition-all"
+            />
           </div>
         </div>
 

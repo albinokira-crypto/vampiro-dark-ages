@@ -817,13 +817,15 @@ export const storageService = {
         if (Array.isArray(remotos)) {
           const normalizados = remotos.map(normalizarPersonagem);
 
-          // Regra de Sigilo Absoluto: Jogador só armazena e visualiza seus próprios personagens (nunca NPCs ou fichas do Mestre)
+          // Regra de Sigilo Absoluto: Jogador visualiza seus próprios personagens e de outros jogadores (mas NUNCA NPCs ou fichas criadas pelo Mestre)
           if (user.role === 'jogador') {
-            const apenasDoJogador = normalizados.filter(
-              (p) => p.usuarioId === user.id && p.tipo !== 'npc'
+            const usuarios = this.getUsuarios();
+            const mestre = usuarios.find((u) => u.role === 'mestre');
+            const listaPermitida = normalizados.filter(
+              (p) => p.tipo !== 'npc' && (!mestre || p.usuarioId !== mestre.id)
             );
-            localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(apenasDoJogador));
-            return apenasDoJogador;
+            localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(listaPermitida));
+            return listaPermitida;
           } else {
             localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(normalizados));
 
@@ -860,17 +862,22 @@ export const storageService = {
     if (user.role === 'mestre') {
       return todos;
     }
-    // Regra estrita de sigilo: Jogador só acessa fichas onde usuarioId === user.id e nunca NPCs
-    return todos.filter((p) => p.usuarioId === user.id && p.tipo !== 'npc');
+    // Regra estrita de sigilo: Jogador visualiza fichas onde tipo !== 'npc' e que não sejam do Mestre
+    const usuarios = this.getUsuarios();
+    const mestre = usuarios.find((u) => u.role === 'mestre');
+    return todos.filter((p) => p.tipo !== 'npc' && (!mestre || p.usuarioId !== mestre.id));
   },
 
   getPersonagem(id: string, user?: User | null): Personagem | null {
     const todos = this.getPersonagens();
     const p = todos.find((item) => item.id === id) ?? null;
     if (!p) return null;
-    // Bloqueio de sigilo: Se o usuário informado for jogador, impede acesso a fichas que não sejam dele ou NPCs
-    if (user && user.role === 'jogador' && (p.usuarioId !== user.id || p.tipo === 'npc')) {
-      return null;
+    // Bloqueio de sigilo: Se o usuário informado for jogador, impede acesso a NPCs ou fichas criadas pelo Mestre
+    if (user && user.role === 'jogador') {
+      if (p.tipo === 'npc') return null;
+      const usuarios = this.getUsuarios();
+      const mestre = usuarios.find((u) => u.role === 'mestre');
+      if (mestre && p.usuarioId === mestre.id) return null;
     }
     return normalizarPersonagem(p);
   },

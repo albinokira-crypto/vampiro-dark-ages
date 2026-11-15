@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import type { User, UserRole } from '../types';
 import { storageService } from '../services/storage';
 import {
-  Skull,
   KeyRound,
   UserPlus,
   LogIn,
@@ -15,6 +14,7 @@ import {
   ArrowLeft,
   AtSign,
 } from 'lucide-react';
+import logoDarkAges from '../assets/vampire-dark-ages-logo.png';
 
 interface TelaLoginProps {
   onLoginSucesso: (user: User) => void;
@@ -164,14 +164,13 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
 
       <div className="w-full max-w-md bg-[#100b0e] border border-[#3b181b] rounded-sm shadow-2xl p-5 sm:p-8 relative z-10 space-y-6">
         {/* Cabeçalho */}
-        <div className="text-center space-y-1.5">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#1e1014] border border-[#8b0000] text-[#ef4444] shadow-[0_0_20px_rgba(239,68,68,0.35)] mb-1">
-            <Skull className="w-7 h-7" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-gothic font-black text-[#d4af37] tracking-wider">
-            Vampiro: A Idade das Trevas
-          </h1>
-          <p className="text-xs text-[#a89f91] font-serif">
+        <div className="text-center space-y-2">
+          <img
+            src={logoDarkAges}
+            alt="Vampire: The Dark Ages"
+            className="w-full max-w-[280px] sm:max-w-[320px] mx-auto object-contain drop-shadow-[0_4px_12px_rgba(255,255,255,0.18)]"
+          />
+          <p className="text-xs text-[#a89f91] font-serif tracking-wide">
             Portal da Crônica • Acesso Rápido por Nick
           </p>
         </div>

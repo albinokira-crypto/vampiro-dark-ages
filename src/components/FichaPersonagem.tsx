@@ -1567,8 +1567,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }
   };
 
-  // Bloqueio de sigilo do Narrador: se o usuário atual for jogador e a ficha não for dele ou for NPC, bloqueia visualização
-  if (usuarioAtual.role === 'jogador' && (ficha.usuarioId !== usuarioAtual.id || ficha.tipo === 'npc')) {
+  // Bloqueio de sigilo do Narrador: se o usuário atual for jogador e a ficha for NPC ou criada pelo Mestre, bloqueia visualização
+  const usuarios = storageService.getUsuarios();
+  const mestre = usuarios.find((u) => u.role === 'mestre');
+  const isFichaDoMestre = Boolean(mestre && ficha.usuarioId === mestre.id);
+
+  if (usuarioAtual.role === 'jogador' && (isFichaDoMestre || ficha.tipo === 'npc')) {
     return (
       <div className="min-h-screen bg-[#070506] flex items-center justify-center p-4">
         <div className="bg-[#180e13] border border-[#522228] p-6 rounded-sm text-center max-w-md space-y-4 shadow-2xl">

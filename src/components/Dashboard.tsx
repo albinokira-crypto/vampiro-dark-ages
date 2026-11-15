@@ -5,9 +5,6 @@ import {
   Skull,
   Trash2,
   ExternalLink,
-  Settings,
-  Share2,
-  Check,
   Sparkles,
   RefreshCw,
   Flame,
@@ -38,12 +35,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   usuarioAtual,
   onAbrirFicha,
   onCriarNovo,
-  onAbrirConfigMestre,
 }) => {
   const [busca, setBusca] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'jogador' | 'npc'>('todos');
+  const [filtroTipo, setFiltroTipo] = useState<'meus' | 'jogadores' | 'npcs'>('meus');
   const [abaMestre, setAbaMestre] = useState<'fichas' | 'auditoria' | 'jogadores'>('fichas');
-  const [copiado, setCopiado] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
   const [personagens, setPersonagens] = useState<Personagem[]>(() =>
     storageService.getPersonagensDoUsuario(usuarioAtual)
@@ -70,11 +65,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setSincronizando(true);
     try {
       const remotos = await storageService.sincronizarPersonagensRemotos(usuarioAtual);
-      const listaSegura =
-        usuarioAtual.role === 'jogador'
-          ? remotos.filter((p) => p.usuarioId === usuarioAtual.id && p.tipo !== 'npc')
-          : remotos;
-      setPersonagens(listaSegura);
+      setPersonagens(remotos);
       const confRemota = await storageService.carregarConfiguracaoMesaRemota();
       setConfig(confRemota);
     } finally {
@@ -94,48 +85,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const handleCopiarConvite = async () => {
-    const url = `${window.location.origin}${window.location.pathname}?convite=dark-ages`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Vampiro: A Idade das Trevas — Fichas & Crônicas',
-          text: 'Você foi convidado para a nossa Crônica de RPG medieval! Crie ou acesse sua ficha cainita aqui:',
-          url,
-        });
-        return;
-      } catch {
-        // Se usuário cancelar o share nativo, copia para a área de transferência
-      }
+  // Contagens para as abas
+  const countMeus = personagens.filter((p) => {
+    if (usuarioAtual.role === 'mestre') {
+      return p.usuarioId === usuarioAtual.id && p.tipo === 'jogador';
     }
+    return p.usuarioId === usuarioAtual.id;
+  }).length;
 
-    navigator.clipboard.writeText(url);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2500);
-  };
+  const countJogadores = personagens.filter(
+    (p) => p.tipo === 'jogador' && p.usuarioId !== usuarioAtual.id
+  ).length;
+
+  const countNpcs = personagens.filter((p) => p.tipo === 'npc').length;
 
   const filtrados = personagens
     .filter((p) => {
       // Regra de Sigilo Absoluto: Jogador NUNCA vê fichas ou NPCs criados pelo Mestre
       if (usuarioAtual.role === 'jogador') {
-        if (p.usuarioId !== usuarioAtual.id || p.tipo === 'npc') {
+        if (p.tipo === 'npc') {
           return false;
         }
       }
       return true;
     })
     .filter((p) => {
+      if (filtroTipo === 'meus') {
+        if (usuarioAtual.role === 'mestre') {
+          return p.usuarioId === usuarioAtual.id && p.tipo === 'jogador';
+        }
+        return p.usuarioId === usuarioAtual.id;
+      }
+      if (filtroTipo === 'jogadores') {
+        return p.tipo === 'jogador' && p.usuarioId !== usuarioAtual.id;
+      }
+      if (filtroTipo === 'npcs') {
+        return p.tipo === 'npc';
+      }
+      return true;
+    })
+    .filter((p) => {
       const termo = busca.toLowerCase();
-      const bateBusca =
+      if (!termo) return true;
+      return (
         p.nome.toLowerCase().includes(termo) ||
         p.cla.toLowerCase().includes(termo) ||
         p.geracao.toLowerCase().includes(termo) ||
-        p.jogador.toLowerCase().includes(termo);
-
-      const bateTipo = filtroTipo === 'todos' ? true : p.tipo === filtroTipo;
-
-      return bateBusca && bateTipo;
+        p.jogador.toLowerCase().includes(termo)
+      );
     });
 
   // Função auxiliar para calcular penalidade de vitalidade
@@ -179,48 +176,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
 
-        {/* Botões de Ação para Criar Fichas e Configuração */}
+        {/* Botões de Ação para Criar Fichas (Convidar e Configurar Pontos já estão no Navbar) */}
         <div className="flex flex-wrap items-center gap-2">
           {usuarioAtual.role === 'mestre' && (
-            <>
-              <button
-                type="button"
-                onClick={handleCopiarConvite}
-                className="px-3 py-2 text-xs font-semibold rounded-xs border border-[#522228] bg-[#1e1317] hover:bg-[#2e1c22] text-[#ded6cb] transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation"
-              >
-                {copiado ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-green-400">Link Copiado!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-3.5 h-3.5 text-[#ef4444]" />
-                    <span>Convidar Jogador</span>
-                  </>
-                )}
-              </button>
-
-              {onAbrirConfigMestre && (
-                <button
-                  type="button"
-                  onClick={onAbrirConfigMestre}
-                  className="px-3 py-2 text-xs font-semibold rounded-xs border border-[#522228] bg-[#1e1317] hover:bg-[#2e1c22] text-[#d4af37] transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation"
-                >
-                  <Settings className="w-3.5 h-3.5" />
-                  <span>Configurar Pontos</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => onCriarNovo('npc')}
-                className="px-3 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border border-[#78350f] bg-[#451a03] hover:bg-[#78350f] text-amber-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-md touch-manipulation"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Novo NPC</span>
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => onCriarNovo('npc')}
+              className="px-3 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border border-[#78350f] bg-[#451a03] hover:bg-[#78350f] text-amber-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-md touch-manipulation"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Novo NPC</span>
+            </button>
           )}
 
           <button
@@ -234,13 +200,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* ABAS DO MESTRE (Fichas vs Auditoria em Tempo Real vs Jogadores) */}
+      {/* ABAS DO MESTRE (Fichas da Mesa vs Auditoria em Tempo Real vs Jogadores & Senha na mesma linha) */}
       {usuarioAtual.role === 'mestre' && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#3b181b] pb-3">
+        <div className="flex flex-row flex-wrap items-center gap-2 border-b border-[#3b181b] pb-3">
           <button
             type="button"
             onClick={() => setAbaMestre('fichas')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation ${
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
               abaMestre === 'fichas'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
@@ -253,7 +219,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <button
             type="button"
             onClick={() => setAbaMestre('auditoria')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation ${
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
               abaMestre === 'auditoria'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
@@ -267,14 +233,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <button
             type="button"
             onClick={() => setAbaMestre('jogadores')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation ${
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
               abaMestre === 'jogadores'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
             }`}
           >
             <Users className="w-4 h-4 text-[#d4af37]" />
-            <span>Jogadores & Senhas</span>
+            <span>Jogadores & Senha</span>
           </button>
         </div>
       )}
@@ -304,43 +270,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
               />
             </div>
 
-            {usuarioAtual.role === 'mestre' && (
-              <div className="flex items-center gap-1 text-xs">
+            {/* Abas de Filtragem de Personagens */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs shrink-0">
+              <button
+                type="button"
+                onClick={() => setFiltroTipo('meus')}
+                className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] tracking-wider transition-colors cursor-pointer touch-manipulation whitespace-nowrap ${
+                  filtroTipo === 'meus'
+                    ? 'bg-[#8b0000] text-white shadow-xs'
+                    : 'bg-[#1b1719] text-[#a89f91] hover:text-white border border-[#3b181b]'
+                }`}
+              >
+                Meus Personagens ({countMeus})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFiltroTipo('jogadores')}
+                className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] tracking-wider transition-colors cursor-pointer touch-manipulation whitespace-nowrap ${
+                  filtroTipo === 'jogadores'
+                    ? 'bg-[#8b0000] text-white shadow-xs'
+                    : 'bg-[#1b1719] text-[#a89f91] hover:text-white border border-[#3b181b]'
+                }`}
+              >
+                Jogadores ({countJogadores})
+              </button>
+
+              {usuarioAtual.role === 'mestre' && (
                 <button
                   type="button"
-                  onClick={() => setFiltroTipo('todos')}
-                  className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] transition-colors cursor-pointer touch-manipulation ${
-                    filtroTipo === 'todos'
-                      ? 'bg-[#8b0000] text-white'
-                      : 'bg-[#1b1719] text-[#a89f91] hover:text-white'
+                  onClick={() => setFiltroTipo('npcs')}
+                  className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] tracking-wider transition-colors cursor-pointer touch-manipulation whitespace-nowrap ${
+                    filtroTipo === 'npcs'
+                      ? 'bg-[#8b0000] text-white shadow-xs'
+                      : 'bg-[#1b1719] text-[#a89f91] hover:text-white border border-[#3b181b]'
                   }`}
                 >
-                  Todos ({personagens.length})
+                  NPCs ({countNpcs})
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo('jogador')}
-                  className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] transition-colors cursor-pointer touch-manipulation ${
-                    filtroTipo === 'jogador'
-                      ? 'bg-[#8b0000] text-white'
-                      : 'bg-[#1b1719] text-[#a89f91] hover:text-white'
-                  }`}
-                >
-                  Jogadores ({personagens.filter((p) => p.tipo === 'jogador').length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo('npc')}
-                  className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] transition-colors cursor-pointer touch-manipulation ${
-                    filtroTipo === 'npc'
-                      ? 'bg-[#8b0000] text-white'
-                      : 'bg-[#1b1719] text-[#a89f91] hover:text-white'
-                  }`}
-                >
-                  NPCs ({personagens.filter((p) => p.tipo === 'npc').length})
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Grid de Personagens */}
@@ -351,15 +320,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-xs text-[#8e8273] max-w-sm mx-auto">
                 {busca
                   ? 'Nenhum registro corresponde aos filtros de busca aplicados.'
+                  : filtroTipo === 'npcs'
+                  ? 'Nenhum NPC registrado pelo Narrador nesta crônica ainda.'
+                  : filtroTipo === 'jogadores'
+                  ? 'Nenhum outro jogador registrou personagens na crônica ainda.'
                   : 'Nenhuma ficha foi forjada nas sombras ainda. Comece criando seu primeiro personagem.'}
               </p>
-              <button
-                type="button"
-                onClick={() => onCriarNovo('jogador')}
-                className="px-5 py-2.5 bg-[#8b0000] hover:bg-[#a10e14] text-white font-gothic font-bold text-xs uppercase tracking-wider rounded-xs cursor-pointer shadow-lg touch-manipulation"
-              >
-                Criar Primeiro Personagem
-              </button>
+              {filtroTipo === 'npcs' && usuarioAtual.role === 'mestre' ? (
+                <button
+                  type="button"
+                  onClick={() => onCriarNovo('npc')}
+                  className="px-5 py-2.5 bg-[#451a03] hover:bg-[#78350f] text-amber-200 font-gothic font-bold text-xs uppercase tracking-wider rounded-xs cursor-pointer shadow-lg touch-manipulation border border-[#78350f]"
+                >
+                  Criar Primeiro NPC
+                </button>
+              ) : (
+                (filtroTipo === 'meus' || usuarioAtual.role === 'mestre') && (
+                  <button
+                    type="button"
+                    onClick={() => onCriarNovo('jogador')}
+                    className="px-5 py-2.5 bg-[#8b0000] hover:bg-[#a10e14] text-white font-gothic font-bold text-xs uppercase tracking-wider rounded-xs cursor-pointer shadow-lg touch-manipulation"
+                  >
+                    Criar Novo Personagem
+                  </button>
+                )
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">

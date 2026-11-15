@@ -25,7 +25,7 @@ export function App() {
     // Se estiver em uma ficha que o novo usuário jogador não pode acessar, volta ao dashboard
     if (personagemAtivoId) {
       const p = storageService.getPersonagem(personagemAtivoId, novoUsuario);
-      if (novoUsuario.role === 'jogador' && (!p || p.usuarioId !== novoUsuario.id || p.tipo === 'npc')) {
+      if (novoUsuario.role === 'jogador' && !p) {
         setPersonagemAtivoId(null);
       }
     }
@@ -39,8 +39,8 @@ export function App() {
 
   const handleAbrirFicha = (id: string) => {
     const p = storageService.getPersonagem(id, usuarioAtual);
-    if (usuarioAtual?.role === 'jogador' && (!p || p.usuarioId !== usuarioAtual.id || p.tipo === 'npc')) {
-      alert('Acesso restrito: Esta ficha é exclusiva do Narrador e não pode ser visualizada por jogadores.');
+    if (!p) {
+      alert('Acesso restrito: Esta ficha é exclusiva do Narrador ou não foi encontrada.');
       return;
     }
     setPersonagemAtivoId(id);
