@@ -37,7 +37,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onCriarNovo,
 }) => {
   const [busca, setBusca] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState<'meus' | 'jogadores' | 'npcs'>('meus');
+  const [filtroTipo, setFiltroTipo] = useState<'meus' | 'jogadores' | 'npcs'>(() =>
+    usuarioAtual.role === 'mestre' ? 'npcs' : 'meus'
+  );
   const [abaMestre, setAbaMestre] = useState<'fichas' | 'auditoria' | 'jogadores'>('fichas');
   const [sincronizando, setSincronizando] = useState(false);
   const [personagens, setPersonagens] = useState<Personagem[]>(() =>
@@ -200,47 +202,47 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* ABAS DO MESTRE (Fichas da Mesa vs Auditoria em Tempo Real vs Jogadores & Senha na mesma linha) */}
+      {/* ABAS DO MESTRE (Fichas vs Registros vs Jogadores na mesma linha sem quebra) */}
       {usuarioAtual.role === 'mestre' && (
-        <div className="flex flex-row flex-wrap items-center gap-2 border-b border-[#3b181b] pb-3">
+        <div className="flex flex-row items-center gap-2 border-b border-[#3b181b] pb-3 overflow-x-auto no-scrollbar flex-nowrap">
           <button
             type="button"
             onClick={() => setAbaMestre('fichas')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation shrink-0 whitespace-nowrap ${
               abaMestre === 'fichas'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
             }`}
           >
             <Skull className="w-4 h-4" />
-            <span>Fichas da Mesa ({personagens.length})</span>
+            <span>Fichas</span>
           </button>
 
           <button
             type="button"
             onClick={() => setAbaMestre('auditoria')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation shrink-0 whitespace-nowrap ${
               abaMestre === 'auditoria'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
             }`}
           >
             <Radio className="w-4 h-4 text-[#ef4444] animate-pulse" />
-            <span>Auditoria em Tempo Real</span>
+            <span>Registros</span>
             <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
           </button>
 
           <button
             type="button"
             onClick={() => setAbaMestre('jogadores')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation shrink-0 whitespace-nowrap ${
               abaMestre === 'jogadores'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
             }`}
           >
             <Users className="w-4 h-4 text-[#d4af37]" />
-            <span>Jogadores & Senha</span>
+            <span>Jogadores</span>
           </button>
         </div>
       )}
@@ -272,6 +274,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Abas de Filtragem de Personagens */}
             <div className="flex flex-wrap items-center gap-1.5 text-xs shrink-0">
+              {usuarioAtual.role === 'mestre' && (
+                <button
+                  type="button"
+                  onClick={() => setFiltroTipo('npcs')}
+                  className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] tracking-wider transition-colors cursor-pointer touch-manipulation whitespace-nowrap ${
+                    filtroTipo === 'npcs'
+                      ? 'bg-[#8b0000] text-white shadow-xs'
+                      : 'bg-[#1b1719] text-[#a89f91] hover:text-white border border-[#3b181b]'
+                  }`}
+                >
+                  NPCs ({countNpcs})
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => setFiltroTipo('meus')}
@@ -295,20 +311,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               >
                 Jogadores ({countJogadores})
               </button>
-
-              {usuarioAtual.role === 'mestre' && (
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo('npcs')}
-                  className={`px-3 py-1.5 rounded-xs uppercase font-bold text-[10px] tracking-wider transition-colors cursor-pointer touch-manipulation whitespace-nowrap ${
-                    filtroTipo === 'npcs'
-                      ? 'bg-[#8b0000] text-white shadow-xs'
-                      : 'bg-[#1b1719] text-[#a89f91] hover:text-white border border-[#3b181b]'
-                  }`}
-                >
-                  NPCs ({countNpcs})
-                </button>
-              )}
             </div>
           </div>
 

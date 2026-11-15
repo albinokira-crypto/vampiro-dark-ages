@@ -195,11 +195,10 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                 setErro(null);
                 setSucesso(null);
               }}
-              className={`py-2 text-xs font-gothic uppercase tracking-wider rounded-xs transition-colors cursor-pointer touch-manipulation ${
-                modo === 'login'
+              className={`py-2 text-xs font-gothic uppercase tracking-wider rounded-xs transition-colors cursor-pointer touch-manipulation ${modo === 'login'
                   ? 'bg-[#8b0000] text-white font-bold shadow-xs'
                   : 'text-[#a89f91] hover:text-[#ded6cb]'
-              }`}
+                }`}
             >
               Entrar
             </button>
@@ -210,11 +209,10 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                 setErro(null);
                 setSucesso(null);
               }}
-              className={`py-2 text-xs font-gothic uppercase tracking-wider rounded-xs transition-colors cursor-pointer touch-manipulation ${
-                modo === 'cadastro'
+              className={`py-2 text-xs font-gothic uppercase tracking-wider rounded-xs transition-colors cursor-pointer touch-manipulation ${modo === 'cadastro'
                   ? 'bg-[#8b0000] text-white font-bold shadow-xs'
                   : 'text-[#a89f91] hover:text-[#ded6cb]'
-              }`}
+                }`}
             >
               Cadastrar
             </button>
@@ -336,11 +334,10 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                   <button
                     type="button"
                     onClick={() => setRole('jogador')}
-                    className={`p-2.5 rounded-xs border text-xs font-gothic uppercase tracking-wider flex flex-col items-center gap-1 cursor-pointer transition-all touch-manipulation ${
-                      role === 'jogador'
+                    className={`p-2.5 rounded-xs border text-xs font-gothic uppercase tracking-wider flex flex-col items-center gap-1 cursor-pointer transition-all touch-manipulation ${role === 'jogador'
                         ? 'bg-[#2b1016] border-[#ef4444] text-[#ef4444] font-bold shadow-[0_0_10px_rgba(239,68,68,0.25)]'
                         : 'bg-[#181115] border-[#3b181b] text-[#a89f91] hover:text-white'
-                    }`}
+                      }`}
                   >
                     <span className="text-sm">🗡️</span>
                     <span>Jogador</span>
@@ -359,13 +356,12 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
                       }
                       setRole('mestre');
                     }}
-                    className={`p-2.5 rounded-xs border text-xs font-gothic uppercase tracking-wider flex flex-col items-center gap-1 transition-all touch-manipulation ${
-                      statusMestre.temMestre
+                    className={`p-2.5 rounded-xs border text-xs font-gothic uppercase tracking-wider flex flex-col items-center gap-1 transition-all touch-manipulation ${statusMestre.temMestre
                         ? 'bg-[#140e11] border-[#251419] text-[#706456] opacity-60 cursor-not-allowed'
                         : role === 'mestre'
-                        ? 'bg-[#2b1016] border-[#d4af37] text-[#d4af37] font-bold shadow-[0_0_10px_rgba(212,175,55,0.25)] cursor-pointer'
-                        : 'bg-[#181115] border-[#3b181b] text-[#a89f91] hover:text-white cursor-pointer'
-                    }`}
+                          ? 'bg-[#2b1016] border-[#d4af37] text-[#d4af37] font-bold shadow-[0_0_10px_rgba(212,175,55,0.25)] cursor-pointer'
+                          : 'bg-[#181115] border-[#3b181b] text-[#a89f91] hover:text-white cursor-pointer'
+                      }`}
                   >
                     <span className="text-sm">{statusMestre.temMestre ? '🔒' : '👑'}</span>
                     <span>Mestre (Narrador)</span>
