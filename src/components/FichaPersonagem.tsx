@@ -103,6 +103,47 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   // Modal de Configuração de Atalhos do Card
   const [modalAtalhosAberto, setModalAtalhosAberto] = useState(false);
 
+  // Modal de Edição de História e Biografia do Personagem
+  const [modalHistoriaAberto, setModalHistoriaAberto] = useState(false);
+  const [abaModalHistoria, setAbaModalHistoria] = useState<'historia' | 'preludio' | 'objetivos' | 'notas'>('historia');
+  const [tempHistoria, setTempHistoria] = useState('');
+  const [tempPreludio, setTempPreludio] = useState('');
+  const [tempObjetivos, setTempObjetivos] = useState('');
+  const [tempNotas, setTempNotas] = useState('');
+
+  const handleAbrirModalHistoria = () => {
+    setTempHistoria(ficha.biografia?.historia || '');
+    setTempPreludio(ficha.biografia?.preludio || '');
+    setTempObjetivos(ficha.biografia?.objetivos || '');
+    setTempNotas(ficha.biografia?.notas || '');
+    setAbaModalHistoria('historia');
+    setModalHistoriaAberto(true);
+  };
+
+  const handleSalvarModalHistoria = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const novaBio = {
+      historia: tempHistoria,
+      preludio: tempPreludio,
+      objetivos: tempObjetivos,
+      notas: tempNotas,
+    };
+    updateFicha((prev) => ({
+      ...prev,
+      biografia: novaBio,
+    }));
+
+    const fichaSalva: Personagem = {
+      ...ficha,
+      biografia: novaBio,
+    };
+    storageService.salvarPersonagem(fichaSalva);
+
+    setModalHistoriaAberto(false);
+    setMensagemSalvo(true);
+    setTimeout(() => setMensagemSalvo(false), 3000);
+  };
+
   // Cálculo de Custo Exato em XP
   const calcularCustoXP = (
     tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
@@ -1421,17 +1462,29 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             </button>
           </div>
 
-          {/* Botão de Atalhos do Card Resumido */}
+          {/* Botões de Ação Superior */}
           {podeEditar && (
-            <button
-              type="button"
-              onClick={() => setModalAtalhosAberto(true)}
-              title="Configurar os atalhos exibidos no card resumido do Dashboard"
-              className="px-2.5 py-1.5 rounded-xs text-xs font-semibold text-[#d4af37] hover:text-white bg-[#1a1014] hover:bg-[#8b0000] border border-[#522228] hover:border-[#8b0000] flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Atalhos do Card</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAbrirModalHistoria}
+                title="Escrever ou atualizar a história deste personagem"
+                className="px-2.5 py-1.5 rounded-xs text-xs font-gothic font-bold uppercase tracking-wider text-white bg-[#8b0000] hover:bg-[#a30d12] border border-[#ef4444]/60 flex items-center gap-1.5 cursor-pointer transition-all shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>{ficha.biografia?.historia?.trim() ? 'Editar História' : 'Incluir História'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalAtalhosAberto(true)}
+                title="Configurar os atalhos exibidos no card resumido do Dashboard"
+                className="px-2.5 py-1.5 rounded-xs text-xs font-semibold text-[#d4af37] hover:text-white bg-[#1a1014] hover:bg-[#8b0000] border border-[#522228] hover:border-[#8b0000] flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Atalhos do Card</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -3263,27 +3316,77 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
               {/* TEXTOS LONGOS: HISTÓRIA, PRELÚDIO, OBJETIVOS */}
               <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-5">
-                <div className="border-b border-[#3b181b] pb-2">
-                  <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
-                    Memórias, Prelúdio & Destino
-                  </h3>
+                <div className="border-b border-[#3b181b] pb-2 flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-2">
+                      <Scroll className="w-4 h-4 text-[#ef4444]" />
+                      Memórias, Prelúdio & Destino
+                    </h3>
+                    <p className="text-[11px] text-[#a89f91]">
+                      História pessoal, prelúdio do Abraço e objetivos sob a noite medieval.
+                    </p>
+                  </div>
+                  {podeEditar && (
+                    <button
+                      type="button"
+                      onClick={handleAbrirModalHistoria}
+                      className="px-3 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.35)] transition-all"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-[#d4af37]" />
+                      <span>{ficha.biografia?.historia?.trim() ? 'Editar História' : 'Incluir História'}</span>
+                    </button>
+                  )}
                 </div>
 
-                <div className="space-y-4">
-                  <InlineField
-                    label="História do Personagem"
-                    value={ficha.biografia.historia}
-                    onChange={(v) =>
-                      updateFicha((prev) => ({
-                        ...prev,
-                        biografia: { ...prev.biografia, historia: v },
-                      }))
-                    }
-                    multiline
-                    rows={5}
-                    placeholder="Narrações sobre a linhagem, feitos mortais e tragédias que o moldaram..."
-                    readonly={!podeEditar}
-                  />
+                {/* Bloco de Destaque para História do Personagem */}
+                <div className="bg-[#181115] p-4 rounded-xs border border-[#3b181b] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37] flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-[#ef4444]" />
+                      História do Personagem
+                    </span>
+                    {podeEditar && (
+                      <button
+                        type="button"
+                        onClick={handleAbrirModalHistoria}
+                        className="text-xs font-semibold text-[#ef4444] hover:text-[#d4af37] flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>{ficha.biografia?.historia?.trim() ? 'Editar História' : 'Incluir História'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {ficha.biografia?.historia?.trim() ? (
+                    <div
+                      onClick={() => podeEditar && handleAbrirModalHistoria()}
+                      className={`text-xs sm:text-sm text-[#ded6cb] leading-relaxed whitespace-pre-wrap font-serif p-3 bg-[#130b0e] rounded-xs border border-[#2d1217] ${
+                        podeEditar ? 'cursor-pointer hover:border-[#8b0000] hover:bg-[#1a0e13] transition-colors' : ''
+                      }`}
+                      title={podeEditar ? 'Clique para editar a história' : undefined}
+                    >
+                      {ficha.biografia.historia}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center border border-dashed border-[#522228] rounded-xs bg-[#120a0d] space-y-3">
+                      <p className="text-xs text-[#a89f91] italic font-serif max-w-md mx-auto">
+                        Nenhuma narrativa de origem, feitos mortais ou crônica pessoal foi registrada para este personagem ainda.
+                      </p>
+                      {podeEditar && (
+                        <button
+                          type="button"
+                          onClick={handleAbrirModalHistoria}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-lg hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all"
+                        >
+                          <Plus className="w-4 h-4 text-[#d4af37]" />
+                          <span>Incluir História</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 pt-2">
 
                   <InlineField
                     label="Prelúdio (A Noite do Abraço)"
@@ -3981,6 +4084,200 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 className="px-4 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md"
               >
                 Concluir Seleção
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL COMPLETO DE EDIÇÃO DE HISTÓRIA E BIOGRAFIA */}
+      {modalHistoriaAberto && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="w-full max-w-3xl bg-[#120a0e] border border-[#8b0000] rounded-sm shadow-2xl p-4 sm:p-6 space-y-4 text-[#ded6cb] flex flex-col max-h-[90vh]">
+            {/* Cabeçalho */}
+            <div className="flex items-center justify-between border-b border-[#3b181b] pb-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-[#ef4444]" />
+                <div>
+                  <h3 className="text-base font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
+                    Biografia & Crônica Pessoal
+                  </h3>
+                  <p className="text-[11px] text-[#a89f91]">
+                    {ficha.nome || 'Sem Nome'} • {ficha.cla || 'Sem Clã'} • {ficha.geracao || 'Geração Indefinida'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalHistoriaAberto(false)}
+                className="text-[#8e8273] hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Abas do Modal */}
+            <div className="flex flex-wrap gap-1 border-b border-[#2d1217] pb-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setAbaModalHistoria('historia')}
+                className={`px-3 py-1.5 rounded-xs font-gothic font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  abaModalHistoria === 'historia'
+                    ? 'bg-[#8b0000] text-white'
+                    : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
+                }`}
+              >
+                História Principal
+              </button>
+              <button
+                type="button"
+                onClick={() => setAbaModalHistoria('preludio')}
+                className={`px-3 py-1.5 rounded-xs font-gothic font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  abaModalHistoria === 'preludio'
+                    ? 'bg-[#8b0000] text-white'
+                    : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
+                }`}
+              >
+                Prelúdio (O Abraço)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAbaModalHistoria('objetivos')}
+                className={`px-3 py-1.5 rounded-xs font-gothic font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  abaModalHistoria === 'objetivos'
+                    ? 'bg-[#8b0000] text-white'
+                    : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
+                }`}
+              >
+                Objetivos da Noite
+              </button>
+              <button
+                type="button"
+                onClick={() => setAbaModalHistoria('notas')}
+                className={`px-3 py-1.5 rounded-xs font-gothic font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  abaModalHistoria === 'notas'
+                    ? 'bg-[#8b0000] text-white'
+                    : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
+                }`}
+              >
+                Notas & Segredos
+              </button>
+            </div>
+
+            {/* Conteúdo da Aba */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              {abaModalHistoria === 'historia' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                      História do Personagem
+                    </label>
+                    <span className="text-[10px] text-[#8e8273]">
+                      {tempHistoria.length} caracteres
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#a89f91]">
+                    Descreva os acontecimentos marcantes da vida do cainita, sua linhagem, origem mortal, feitos e tragédias.
+                  </p>
+                  <textarea
+                    rows={12}
+                    value={tempHistoria}
+                    onChange={(e) => setTempHistoria(e.target.value)}
+                    placeholder="Escreva a narrativa sobre as origens do seu cainita, sua família na época medieval, os conflitos enfrentados..."
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {abaModalHistoria === 'preludio' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                      Prelúdio (A Noite do Abraço)
+                    </label>
+                    <span className="text-[10px] text-[#8e8273]">
+                      {tempPreludio.length} caracteres
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#a89f91]">
+                    Relate a noite em que o personagem deixou a vida mortal e recebeu o Abraço de seu senhor.
+                  </p>
+                  <textarea
+                    rows={12}
+                    value={tempPreludio}
+                    onChange={(e) => setTempPreludio(e.target.value)}
+                    placeholder="Descreva o fatídico encontro com o seu senhor cainita, a dor e o êxtase da transformação..."
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {abaModalHistoria === 'objetivos' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                      Objetivos & Ambições da Noite
+                    </label>
+                    <span className="text-[10px] text-[#8e8273]">
+                      {tempObjetivos.length} caracteres
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#a89f91]">
+                    Ambições feudais, desejos imediatos e grandes metas a longo prazo para o personagem.
+                  </p>
+                  <textarea
+                    rows={10}
+                    value={tempObjetivos}
+                    onChange={(e) => setTempObjetivos(e.target.value)}
+                    placeholder="O que move este cainita? Vingança, busca pelo conhecimento de sua Trilha, domínio de um feudo..."
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {abaModalHistoria === 'notas' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                      Notas & Segredos da Crônica
+                    </label>
+                    <span className="text-[10px] text-[#8e8273]">
+                      {tempNotas.length} caracteres
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#a89f91]">
+                    Anotações particulares, nomes de aliados ou rivais, pistas e mistérios descobertos.
+                  </p>
+                  <textarea
+                    rows={10}
+                    value={tempNotas}
+                    onChange={(e) => setTempNotas(e.target.value)}
+                    placeholder="Contatos secretos, dívidas de sangue, itens raros em sua posse..."
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    autoFocus
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Rodapé do Modal com Botões de Ação */}
+            <div className="border-t border-[#3b181b] pt-3 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setModalHistoriaAberto(false)}
+                className="px-3.5 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] rounded-xs border border-[#3b181b] cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSalvarModalHistoria}
+                className="px-5 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md flex items-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Salvar História</span>
               </button>
             </div>
           </div>
