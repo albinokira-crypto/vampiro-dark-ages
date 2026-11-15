@@ -32,6 +32,11 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [carregando, setCarregando] = useState<boolean>(false);
   const [temConvite, setTemConvite] = useState<boolean>(false);
+  const [statusMestre, setStatusMestre] = useState<{
+    temMestre: boolean;
+    mestreNome?: string;
+    mestreNick?: string;
+  }>({ temMestre: false });
   const [contasEncontradas, setContasEncontradas] = useState<
     Array<{ nome: string; nick: string; email?: string; role: string }>
   >([]);
@@ -44,6 +49,14 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
       setModo('cadastro');
       setRole('jogador');
     }
+
+    // Verificar se já existe Mestre no sistema
+    storageService.checarStatusMestre().then((status) => {
+      setStatusMestre(status);
+      if (status.temMestre) {
+        setRole('jogador');
+      }
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -337,18 +350,38 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
 
                   <button
                     type="button"
-                    onClick={() => setRole('mestre')}
-                    className={`p-2.5 rounded-xs border text-xs font-gothic uppercase tracking-wider flex flex-col items-center gap-1 cursor-pointer transition-all touch-manipulation ${
-                      role === 'mestre'
-                        ? 'bg-[#2b1016] border-[#d4af37] text-[#d4af37] font-bold shadow-[0_0_10px_rgba(212,175,55,0.25)]'
-                        : 'bg-[#181115] border-[#3b181b] text-[#a89f91] hover:text-white'
+                    onClick={() => {
+                      if (statusMestre.temMestre) {
+                        setErro(
+                          `A Crônica já possui um Mestre ativo (${statusMestre.mestreNome || ''} @${statusMestre.mestreNick || ''}). Só pode haver 1 único login de Mestre no sistema. Novos membros devem entrar como Jogador.`
+                        );
+                        setRole('jogador');
+                        return;
+                      }
+                      setRole('mestre');
+                    }}
+                    className={`p-2.5 rounded-xs border text-xs font-gothic uppercase tracking-wider flex flex-col items-center gap-1 transition-all touch-manipulation ${
+                      statusMestre.temMestre
+                        ? 'bg-[#140e11] border-[#251419] text-[#706456] opacity-60 cursor-not-allowed'
+                        : role === 'mestre'
+                        ? 'bg-[#2b1016] border-[#d4af37] text-[#d4af37] font-bold shadow-[0_0_10px_rgba(212,175,55,0.25)] cursor-pointer'
+                        : 'bg-[#181115] border-[#3b181b] text-[#a89f91] hover:text-white cursor-pointer'
                     }`}
                   >
-                    <span className="text-sm">👑</span>
+                    <span className="text-sm">{statusMestre.temMestre ? '🔒' : '👑'}</span>
                     <span>Mestre (Narrador)</span>
-                    <span className="text-[9px] text-[#706456] normal-case">Auditoria e todas as fichas</span>
+                    <span className="text-[9px] text-[#706456] normal-case text-center">
+                      {statusMestre.temMestre
+                        ? 'Vaga ocupada (1 Mestre permitido)'
+                        : 'Auditoria e controle da mesa'}
+                    </span>
                   </button>
                 </div>
+                {statusMestre.temMestre && (
+                  <span className="text-[10px] text-[#8e8273] italic mt-1 block">
+                    * A Crônica já possui um Mestre ativo. O cargo só pode ser transferido pelo próprio Mestre.
+                  </span>
+                )}
               </div>
             </>
           )}

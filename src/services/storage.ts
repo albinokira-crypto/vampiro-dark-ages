@@ -460,6 +460,9 @@ export const storageService = {
       if (usuarios.some((u) => u.nick && u.nick.toLowerCase() === cleanNick)) {
         throw new Error('Já existe um jogador com este Nick no cache local.');
       }
+      if (role === 'mestre' && usuarios.some((u) => u.role === 'mestre')) {
+        throw new Error('A Crônica já possui um Mestre ativo. Só pode haver 1 único Mestre no sistema.');
+      }
       const novo: User = {
         id: 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
         nome: nome.trim(),
@@ -542,6 +545,60 @@ export const storageService = {
       return false;
     } catch {
       return false;
+    }
+  },
+
+  async checarStatusMestre(): Promise<{ temMestre: boolean; mestreNome?: string; mestreNick?: string }> {
+    try {
+      const res = await fetch('/api/auth/status-mestre');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // Ignora erro de rede e cai no local
+    }
+    const localMestre = this.getUsuarios().find((u) => u.role === 'mestre');
+    return {
+      temMestre: Boolean(localMestre),
+      mestreNome: localMestre?.nome,
+      mestreNick: localMestre?.nick,
+    };
+  },
+
+  async transferirMestre(
+    mestreAtualId: string,
+    novoMestreId: string
+  ): Promise<{ success: boolean; mensagem: string }> {
+    try {
+      const res = await fetch('/api/usuarios/transferir-mestre', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mestreAtualId, novoMestreId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.erro || 'Falha ao transferir privilégios de Mestre.');
+      }
+
+      // Atualizar cache local
+      const usuarios = this.getUsuarios().map((u) => {
+        if (u.id === mestreAtualId) return { ...u, role: 'jogador' as UserRole };
+        if (u.id === novoMestreId) return { ...u, role: 'mestre' as UserRole };
+        return u;
+      });
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(usuarios));
+
+      // Se o usuário logado for o mestre antigo, atualiza seu auth para jogador
+      const atual = this.getUsuarioAtual();
+      if (atual && atual.id === mestreAtualId) {
+        this.setUsuarioAtual({ ...atual, role: 'jogador' });
+      }
+
+      return { success: true, mensagem: data.mensagem };
+    } catch (err: unknown) {
+      if (err instanceof Error) throw err;
+      throw new Error('Erro ao se comunicar com o servidor.');
     }
   },
 

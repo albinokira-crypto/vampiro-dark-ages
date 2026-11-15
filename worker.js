@@ -47,6 +47,21 @@ export default {
             return jsonResponse({ erro: 'O Nick deve ter pelo menos 2 caracteres.' }, 400);
           }
 
+          // REGRA DE OURO: Só pode haver 1 único login de Mestre no sistema
+          if (role === 'mestre') {
+            const mestreExistente = await db.prepare(
+              "SELECT id, nome, nick FROM usuarios WHERE role = 'mestre'"
+            ).first();
+            if (mestreExistente) {
+              return jsonResponse(
+                {
+                  erro: `A Crônica já possui um Mestre ativo (${mestreExistente.nome} - @${mestreExistente.nick}). Só pode haver um único Mestre no sistema. Novos membros devem se cadastrar como Jogador.`
+                },
+                403
+              );
+            }
+          }
+
           const existente = await db.prepare(
             'SELECT id FROM usuarios WHERE lower(nick) = ?'
           ).bind(cleanNick).first();
@@ -150,6 +165,18 @@ export default {
           return jsonResponse(results || []);
         }
 
+        // 4.1. STATUS DE EXISTÊNCIA DE MESTRE NA CRÔNICA
+        if (url.pathname === '/api/auth/status-mestre' && request.method === 'GET') {
+          const mestre = await db.prepare(
+            "SELECT id, nome, nick FROM usuarios WHERE role = 'mestre' LIMIT 1"
+          ).first();
+          return jsonResponse({
+            temMestre: Boolean(mestre),
+            mestreNome: mestre ? mestre.nome : null,
+            mestreNick: mestre ? mestre.nick : null,
+          });
+        }
+
         // 5. LISTAR USUÁRIOS (Para o Mestre)
         if (url.pathname === '/api/usuarios' && request.method === 'GET') {
           const { results } = await db.prepare(`
@@ -158,6 +185,62 @@ export default {
             ORDER BY criadoEm DESC
           `).all();
           return jsonResponse(results || []);
+        }
+
+        // 5.1. TRANSFERÊNCIA DE PRIVILÉGIOS DE MESTRE
+        if (url.pathname === '/api/usuarios/transferir-mestre' && request.method === 'POST') {
+          const body = await request.json();
+          const { mestreAtualId, novoMestreId } = body;
+
+          if (!mestreAtualId || !novoMestreId) {
+            return jsonResponse({ erro: 'IDs dos usuários são obrigatórios.' }, 400);
+          }
+
+          const mestreAtual = await db.prepare(
+            'SELECT id, nome, nick, role FROM usuarios WHERE id = ?'
+          ).bind(mestreAtualId).first();
+
+          if (!mestreAtual || mestreAtual.role !== 'mestre') {
+            return jsonResponse(
+              { erro: 'Apenas o Mestre ativo tem autorização para transferir seus privilégios.' },
+              403
+            );
+          }
+
+          const novoMestre = await db.prepare(
+            'SELECT id, nome, nick, role FROM usuarios WHERE id = ?'
+          ).bind(novoMestreId).first();
+
+          if (!novoMestre) {
+            return jsonResponse({ erro: 'O jogador selecionado não foi encontrado na crônica.' }, 404);
+          }
+
+          if (mestreAtualId === novoMestreId) {
+            return jsonResponse({ erro: 'Você já é o Mestre da Crônica.' }, 400);
+          }
+
+          // Atualização atômica: antigo mestre vira jogador, novo mestre vira mestre
+          await db.batch([
+            db.prepare("UPDATE usuarios SET role = 'jogador' WHERE id = ?").bind(mestreAtualId),
+            db.prepare("UPDATE usuarios SET role = 'mestre' WHERE id = ?").bind(novoMestreId)
+          ]);
+
+          // Registrar no feed de auditoria
+          await db.prepare(`
+            INSERT INTO logs_alteracoes (id, personagemId, personagemNome, jogadorNome, tipo, descricao, detalhes, criadoEm)
+            VALUES (?, 'sistema', 'Sucessão de Mestre', ?, 'geral', ?, '', datetime("now"))
+          `).bind(
+            'log_' + Date.now().toString(36),
+            mestreAtual.nick,
+            `👑 SUCESSÃO DE MESTRE: "${mestreAtual.nome}" (@${mestreAtual.nick}) transferiu o título de Mestre para "${novoMestre.nome}" (@${novoMestre.nick}).`
+          ).run();
+
+          return jsonResponse({
+            success: true,
+            mensagem: `Privilégios de Mestre transferidos com sucesso para ${novoMestre.nome} (@${novoMestre.nick})!`,
+            novoMestre: { id: novoMestre.id, nome: novoMestre.nome, nick: novoMestre.nick, role: 'mestre' },
+            antigoMestre: { id: mestreAtual.id, nome: mestreAtual.nome, nick: mestreAtual.nick, role: 'jogador' }
+          });
         }
 
         // 6. EXCLUIR CADASTRO DE USUÁRIO (Mestre da Mesa)

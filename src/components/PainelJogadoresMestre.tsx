@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Trash2,
   AtSign,
+  Crown,
 } from 'lucide-react';
 
 interface UsuarioRemoto {
@@ -81,6 +82,36 @@ export const PainelJogadoresMestre: React.FC = () => {
         setTimeout(() => setMensagemSucesso(null), 4000);
       } else {
         setErro('Falha ao excluir usuário do banco de dados.');
+      }
+    }
+  };
+
+  const handleTransferirMestre = async (u: UsuarioRemoto) => {
+    const atual = storageService.getUsuarioAtual();
+    if (!atual || atual.role !== 'mestre') {
+      setErro('Apenas o Mestre ativo tem autorização para transferir seus privilégios.');
+      return;
+    }
+
+    if (
+      confirm(
+        `👑 TRANSFERÊNCIA DE PRIVILÉGIOS DE MESTRE:\n\nTem certeza que deseja transferir o cargo de MESTRE da Crônica para "${u.nome}" (@${u.nick})?\n\n• O jogador "${u.nome}" passará a ser o ÚNICO Mestre da mesa.\n• Você será automaticamente rebaixado para Jogador.\n\nDeseja confirmar a sucessão?`
+      )
+    ) {
+      setErro(null);
+      setMensagemSucesso(null);
+      try {
+        const resultado = await storageService.transferirMestre(atual.id, u.id);
+        if (resultado.success) {
+          alert(`✓ Privilégios de Mestre transferidos com sucesso para "${u.nome}"!\nVocê agora é um Jogador da crônica.`);
+          window.location.reload();
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setErro(err.message);
+        } else {
+          setErro('Falha ao transferir privilégios de Mestre.');
+        }
       }
     }
   };
@@ -181,8 +212,20 @@ export const PainelJogadoresMestre: React.FC = () => {
               </div>
             </div>
 
-            {/* Ações: Redefinir Senha e Excluir Cadastro */}
+            {/* Ações: Transferir Mestre, Redefinir Senha e Excluir Cadastro */}
             <div className="flex items-center gap-1.5 shrink-0">
+              {u.role === 'jogador' && (
+                <button
+                  type="button"
+                  onClick={() => handleTransferirMestre(u)}
+                  title="Transferir Título e Privilégios de Mestre para este jogador"
+                  className="px-2 py-1.5 bg-[#251016] hover:bg-[#8b0000] text-[#d4af37] hover:text-white border border-[#78350f] hover:border-[#ef4444] rounded-xs text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors touch-manipulation"
+                >
+                  <Crown className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span className="hidden sm:inline">Passar Mestre</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
