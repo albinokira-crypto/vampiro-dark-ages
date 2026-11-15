@@ -13,7 +13,7 @@ import {
   ATALHOS_CARD_PADRAO,
   ICONES_DISPONIVEIS,
   getIconeAtalho,
-  calcularValorAtalho,
+  calcularDetalhesAtalho,
 } from '../data/atalhosCard';
 
 interface ModalConfigAtalhosPersonagemProps {
@@ -193,14 +193,12 @@ export const ModalConfigAtalhosPersonagem: React.FC<ModalConfigAtalhosPersonagem
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {listaAtalhos.map((atalho) => {
                 const IconeComp = getIconeAtalho(atalho.icone);
-                const valor = calcularValorAtalho(personagem, atalho);
+                const detalhes = calcularDetalhesAtalho(personagem, atalho);
                 const descFormula = `${MAPA_TRACOS[atalho.traco1]?.label || atalho.traco1}${
                   atalho.traco2 && atalho.traco2 !== 'nenhum'
                     ? ` + ${MAPA_TRACOS[atalho.traco2]?.label || atalho.traco2}`
                     : ''
-                }`;
-                const valorFormatado =
-                  atalho.tipoExibicao === 'total' ? `${valor}` : `${valor}d10`;
+                }${detalhes.rotuloModificador ? ` [${detalhes.rotuloModificador}]` : ''}`;
 
                 return (
                   <div
@@ -208,7 +206,15 @@ export const ModalConfigAtalhosPersonagem: React.FC<ModalConfigAtalhosPersonagem
                     className="bg-[#181115] border border-[#3b181b] hover:border-[#5a1e26] rounded-xs p-2 flex items-center justify-between gap-2 transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <IconeComp className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                      <IconeComp
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          detalhes.temOnus
+                            ? 'text-amber-400'
+                            : detalhes.temBonus
+                            ? 'text-green-400'
+                            : 'text-[#d4af37]'
+                        }`}
+                      />
                       <div className="min-w-0">
                         <span className="text-xs font-bold text-[#ded6cb] block truncate">
                           {atalho.nome}
@@ -220,8 +226,16 @@ export const ModalConfigAtalhosPersonagem: React.FC<ModalConfigAtalhosPersonagem
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-mono text-xs font-bold text-[#d4af37]">
-                        {valorFormatado}
+                      <span
+                        className={`font-mono text-xs font-bold ${
+                          detalhes.temOnus
+                            ? 'text-amber-300'
+                            : detalhes.temBonus
+                            ? 'text-green-300'
+                            : 'text-[#d4af37]'
+                        }`}
+                      >
+                        {detalhes.textoExibicao}
                       </span>
                       <button
                         type="button"

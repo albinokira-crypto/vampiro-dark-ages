@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Personagem, AtalhoParadaDado } from '../types';
 import { Swords, Zap, Flame, Shield, Footprints, Eye, Sparkles, Skull, Dices } from 'lucide-react';
+import { calcularStatusCombate } from './combate1E';
 
 export interface InfoTraco {
   label: string;
@@ -81,6 +82,14 @@ export const MAPA_TRACOS: Record<string, InfoTraco> = {
   herbalismo: { label: 'Herborismo', tipo: 'habilidade' },
   academicos: { label: 'Instrução', tipo: 'habilidade' },
   senescencia: { label: 'Senescalia', tipo: 'habilidade' },
+
+  // Traços Canônicos de Combate & Proteção (1ª Edição)
+  destreza_efetiva: { label: 'Destreza (com Armadura)', tipo: 'atributo' },
+  absorcao: { label: 'Absorção Total (Vigor + Fort + Armadura)', tipo: 'atributo' },
+  armadura: { label: 'Classe da Armadura', tipo: 'atributo' },
+  fortitude: { label: 'Fortitude', tipo: 'habilidade' },
+  potencia: { label: 'Potência', tipo: 'habilidade' },
+  rapidez: { label: 'Rapidez', tipo: 'habilidade' },
 };
 
 export const ATALHOS_CARD_PADRAO: AtalhoParadaDado[] = [
@@ -111,24 +120,50 @@ export const ATALHOS_CARD_PADRAO: AtalhoParadaDado[] = [
   {
     id: 'esquiva',
     nome: 'Esquiva',
-    traco1: 'esquiva',
-    traco2: 'nenhum', // quantidade de esquiva como unidade (ex: 4)
-    tipoExibicao: 'total', // mostra como unidade (ex: 4)
+    traco1: 'destreza',
+    traco2: 'esquiva',
+    tipoExibicao: 'dados',
     icone: 'Footprints',
   },
   {
     id: 'vigorar',
-    nome: 'Vigorar',
-    traco1: 'destreza',
-    traco2: 'vigor',
+    nome: 'Vigorar / Absorção',
+    traco1: 'vigor',
+    traco2: 'absorcao',
     tipoExibicao: 'dados',
     icone: 'Shield',
   },
 ];
 
-export function calcularValorAtalho(p: Personagem, atalho: AtalhoParadaDado): number {
-  const getValor = (traco: string | undefined): number => {
+export interface DetalhesAtalho {
+  valorTotal: number;
+  valorBase: number;
+  bonus: number;
+  onus: number;
+  temOnus: boolean;
+  temBonus: boolean;
+  rotuloModificador?: string;
+  tipoExibicao: 'total' | 'dados';
+  textoExibicao: string;
+}
+
+export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado): DetalhesAtalho {
+  const statusCombate = calcularStatusCombate(p);
+  const penalidadeArmadura = statusCombate.totalPenalidadeArmadura; // ex: -1, -2, ou 0
+  const classeArmadura = statusCombate.totalClasseArmadura; // ex: 3, 4, ou 0
+  const rapidezNivel = statusCombate.rapidezNivel;
+  const fortitudeNivel = statusCombate.fortitudeNivel;
+  const potenciaNivel = statusCombate.potenciaNivel;
+
+  const getValorBase = (traco: string | undefined): number => {
     if (!traco || traco === 'nenhum') return 0;
+    if (traco === 'destreza_efetiva') return statusCombate.destrezaEfetiva;
+    if (traco === 'absorcao') return statusCombate.absorcaoDanoNormal;
+    if (traco === 'armadura') return statusCombate.totalClasseArmadura;
+    if (traco === 'fortitude') return statusCombate.fortitudeNivel;
+    if (traco === 'potencia') return statusCombate.potenciaNivel;
+    if (traco === 'rapidez') return statusCombate.rapidezNivel;
+
     if (traco in p.atributos) {
       return (p.atributos as Record<string, number>)[traco] || 0;
     }
@@ -153,5 +188,129 @@ export function calcularValorAtalho(p: Personagem, atalho: AtalhoParadaDado): nu
     return 0;
   };
 
-  return getValor(atalho.traco1) + getValor(atalho.traco2);
+  // Se o traço já for 'absorcao', já contém o cálculo total consolidado
+  if (atalho.traco1 === 'absorcao' || atalho.traco2 === 'absorcao') {
+    const totalAbs = statusCombate.absorcaoDanoNormal;
+    const vigBase = p.atributos.vigor || 1;
+    const bonusExtra = Math.max(0, totalAbs - vigBase);
+    const mods: string[] = [];
+    if (classeArmadura > 0) mods.push(`+${classeArmadura} armadura`);
+    if (fortitudeNivel > 0) mods.push(`+${fortitudeNivel} Fortitude`);
+    return {
+      valorTotal: totalAbs,
+      valorBase: vigBase,
+      bonus: bonusExtra,
+      onus: 0,
+      temOnus: false,
+      temBonus: bonusExtra > 0,
+      rotuloModificador: mods.length > 0 ? mods.join(', ') : undefined,
+      tipoExibicao: atalho.tipoExibicao,
+      textoExibicao: atalho.tipoExibicao === 'total' ? `${totalAbs}` : `${totalAbs}d10`,
+    };
+  }
+
+  const v1Base = getValorBase(atalho.traco1);
+  const v2Base = getValorBase(atalho.traco2);
+  const valorBase = v1Base + v2Base;
+
+  let onusTotal = 0;
+  let bonusTotal = 0;
+  const modsDesc: string[] = [];
+
+  // 1. DÉBITO DE ÔNUS: Penalidade da Armadura em testes que utilizam Destreza ou ações físicas de combate
+  const usaDestreza =
+    atalho.traco1 === 'destreza' ||
+    atalho.traco2 === 'destreza' ||
+    atalho.traco1 === 'destreza_efetiva' ||
+    atalho.traco2 === 'destreza_efetiva';
+
+  const isAcaoFisica =
+    atalho.id === 'esquiva' ||
+    atalho.traco1 === 'esquiva' ||
+    atalho.traco2 === 'esquiva' ||
+    atalho.traco1 === 'furtividade' ||
+    atalho.traco2 === 'furtividade' ||
+    atalho.traco1 === 'armasBrancas' ||
+    atalho.traco2 === 'armasBrancas' ||
+    atalho.traco1 === 'briga' ||
+    atalho.traco2 === 'briga' ||
+    atalho.id === 'ataque_arma_branca' ||
+    atalho.id === 'ataque_briga';
+
+  if ((usaDestreza || isAcaoFisica) && penalidadeArmadura < 0) {
+    onusTotal += penalidadeArmadura;
+    modsDesc.push(`${penalidadeArmadura} armadura`);
+  }
+
+  // 2. CÁLCULO DE BÔNUS:
+  // Se for atalho de Iniciativa:
+  const isIniciativa = atalho.id === 'iniciativa' || atalho.nome.toLowerCase().includes('iniciativa');
+  if (isIniciativa) {
+    if (rapidezNivel > 0) {
+      bonusTotal += rapidezNivel;
+      modsDesc.push(`+${rapidezNivel} Rapidez`);
+    }
+    if (!usaDestreza && !isAcaoFisica && penalidadeArmadura < 0) {
+      onusTotal += penalidadeArmadura;
+      modsDesc.push(`${penalidadeArmadura} armadura`);
+    }
+  }
+
+  // Se for atalho de Defesa / Absorção / Vigorar:
+  const isDefesaOuVigor =
+    atalho.id === 'vigorar' ||
+    atalho.nome.toLowerCase().includes('vigorar') ||
+    atalho.nome.toLowerCase().includes('absorção') ||
+    atalho.nome.toLowerCase().includes('absorcao') ||
+    atalho.traco1 === 'vigor' ||
+    atalho.traco2 === 'vigor';
+
+  if (isDefesaOuVigor) {
+    if (classeArmadura > 0) {
+      bonusTotal += classeArmadura;
+      modsDesc.push(`+${classeArmadura} armadura`);
+    }
+    if (fortitudeNivel > 0) {
+      bonusTotal += fortitudeNivel;
+      modsDesc.push(`+${fortitudeNivel} Fortitude`);
+    }
+  }
+
+  const isAtaqueFisico =
+    atalho.id === 'ataque_arma_branca' ||
+    atalho.id === 'ataque_briga' ||
+    atalho.traco1 === 'armasBrancas' ||
+    atalho.traco2 === 'armasBrancas' ||
+    atalho.traco1 === 'briga' ||
+    atalho.traco2 === 'briga';
+
+  const valorCalculado = Math.max(valorBase > 0 ? 1 : 0, valorBase + onusTotal + bonusTotal);
+
+  const tipoEfetivo =
+    atalho.id === 'esquiva' && atalho.traco2 === 'nenhum'
+      ? 'total'
+      : atalho.id === 'iniciativa'
+      ? 'dados'
+      : atalho.tipoExibicao;
+
+  let textoExibicao = tipoEfetivo === 'total' ? `${valorCalculado}` : `${valorCalculado}d10`;
+  if (isAtaqueFisico && potenciaNivel > 0) {
+    textoExibicao += ` (+${potenciaNivel} Pot)`;
+  }
+
+  return {
+    valorTotal: valorCalculado,
+    valorBase,
+    bonus: bonusTotal,
+    onus: onusTotal,
+    temOnus: onusTotal < 0,
+    temBonus: bonusTotal > 0 || (isAtaqueFisico && potenciaNivel > 0),
+    rotuloModificador: modsDesc.length > 0 ? modsDesc.join(', ') : undefined,
+    tipoExibicao: tipoEfetivo,
+    textoExibicao,
+  };
+}
+
+export function calcularValorAtalho(p: Personagem, atalho: AtalhoParadaDado): number {
+  return calcularDetalhesAtalho(p, atalho).valorTotal;
 }

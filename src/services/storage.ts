@@ -841,7 +841,7 @@ export const storageService = {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(p),
                   });
-                } catch {}
+                } catch { }
               }
             });
 

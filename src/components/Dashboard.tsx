@@ -21,7 +21,7 @@ import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
 import { PainelJogadoresMestre } from './PainelJogadoresMestre';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import {
-  calcularValorAtalho,
+  calcularDetalhesAtalho,
   ATALHOS_CARD_PADRAO,
   MAPA_TRACOS,
   getIconeAtalho,
@@ -482,39 +482,69 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
                           {atalhos.map((atalho) => {
-                            const valor = calcularValorAtalho(p, atalho);
+                            const detalhes = calcularDetalhesAtalho(p, atalho);
                             const IconeComp = getIconeAtalho(atalho.icone);
-                            const tipoEfetivo =
-                              atalho.id === 'esquiva'
-                                ? 'total'
-                                : atalho.id === 'iniciativa'
-                                ? 'dados'
-                                : atalho.tipoExibicao;
-                            const textoExibicao =
-                              tipoEfetivo === 'total' ? `${valor}` : `${valor}d10`;
                             const formulaDesc = `${MAPA_TRACOS[atalho.traco1]?.label || atalho.traco1}${
                               atalho.traco2 && atalho.traco2 !== 'nenhum'
                                 ? ` + ${MAPA_TRACOS[atalho.traco2]?.label || atalho.traco2}`
                                 : ''
-                            }`;
+                            }${detalhes.rotuloModificador ? ` [${detalhes.rotuloModificador}]` : ''}`;
 
                             return (
                               <div
                                 key={atalho.id}
-                                className="bg-[#181115] border border-[#3b181b] rounded-xs px-2 py-1 flex items-center justify-between gap-1"
+                                className={`rounded-xs px-2 py-1 flex items-center justify-between gap-1 border transition-colors ${
+                                  detalhes.temOnus
+                                    ? 'bg-[#1a1014] border-amber-900/60 hover:border-amber-700'
+                                    : detalhes.temBonus
+                                    ? 'bg-[#101713] border-green-900/60 hover:border-green-700'
+                                    : 'bg-[#181115] border-[#3b181b]'
+                                }`}
                                 title={`${atalho.nome} (${formulaDesc})`}
                               >
                                 <span className="text-[10px] text-[#a89f91] flex items-center gap-1 truncate pr-1">
-                                  <IconeComp className="w-3 h-3 text-[#d4af37] shrink-0" />
+                                  <IconeComp
+                                    className={`w-3 h-3 shrink-0 ${
+                                      detalhes.temOnus
+                                        ? 'text-amber-400'
+                                        : detalhes.temBonus
+                                        ? 'text-green-400'
+                                        : 'text-[#d4af37]'
+                                    }`}
+                                  />
                                   <span className="truncate">{atalho.nome}:</span>
                                 </span>
-                                <span
-                                  className={`font-mono text-xs font-bold shrink-0 ${
-                                    tipoEfetivo === 'total' ? 'text-white' : 'text-[#d4af37]'
-                                  }`}
-                                >
-                                  {textoExibicao}
-                                </span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span
+                                    className={`font-mono text-xs font-bold ${
+                                      detalhes.temOnus
+                                        ? 'text-amber-300'
+                                        : detalhes.temBonus
+                                        ? 'text-green-300'
+                                        : detalhes.tipoExibicao === 'total'
+                                        ? 'text-white'
+                                        : 'text-[#d4af37]'
+                                    }`}
+                                  >
+                                    {detalhes.textoExibicao}
+                                  </span>
+                                  {detalhes.temOnus && (
+                                    <span
+                                      className="text-[8px] font-mono font-bold text-amber-300 bg-amber-950 px-1 py-0.2 rounded-xs border border-amber-700/80"
+                                      title={detalhes.rotuloModificador}
+                                    >
+                                      {detalhes.onus}
+                                    </span>
+                                  )}
+                                  {detalhes.bonus > 0 && (
+                                    <span
+                                      className="text-[8px] font-mono font-bold text-green-300 bg-green-950 px-1 py-0.2 rounded-xs border border-green-700/80"
+                                      title={detalhes.rotuloModificador}
+                                    >
+                                      +{detalhes.bonus}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             );
                           })}
