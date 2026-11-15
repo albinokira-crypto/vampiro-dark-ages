@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 export interface OpcaoSelect {
   valor: string;
@@ -59,8 +59,6 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
     if (!conhecida && Boolean(value) && value.trim() !== '') {
       setModoCustom(true);
       setCustomTexto(value);
-    } else {
-      setModoCustom(false);
     }
   }, [value, opcoesNormalizadas]);
 
@@ -68,9 +66,10 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
     const val = e.target.value;
     if (val === '__custom__') {
       setModoCustom(true);
-      onChange(customTexto || '');
+      setCustomTexto(value || '');
     } else {
       setModoCustom(false);
+      setCustomTexto('');
       onChange(val);
     }
   };
@@ -92,11 +91,31 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
           <span className="text-[9.5px] sm:text-[11px] font-gothic font-bold uppercase tracking-normal sm:tracking-wider text-[#a89f91] truncate">
             {label}
           </span>
-          {badge && (
-            <span className="text-[9px] font-sans text-[#d4af37] bg-[#2b1016] border border-[#5a1e26] px-1 rounded-xs">
-              {badge}
-            </span>
-          )}
+          <div className="flex items-center gap-1">
+            {permitirPersonalizado && !readonly && (
+              <button
+                type="button"
+                onClick={() => {
+                  const prox = !modoCustom;
+                  setModoCustom(prox);
+                  if (prox) setCustomTexto(value || '');
+                }}
+                title={
+                  modoCustom
+                    ? 'Voltar para lista de seleção'
+                    : 'Digitar manualmente (outro livro ou personalizado)'
+                }
+                className="text-[8.5px] sm:text-[9.5px] font-sans text-[#d4af37] hover:text-white bg-[#2b1016] hover:bg-[#3d1620] border border-[#5a1e26] px-1 sm:px-1.5 py-0.2 rounded-xs transition-colors cursor-pointer flex items-center gap-0.5"
+              >
+                <span>{modoCustom ? '📋 Lista' : '✍️ Digitar'}</span>
+              </button>
+            )}
+            {badge && (
+              <span className="text-[9px] font-sans text-[#d4af37] bg-[#2b1016] border border-[#5a1e26] px-1 rounded-xs">
+                {badge}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -106,23 +125,50 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
         </div>
       ) : (
         <div className="space-y-1">
-          <div className="relative">
-            {/* Caixa visual: mostra apenas o nome limpo (ex: Brujah) quando fechada */}
-            <div className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] text-[11px] sm:text-xs font-semibold text-[#ded6cb] pl-1.5 sm:pl-2.5 pr-5 sm:pr-7 py-1 sm:py-1.5 rounded-xs flex items-center transition-colors pointer-events-none truncate min-h-[28px] sm:min-h-[30px]">
-              <span className={`truncate w-full text-left ${value ? 'text-[#ded6cb]' : 'text-[#706456]'}`}>
-                {modoCustom ? customTexto || 'Personalizado' : (value || placeholder)}
-              </span>
+          {modoCustom ? (
+            <div className="flex items-center gap-1.5 animate-fadeIn">
+              <input
+                type="text"
+                value={customTexto}
+                onChange={(e) => {
+                  setCustomTexto(e.target.value);
+                  onChange(e.target.value);
+                }}
+                onBlur={handleCustomBlur}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCustomBlur();
+                }}
+                placeholder={placeholder || 'Digite personalizado...'}
+                className="w-full bg-[#1e1317] border border-[#d4af37]/60 focus:border-[#d4af37] text-[11px] sm:text-xs text-[#ded6cb] font-semibold px-2 py-1 rounded-xs focus:outline-hidden min-h-[28px] sm:min-h-[30px]"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setModoCustom(false)}
+                className="px-2 py-1 bg-[#251419] hover:bg-[#3d1620] border border-[#522228] text-[#d4af37] text-[10px] font-semibold rounded-xs cursor-pointer shrink-0 min-h-[28px] sm:min-h-[30px] flex items-center gap-1"
+                title="Voltar para a lista suspensa"
+              >
+                <span>📋 Lista</span>
+              </button>
             </div>
+          ) : (
+            <div className="relative">
+              {/* Caixa visual: mostra apenas o nome limpo (ex: Brujah) quando fechada */}
+              <div className="w-full bg-[#1e1317] hover:bg-[#251419] border border-[#522228] text-[11px] sm:text-xs font-semibold text-[#ded6cb] pl-1.5 sm:pl-2.5 pr-5 sm:pr-7 py-1 sm:py-1.5 rounded-xs flex items-center transition-colors pointer-events-none truncate min-h-[28px] sm:min-h-[30px]">
+                <span className={`truncate w-full text-left ${value ? 'text-[#ded6cb]' : 'text-[#706456]'}`}>
+                  {value || placeholder}
+                </span>
+              </div>
 
-            {/* Select real invisível sobreposto para acionar as opções nativas completas */}
-            <select
-              value={modoCustom ? '__custom__' : value || ''}
-              onChange={handleSelectChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            >
-              <option value="" disabled className="bg-[#120a0e] text-[#706456]">
-                {placeholder}
-              </option>
+              {/* Select real invisível sobreposto para acionar as opções nativas completas */}
+              <select
+                value={value || ''}
+                onChange={handleSelectChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              >
+                <option value="" disabled className="bg-[#120a0e] text-[#706456]">
+                  {placeholder}
+                </option>
 
               {grupos.length > 0 ? (
                 <>
@@ -181,35 +227,11 @@ export const SelectDarkAgesField: React.FC<SelectDarkAgesFieldProps> = ({
             </select>
             <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#d4af37] absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
           </div>
+        )}
 
-          {modoCustom && (
-            <div className="flex items-center gap-1.5 animate-fadeIn">
-              <input
-                type="text"
-                value={customTexto}
-                onChange={(e) => setCustomTexto(e.target.value)}
-                onBlur={handleCustomBlur}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCustomBlur();
-                }}
-                placeholder="Digite o nome personalizado..."
-                className="w-full bg-[#181115] border border-[#ef4444]/60 focus:border-[#ef4444] text-xs text-white px-2 py-1 rounded-xs focus:outline-hidden"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={handleCustomBlur}
-                className="p-1 bg-[#8b0000] text-white rounded-xs hover:bg-[#a30d12] cursor-pointer"
-                title="Confirmar"
-              >
-                <Check className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          {dica && <p className="text-[10px] text-[#8e8273] italic">{dica}</p>}
-        </div>
-      )}
-    </div>
-  );
+        {dica && <p className="text-[10px] text-[#8e8273] italic">{dica}</p>}
+      </div>
+    )}
+  </div>
+);
 };
