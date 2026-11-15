@@ -9,8 +9,6 @@ import {
   RefreshCw,
   Flame,
   Zap,
-  Radio,
-  Users,
   SlidersHorizontal,
 } from 'lucide-react';
 import { FotoPersonagem } from './FotoPersonagem';
@@ -202,47 +200,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* ABAS DO MESTRE (Fichas vs Registros vs Jogadores na mesma linha sem quebra) */}
+      {/* ABAS DO MESTRE (Fichas vs Registros vs Jogadores na mesma linha sem rolagem lateral) */}
       {usuarioAtual.role === 'mestre' && (
-        <div className="flex flex-row items-center gap-2 border-b border-[#3b181b] pb-3 overflow-x-auto no-scrollbar flex-nowrap">
+        <div className="flex items-center gap-2 border-b border-[#3b181b] pb-3">
           <button
             type="button"
             onClick={() => setAbaMestre('fichas')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation shrink-0 whitespace-nowrap ${
+            className={`flex-1 sm:flex-initial text-center px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
               abaMestre === 'fichas'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
             }`}
           >
-            <Skull className="w-4 h-4" />
-            <span>Fichas</span>
+            Fichas
           </button>
 
           <button
             type="button"
             onClick={() => setAbaMestre('auditoria')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation shrink-0 whitespace-nowrap ${
+            className={`flex-1 sm:flex-initial text-center px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
               abaMestre === 'auditoria'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
             }`}
           >
-            <Radio className="w-4 h-4 text-[#ef4444] animate-pulse" />
-            <span>Registros</span>
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+            Registros
           </button>
 
           <button
             type="button"
             onClick={() => setAbaMestre('jogadores')}
-            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer transition-all touch-manipulation shrink-0 whitespace-nowrap ${
+            className={`flex-1 sm:flex-initial text-center px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer transition-all touch-manipulation whitespace-nowrap ${
               abaMestre === 'jogadores'
                 ? 'bg-[#8b0000] text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]'
                 : 'bg-[#181115] text-[#a89f91] hover:text-white border border-[#3b181b]'
             }`}
           >
-            <Users className="w-4 h-4 text-[#d4af37]" />
-            <span>Jogadores</span>
+            Jogadores
           </button>
         </div>
       )}
