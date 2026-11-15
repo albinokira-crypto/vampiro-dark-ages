@@ -60,6 +60,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   onVoltar,
 }) => {
   const [ficha, setFicha] = useState<Personagem>(() => normalizarPersonagem(personagem));
+  const [configMesa, setConfigMesa] = useState(() => storageService.getConfiguracaoMesa());
   const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [abaAtiva, setAbaAtiva] = useState<'secao1' | 'secao2' | 'secao3'>('secao1');
   const [mensagemSalvo, setMensagemSalvo] = useState<boolean>(false);
@@ -75,6 +76,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [historicoTransacoesXP, setHistoricoTransacoesXP] = useState<TransacaoXP[]>([]);
   const [avisoXP, setAvisoXP] = useState<string | null>(null);
   const [sucessoXP, setSucessoXP] = useState<string | null>(null);
+
+  useEffect(() => {
+    storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
+      if (remoto) setConfigMesa(remoto);
+    });
+  }, []);
 
   // Estados dos Modais de Disciplina e Antecedente (1ª Edição)
   const [modalAddDisciplinaAberto, setModalAddDisciplinaAberto] = useState(false);
@@ -330,7 +337,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     nome: keyof Personagem['habilidades'],
     valor: number
   ) => {
-    const atual = ficha.habilidades[nome];
+    const atual = ficha.habilidades[nome] ?? 0;
     tentarEvoluirComXP(
       'habilidade',
       `Habilidade ${nome.toUpperCase()}`,
@@ -702,7 +709,6 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   );
 
   // Configuração da Mesa e Regras de Prioridades
-  const configMesa = storageService.getConfiguracaoMesa();
   const dadosCriacao = ficha.criacao;
   const isEmCriacao = ficha.criacao?.status === 'em_criacao';
 
@@ -769,30 +775,31 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const limiteConhecimentos = getLimiteHabilidade('conhecimentos');
 
   const gastosTalentos =
+    (ficha.habilidades.representacao ?? (ficha.habilidades as any).expressao ?? 0) +
     ficha.habilidades.prontidao +
     ficha.habilidades.esportes +
     ficha.habilidades.briga +
     ficha.habilidades.esquiva +
     ficha.habilidades.empatia +
-    ficha.habilidades.expressao +
     ficha.habilidades.intimidacao +
+    (ficha.habilidades.crime ?? (ficha.habilidades as any).ladinagem ?? 0) +
     ficha.habilidades.lideranca +
-    ficha.habilidades.ladinagem +
-    ficha.habilidades.manha;
+    (ficha.habilidades.labia ?? (ficha.habilidades as any).manha ?? 0);
 
   const gastosPericias =
     ficha.habilidades.empatiaAnimais +
-    ficha.habilidades.tiroComArco +
+    (ficha.habilidades.arqueirismo ?? (ficha.habilidades as any).tiroComArco ?? 0) +
     ficha.habilidades.artesanato +
-    ficha.habilidades.cavalaria +
     ficha.habilidades.etiqueta +
-    ficha.habilidades.herbalismo +
+    (ficha.habilidades.herborismo ?? (ficha.habilidades as any).herbalismo ?? 0) +
     ficha.habilidades.armasBrancas +
     ficha.habilidades.musica +
+    (ficha.habilidades.cavalgar ?? (ficha.habilidades as any).cavalaria ?? 0) +
+    (ficha.habilidades.furtividade ?? 0) +
     ficha.habilidades.sobrevivencia;
 
   const gastosConhecimentos =
-    ficha.habilidades.academicos +
+    (ficha.habilidades.instrucao ?? (ficha.habilidades as any).academicos ?? 0) +
     ficha.habilidades.sabedoriaPopular +
     ficha.habilidades.investigacao +
     ficha.habilidades.direito +
@@ -800,10 +807,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     ficha.habilidades.medicina +
     ficha.habilidades.ocultismo +
     ficha.habilidades.politica +
-    ficha.habilidades.senescencia;
+    (ficha.habilidades.ciencia ?? 0) +
+    (ficha.habilidades.senescalia ?? (ficha.habilidades as any).senescencia ?? 0);
 
-  // Limites e Gastos de Vantagens (Disciplinas 3, Antecedentes 5, Virtudes 7)
-  const maxDisciplinas = configMesa.pontosDisciplinas || 3;
+  // Limites e Gastos de Vantagens (Disciplinas 4 canônico 1ª Edição, Antecedentes 5, Virtudes 7)
+  const maxDisciplinas = configMesa.pontosDisciplinas || 4;
   const gastosDisciplinas = ficha.disciplinas.reduce((acc, d) => acc + d.nivel, 0);
 
   const maxAntecedentes = configMesa.pontosAntecedentes || 5;
@@ -1283,13 +1291,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       {ficha.criacao?.status === 'em_criacao' && podeEditar && (
         <PainelCriacaoFicha
           ficha={ficha}
-          config={storageService.getConfiguracaoMesa()}
+          config={configMesa}
           onAtualizarFicha={(novaFicha) => {
             setFicha(novaFicha);
             setHasChanges(true);
           }}
           onFinalizarCriacao={() => {
-            const configMesa = storageService.getConfiguracaoMesa();
             const maxDef = configMesa.maxPontosDefeitos ?? 7;
             const defs = (ficha.qualidadesDefeitos || []).filter((qd) => qd.tipo === 'defeito');
             const totalDef = defs.reduce((acc, d) => acc + d.custo, 0);
@@ -1615,16 +1622,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     </div>
                     {(
                       [
+                        ['representacao', 'Representação'],
                         ['prontidao', 'Prontidão'],
                         ['esportes', 'Esportes'],
                         ['briga', 'Briga'],
                         ['esquiva', 'Esquiva'],
                         ['empatia', 'Empatia'],
-                        ['expressao', 'Expressão'],
                         ['intimidacao', 'Intimidação'],
+                        ['crime', 'Crime'],
                         ['lideranca', 'Liderança'],
-                        ['ladinagem', 'Ladinagem'],
-                        ['manha', 'Manha'],
+                        ['labia', 'Lábia'],
                       ] as const
                     ).map(([chave, label]) => (
                       <div key={chave} className="flex items-center justify-between text-xs py-0.5">
@@ -1652,13 +1659,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     {(
                       [
                         ['empatiaAnimais', 'Empatia c/ Animais'],
-                        ['tiroComArco', 'Tiro c/ Arco'],
+                        ['arqueirismo', 'Arqueirismo'],
                         ['artesanato', 'Artesanato'],
-                        ['cavalaria', 'Cavalaria'],
                         ['etiqueta', 'Etiqueta'],
-                        ['herbalismo', 'Herbalismo'],
+                        ['herborismo', 'Herborismo'],
                         ['armasBrancas', 'Armas Brancas'],
                         ['musica', 'Música'],
+                        ['cavalgar', 'Cavalgar'],
+                        ['furtividade', 'Furtividade'],
                         ['sobrevivencia', 'Sobrevivência'],
                       ] as const
                     ).map(([chave, label]) => (
@@ -1686,15 +1694,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     </div>
                     {(
                       [
-                        ['academicos', 'Acadêmicos'],
+                        ['instrucao', 'Instrução'],
                         ['sabedoriaPopular', 'Sabedoria Popular'],
                         ['investigacao', 'Investigação'],
                         ['direito', 'Direito'],
-                        ['linguistica', 'Linguística'],
+                        ['linguistica', 'Lingüística'],
                         ['medicina', 'Medicina'],
                         ['ocultismo', 'Ocultismo'],
                         ['politica', 'Política'],
-                        ['senescencia', 'Senescência'],
+                        ['ciencia', 'Ciência'],
+                        ['senescalia', 'Senescalia'],
                       ] as const
                     ).map(([chave, label]) => (
                       <div key={chave} className="flex items-center justify-between text-xs py-0.5">

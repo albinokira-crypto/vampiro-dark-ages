@@ -95,32 +95,33 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   const maxSociais = getLimiteAtributo('sociais');
   const maxMentais = getLimiteAtributo('mentais');
 
-  // Cálculos de gastos de Habilidades (base 0)
+  // Cálculos de gastos de Habilidades (base 0) - 10 Talentos, 10 Perícias, 10 Conhecimentos
   const gastosTalentos =
+    (ficha.habilidades.representacao ?? (ficha.habilidades as any).expressao ?? 0) +
     ficha.habilidades.prontidao +
     ficha.habilidades.esportes +
     ficha.habilidades.briga +
     ficha.habilidades.esquiva +
     ficha.habilidades.empatia +
-    ficha.habilidades.expressao +
     ficha.habilidades.intimidacao +
+    (ficha.habilidades.crime ?? (ficha.habilidades as any).ladinagem ?? 0) +
     ficha.habilidades.lideranca +
-    ficha.habilidades.ladinagem +
-    ficha.habilidades.manha;
+    (ficha.habilidades.labia ?? (ficha.habilidades as any).manha ?? 0);
 
   const gastosPericias =
     ficha.habilidades.empatiaAnimais +
-    ficha.habilidades.tiroComArco +
+    (ficha.habilidades.arqueirismo ?? (ficha.habilidades as any).tiroComArco ?? 0) +
     ficha.habilidades.artesanato +
-    ficha.habilidades.cavalaria +
     ficha.habilidades.etiqueta +
-    ficha.habilidades.herbalismo +
+    (ficha.habilidades.herborismo ?? (ficha.habilidades as any).herbalismo ?? 0) +
     ficha.habilidades.armasBrancas +
     ficha.habilidades.musica +
+    (ficha.habilidades.cavalgar ?? (ficha.habilidades as any).cavalaria ?? 0) +
+    (ficha.habilidades.furtividade ?? 0) +
     ficha.habilidades.sobrevivencia;
 
   const gastosConhecimentos =
-    ficha.habilidades.academicos +
+    (ficha.habilidades.instrucao ?? (ficha.habilidades as any).academicos ?? 0) +
     ficha.habilidades.sabedoriaPopular +
     ficha.habilidades.investigacao +
     ficha.habilidades.direito +
@@ -128,7 +129,8 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     ficha.habilidades.medicina +
     ficha.habilidades.ocultismo +
     ficha.habilidades.politica +
-    ficha.habilidades.senescencia;
+    (ficha.habilidades.ciencia ?? 0) +
+    (ficha.habilidades.senescalia ?? (ficha.habilidades as any).senescencia ?? 0);
 
   const getLimiteHabilidade = (cat: CategoriaHabilidade) => {
     if (!criacao.prioridadesHabilidades) return 0;

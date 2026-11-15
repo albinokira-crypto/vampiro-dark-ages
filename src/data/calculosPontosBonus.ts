@@ -151,30 +151,31 @@ export function calcularGastosPontosBonus(
 
   const hab = ficha.habilidades;
   const gastosTalentos =
+    ((hab.representacao ?? (hab as any).expressao) || 0) +
     (hab.prontidao || 0) +
     (hab.esportes || 0) +
     (hab.briga || 0) +
     (hab.esquiva || 0) +
     (hab.empatia || 0) +
-    (hab.expressao || 0) +
     (hab.intimidacao || 0) +
+    ((hab.crime ?? (hab as any).ladinagem) || 0) +
     (hab.lideranca || 0) +
-    (hab.ladinagem || 0) +
-    (hab.manha || 0);
+    ((hab.labia ?? (hab as any).manha) || 0);
 
   const gastosPericias =
     (hab.empatiaAnimais || 0) +
-    (hab.tiroComArco || 0) +
+    ((hab.arqueirismo ?? (hab as any).tiroComArco) || 0) +
     (hab.artesanato || 0) +
-    (hab.cavalaria || 0) +
     (hab.etiqueta || 0) +
-    (hab.herbalismo || 0) +
+    ((hab.herborismo ?? (hab as any).herbalismo) || 0) +
     (hab.armasBrancas || 0) +
     (hab.musica || 0) +
+    ((hab.cavalgar ?? (hab as any).cavalaria) || 0) +
+    (hab.furtividade || 0) +
     (hab.sobrevivencia || 0);
 
   const gastosConhecimentos =
-    (hab.academicos || 0) +
+    ((hab.instrucao ?? (hab as any).academicos) || 0) +
     (hab.sabedoriaPopular || 0) +
     (hab.investigacao || 0) +
     (hab.direito || 0) +
@@ -182,7 +183,8 @@ export function calcularGastosPontosBonus(
     (hab.medicina || 0) +
     (hab.ocultismo || 0) +
     (hab.politica || 0) +
-    (hab.senescencia || 0);
+    (hab.ciencia || 0) +
+    ((hab.senescalia ?? (hab as any).senescencia) || 0);
 
   const gastosHabilidades =
     Math.max(0, gastosTalentos - getLimiteHabil('talentos')) * 2 +

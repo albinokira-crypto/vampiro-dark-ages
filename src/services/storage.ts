@@ -25,7 +25,7 @@ export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
     secundario: 9,
     terciario: 5,
   },
-  pontosDisciplinas: 3,
+  pontosDisciplinas: 4, // CANÔNICO 1ª EDIÇÃO (4 pontos para disciplinas na criação!)
   pontosAntecedentes: 5,
   pontosVirtudes: 7,
   pontosBonus: 15,
@@ -95,27 +95,32 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
     raciocinio: 1,
   },
   habilidades: {
-    // Todas começam com 0
+    // Talentos (10 no livro)
+    representacao: 0,
     prontidao: 0,
     esportes: 0,
     briga: 0,
     esquiva: 0,
     empatia: 0,
-    expressao: 0,
     intimidacao: 0,
+    crime: 0,
     lideranca: 0,
-    ladinagem: 0,
-    manha: 0,
+    labia: 0,
+
+    // Perícias (10 no livro)
     empatiaAnimais: 0,
-    tiroComArco: 0,
+    arqueirismo: 0,
     artesanato: 0,
-    cavalaria: 0,
     etiqueta: 0,
-    herbalismo: 0,
+    herborismo: 0,
     armasBrancas: 0,
     musica: 0,
+    cavalgar: 0,
+    furtividade: 0,
     sobrevivencia: 0,
-    academicos: 0,
+
+    // Conhecimentos (10 no livro)
+    instrucao: 0,
     sabedoriaPopular: 0,
     investigacao: 0,
     direito: 0,
@@ -123,7 +128,8 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
     medicina: 0,
     ocultismo: 0,
     politica: 0,
-    senescencia: 0,
+    ciencia: 0,
+    senescalia: 0,
   },
   disciplinas: [],
   antecedentes: [],
@@ -272,6 +278,48 @@ export function normalizarPersonagem(p: Personagem): Personagem {
     }
   }
 
+  // Migração e normalização de habilidades para o padrão oficial da 1ª Edição (Devir 1998)
+  if (copia.habilidades) {
+    const h = copia.habilidades as any;
+    copia.habilidades = {
+      // Talentos (10 no livro)
+      representacao: h.representacao ?? h.expressao ?? 0,
+      prontidao: h.prontidao ?? 0,
+      esportes: h.esportes ?? 0,
+      briga: h.briga ?? 0,
+      esquiva: h.esquiva ?? 0,
+      empatia: h.empatia ?? 0,
+      intimidacao: h.intimidacao ?? 0,
+      crime: h.crime ?? h.ladinagem ?? 0,
+      lideranca: h.lideranca ?? 0,
+      labia: h.labia ?? h.manha ?? 0,
+
+      // Perícias (10 no livro)
+      empatiaAnimais: h.empatiaAnimais ?? 0,
+      arqueirismo: h.arqueirismo ?? h.tiroComArco ?? 0,
+      artesanato: h.artesanato ?? 0,
+      etiqueta: h.etiqueta ?? 0,
+      herborismo: h.herborismo ?? h.herbalismo ?? 0,
+      armasBrancas: h.armasBrancas ?? 0,
+      musica: h.musica ?? 0,
+      cavalgar: h.cavalgar ?? h.cavalaria ?? 0,
+      furtividade: h.furtividade ?? 0,
+      sobrevivencia: h.sobrevivencia ?? 0,
+
+      // Conhecimentos (10 no livro)
+      instrucao: h.instrucao ?? h.academicos ?? 0,
+      sabedoriaPopular: h.sabedoriaPopular ?? 0,
+      investigacao: h.investigacao ?? 0,
+      direito: h.direito ?? 0,
+      linguistica: h.linguistica ?? 0,
+      medicina: h.medicina ?? 0,
+      ocultismo: h.ocultismo ?? 0,
+      politica: h.politica ?? 0,
+      ciencia: h.ciencia ?? 0,
+      senescalia: h.senescalia ?? h.senescencia ?? 0,
+    };
+  }
+
   return copia;
 }
 
@@ -301,6 +349,10 @@ export const storageService = {
       if (parsed.maxPontosDefeitos === undefined) {
         parsed.maxPontosDefeitos = 7;
       }
+      // Corrige caso estivesse com 3 legado do V:TM para o canônico 4 de Dark Ages 1ª Edição
+      if (parsed.pontosDisciplinas === 3) {
+        parsed.pontosDisciplinas = 4;
+      }
       return { ...CONFIGURACAO_MESA_PADRAO, ...parsed };
     } catch {
       return CONFIGURACAO_MESA_PADRAO;
@@ -313,7 +365,13 @@ export const storageService = {
       if (res.ok) {
         const config = await res.json();
         if (config) {
+          if (config.pontosDisciplinas === 3) {
+            config.pontosDisciplinas = 4;
+          }
           const mesclado = { ...CONFIGURACAO_MESA_PADRAO, ...config };
+          if (mesclado.pontosDisciplinas === 3) {
+            mesclado.pontosDisciplinas = 4;
+          }
           if (Array.isArray(mesclado.atalhosCard)) {
             mesclado.atalhosCard = mesclado.atalhosCard.map((a: any) => {
               if (a.id === 'esquiva' && a.tipoExibicao === 'dados') {

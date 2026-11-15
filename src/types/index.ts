@@ -29,7 +29,7 @@ export interface ConfiguracaoMesa {
     secundario: number; // 7
     terciario: number; // 5
   };
-  pontosDisciplinas: number; // 3
+  pontosDisciplinas: number; // 4 (Canônico 1ª Edição Devir 1998)
   pontosAntecedentes: number; // 5
   pontosVirtudes: number; // 7
   pontosBonus: number; // 15
@@ -168,31 +168,34 @@ export interface Personagem {
     raciocinio: number;
   };
 
-  // Habilidades (0 a 8)
+  // Habilidades (0 a 8) - Canônicas da 1ª Edição (10 Talentos, 10 Perícias, 10 Conhecimentos)
   habilidades: {
     // Talentos
+    representacao: number;
     prontidao: number;
     esportes: number;
     briga: number;
     esquiva: number;
     empatia: number;
-    expressao: number;
     intimidacao: number;
+    crime: number;
     lideranca: number;
-    ladinagem: number;
-    manha: number;
+    labia: number;
+
     // Perícias
     empatiaAnimais: number;
-    tiroComArco: number;
+    arqueirismo: number;
     artesanato: number;
-    cavalaria: number;
     etiqueta: number;
-    herbalismo: number;
+    herborismo: number;
     armasBrancas: number;
     musica: number;
+    cavalgar: number;
+    furtividade: number;
     sobrevivencia: number;
+
     // Conhecimentos
-    academicos: number;
+    instrucao: number;
     sabedoriaPopular: number;
     investigacao: number;
     direito: number;
@@ -200,7 +203,18 @@ export interface Personagem {
     medicina: number;
     ocultismo: number;
     politica: number;
-    senescencia: number;
+    ciencia: number;
+    senescalia: number;
+
+    // Aliases retrocompatíveis opcionais
+    expressao?: number;
+    ladinagem?: number;
+    manha?: number;
+    tiroComArco?: number;
+    cavalaria?: number;
+    herbalismo?: number;
+    academicos?: number;
+    senescencia?: number;
   };
 
   // Vantagens

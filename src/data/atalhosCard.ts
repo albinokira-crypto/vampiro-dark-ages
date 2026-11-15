@@ -36,39 +36,51 @@ export const MAPA_TRACOS: Record<string, InfoTraco> = {
   inteligencia: { label: 'Inteligência', tipo: 'atributo' },
   raciocinio: { label: 'Raciocínio', tipo: 'atributo' },
 
-  // Habilidades - Talentos
+  // Habilidades - Talentos (10 oficiais da 1ª Edição)
+  representacao: { label: 'Representação', tipo: 'habilidade' },
   prontidao: { label: 'Prontidão', tipo: 'habilidade' },
   esportes: { label: 'Esportes', tipo: 'habilidade' },
   briga: { label: 'Briga', tipo: 'habilidade' },
   esquiva: { label: 'Esquiva', tipo: 'habilidade' },
   empatia: { label: 'Empatia', tipo: 'habilidade' },
-  expressao: { label: 'Expressão', tipo: 'habilidade' },
   intimidacao: { label: 'Intimidação', tipo: 'habilidade' },
+  crime: { label: 'Crime', tipo: 'habilidade' },
   lideranca: { label: 'Liderança', tipo: 'habilidade' },
-  ladinagem: { label: 'Ladinagem', tipo: 'habilidade' },
-  manha: { label: 'Manha', tipo: 'habilidade' },
+  labia: { label: 'Lábia', tipo: 'habilidade' },
 
-  // Habilidades - Perícias
+  // Habilidades - Perícias (10 oficiais da 1ª Edição)
   empatiaAnimais: { label: 'Empatia c/ Animais', tipo: 'habilidade' },
-  tiroComArco: { label: 'Tiro c/ Arco', tipo: 'habilidade' },
+  arqueirismo: { label: 'Arqueirismo', tipo: 'habilidade' },
   artesanato: { label: 'Artesanato', tipo: 'habilidade' },
-  cavalaria: { label: 'Cavalaria', tipo: 'habilidade' },
   etiqueta: { label: 'Etiqueta', tipo: 'habilidade' },
-  herbalismo: { label: 'Herbalismo', tipo: 'habilidade' },
+  herborismo: { label: 'Herborismo', tipo: 'habilidade' },
   armasBrancas: { label: 'Armas Brancas', tipo: 'habilidade' },
   musica: { label: 'Música', tipo: 'habilidade' },
+  cavalgar: { label: 'Cavalgar', tipo: 'habilidade' },
+  furtividade: { label: 'Furtividade', tipo: 'habilidade' },
   sobrevivencia: { label: 'Sobrevivência', tipo: 'habilidade' },
 
-  // Habilidades - Conhecimentos
-  academicos: { label: 'Acadêmicos', tipo: 'habilidade' },
+  // Habilidades - Conhecimentos (10 oficiais da 1ª Edição)
+  instrucao: { label: 'Instrução', tipo: 'habilidade' },
   sabedoriaPopular: { label: 'Sabedoria Popular', tipo: 'habilidade' },
   investigacao: { label: 'Investigação', tipo: 'habilidade' },
   direito: { label: 'Direito', tipo: 'habilidade' },
-  linguistica: { label: 'Linguística', tipo: 'habilidade' },
+  linguistica: { label: 'Lingüística', tipo: 'habilidade' },
   medicina: { label: 'Medicina', tipo: 'habilidade' },
   ocultismo: { label: 'Ocultismo', tipo: 'habilidade' },
   politica: { label: 'Política', tipo: 'habilidade' },
-  senescencia: { label: 'Senescência', tipo: 'habilidade' },
+  ciencia: { label: 'Ciência', tipo: 'habilidade' },
+  senescalia: { label: 'Senescalia', tipo: 'habilidade' },
+
+  // Aliases legados (retrocompatibilidade)
+  expressao: { label: 'Representação', tipo: 'habilidade' },
+  ladinagem: { label: 'Crime', tipo: 'habilidade' },
+  manha: { label: 'Lábia', tipo: 'habilidade' },
+  tiroComArco: { label: 'Arqueirismo', tipo: 'habilidade' },
+  cavalaria: { label: 'Cavalgar', tipo: 'habilidade' },
+  herbalismo: { label: 'Herborismo', tipo: 'habilidade' },
+  academicos: { label: 'Instrução', tipo: 'habilidade' },
+  senescencia: { label: 'Senescalia', tipo: 'habilidade' },
 };
 
 export const ATALHOS_CARD_PADRAO: AtalhoParadaDado[] = [
@@ -122,6 +134,19 @@ export function calcularValorAtalho(p: Personagem, atalho: AtalhoParadaDado): nu
     }
     if (traco in p.habilidades) {
       return (p.habilidades as Record<string, number>)[traco] || 0;
+    }
+    const habMap: Record<string, string> = {
+      expressao: 'representacao',
+      ladinagem: 'crime',
+      manha: 'labia',
+      tiroComArco: 'arqueirismo',
+      cavalaria: 'cavalgar',
+      herbalismo: 'herborismo',
+      academicos: 'instrucao',
+      senescencia: 'senescalia',
+    };
+    if (traco in habMap && habMap[traco] in p.habilidades) {
+      return (p.habilidades as Record<string, number>)[habMap[traco]] || 0;
     }
     const disc = p.disciplinas.find((d) => d.nome.toLowerCase() === traco.toLowerCase());
     if (disc) return disc.nivel;

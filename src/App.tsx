@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Personagem, User } from './types';
 import { storageService } from './services/storage';
 import { Navbar } from './components/Navbar';
@@ -13,6 +13,10 @@ export function App() {
   );
   const [personagemAtivoId, setPersonagemAtivoId] = useState<string | null>(null);
   const [modalConfigMestreAberto, setModalConfigMestreAberto] = useState(false);
+
+  useEffect(() => {
+    storageService.carregarConfiguracaoMesaRemota();
+  }, []);
 
   const handleTrocarUsuario = (novoUsuario: User) => {
     storageService.setUsuarioAtual(novoUsuario);

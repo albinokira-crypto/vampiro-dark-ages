@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ConfiguracaoMesa, AtalhoParadaDado } from '../types';
 import { storageService, CONFIGURACAO_MESA_PADRAO } from '../services/storage';
 import {
@@ -30,6 +30,12 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
   );
   const [salvo, setSalvo] = useState(false);
   const [copiado, setCopiado] = useState(false);
+
+  useEffect(() => {
+    storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
+      if (remoto) setConfig(remoto);
+    });
+  }, []);
 
   // Estados locais para cadastrar novo atalho no card
   const [novoNome, setNovoNome] = useState('');
