@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type {
   Personagem,
   User,
@@ -52,6 +52,17 @@ import {
 } from 'lucide-react';
 import { QUALIDADES_DEFEITOS_1E, type ModeloQualidadeDefeito } from '../data/qualidadesDefeitos1E';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
+import {
+  calcularStatusCombate,
+  calcularDanoArma,
+  calcularParadaAtaqueArma,
+  extrairClasseArmadura,
+  extrairPenalidadeArmadura,
+  ARMAS_CATALOGO_1E,
+  ARMADURAS_CATALOGO_1E,
+  type ModeloArma1E,
+  type ModeloArmadura1E,
+} from '../data/combate1E';
 
 interface FichaPersonagemProps {
   personagem: Personagem;
@@ -85,6 +96,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [sucessoXP, setSucessoXP] = useState<string | null>(null);
   // Controle de Edição Livre pelo Mestre (permite alterar traços diretamente sem consumir XP)
   const [modoEdicaoLivre, setModoEdicaoLivre] = useState<boolean>(false);
+
+  // Status Dinâmico de Combate, Armaduras e Armas (1ª Edição)
+  const statusCombate = useMemo(() => calcularStatusCombate(ficha), [ficha]);
+  const [modalCatalogoArmasAberto, setModalCatalogoArmasAberto] = useState(false);
+  const [modalCatalogoArmadurasAberto, setModalCatalogoArmadurasAberto] = useState(false);
+  const [buscaCatalogoArmas, setBuscaCatalogoArmas] = useState('');
+  const [filtroCategoriaArmas, setFiltroCategoriaArmas] = useState<'todas' | 'branca' | 'distancia' | 'briga'>('todas');
+  const [buscaCatalogoArmaduras, setBuscaCatalogoArmaduras] = useState('');
 
   useEffect(() => {
     storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
@@ -1121,6 +1140,22 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }));
   };
 
+  const handleAdicionarArmaDoCatalogo = (modelo: ModeloArma1E) => {
+    const nova: Arma = {
+      id: 'arma_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
+      nome: modelo.nome,
+      dificuldade: modelo.dificuldade,
+      dano: modelo.dano,
+      ocultacao: modelo.ocultacao,
+      alcance: modelo.alcance,
+    };
+    updateFicha((prev) => ({
+      ...prev,
+      armas: [...prev.armas, nova],
+    }));
+    setModalCatalogoArmasAberto(false);
+  };
+
   // Armaduras
   const handleAdicionarArmadura = () => {
     const nova: Armadura = {
@@ -1128,6 +1163,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       nome: 'Cota de Malha Reforçada',
       classe: '3',
       penalidade: '-1',
+      equipada: true,
     };
     updateFicha((prev) => ({
       ...prev,
@@ -1153,6 +1189,30 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         a.id === id ? { ...a, [campo]: valor } : a
       ),
     }));
+  };
+
+  const handleAlternarEquiparArmadura = (id: string) => {
+    updateFicha((prev) => ({
+      ...prev,
+      armaduras: prev.armaduras.map((a) =>
+        a.id === id ? { ...a, equipada: a.equipada === false ? true : false } : a
+      ),
+    }));
+  };
+
+  const handleAdicionarArmaduraDoCatalogo = (modelo: ModeloArmadura1E) => {
+    const nova: Armadura = {
+      id: 'armadura_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
+      nome: modelo.nome,
+      classe: modelo.classe,
+      penalidade: modelo.penalidade,
+      equipada: true,
+    };
+    updateFicha((prev) => ({
+      ...prev,
+      armaduras: [...prev.armaduras, nova],
+    }));
+    setModalCatalogoArmadurasAberto(false);
   };
 
   // Laços de Sangue
@@ -1911,7 +1971,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Destreza</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold">Destreza</span>
+                        {statusCombate.totalPenalidadeArmadura !== 0 && (
+                          <span
+                            className="text-[9px] font-mono font-bold text-amber-300 bg-amber-950/80 border border-amber-700 px-1 py-0.2 rounded-xs"
+                            title={`Penalidade de Armadura: ${statusCombate.totalPenalidadeArmadura}. Destreza efetiva: ${statusCombate.destrezaEfetiva}`}
+                          >
+                            Efetiva: {statusCombate.destrezaEfetiva}
+                          </span>
+                        )}
+                      </div>
                       <Bolinhas
                         valor={ficha.atributos.destreza}
                         max={maxBolinhasTraço}
@@ -1921,7 +1991,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Vigor</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold">Vigor</span>
+                        {statusCombate.totalClasseArmadura > 0 && (
+                          <span
+                            className="text-[9px] font-mono font-bold text-[#d4af37] bg-[#241318] border border-[#522228] px-1 py-0.2 rounded-xs"
+                            title={`Absorção de Dano Total: ${statusCombate.absorcaoDanoNormal} dados (Vigor ${statusCombate.vigorBase} + Fortitude ${statusCombate.fortitudeNivel} + Armadura ${statusCombate.totalClasseArmadura})`}
+                          >
+                            Absorção: {statusCombate.absorcaoDanoNormal}d
+                          </span>
+                        )}
+                      </div>
                       <Bolinhas
                         valor={ficha.atributos.vigor}
                         max={maxBolinhasTraço}
@@ -2968,97 +3048,233 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 </div>
               </div>
 
-              {/* COMBATE: ARMAS E ARMADURAS */}
+              {/* COMBATE: PAINEL GERAL, ARMAS E ARMADURAS */}
               <div className="space-y-6">
+                {/* PAINEL DE VISÃO GERAL DE COMBATE & PROTEÇÃO (1ª EDIÇÃO) */}
+                <div className="bg-[#120a0e] p-4 sm:p-5 rounded-sm border border-[#3b181b] space-y-4 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-[#d4af37]" />
+                      <h3 className="text-sm sm:text-base font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
+                        Parâmetros Automáticos de Combate & Proteção (1ª Edição)
+                      </h3>
+                    </div>
+                    <span className="text-[10px] text-[#a89f91] bg-[#1d1015] px-2 py-0.5 rounded border border-[#522228]">
+                      Livro de Regras (1996) • Cálculos Automáticos
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 text-center">
+                    {/* Absorção Letal / Contusão */}
+                    <div className="bg-[#180e13] p-2.5 rounded border border-[#2d1217] flex flex-col justify-between">
+                      <span className="text-[10px] uppercase font-gothic text-[#a89f91] block">
+                        Absorção Normal
+                      </span>
+                      <div className="my-1">
+                        <span className="text-xl font-bold text-green-400 font-mono">
+                          {statusCombate.absorcaoDanoNormal}
+                        </span>
+                        <span className="text-xs text-[#a89f91] ml-0.5">dados</span>
+                      </div>
+                      <span className="text-[9px] text-[#8e8273]">
+                        Vig {statusCombate.vigorBase} + Fort {statusCombate.fortitudeNivel} + Arm {statusCombate.totalClasseArmadura}
+                      </span>
+                    </div>
+
+                    {/* Absorção Agravada */}
+                    <div className="bg-[#180e13] p-2.5 rounded border border-[#2d1217] flex flex-col justify-between">
+                      <span className="text-[10px] uppercase font-gothic text-[#a89f91] block">
+                        Absorção Agravada
+                      </span>
+                      <div className="my-1">
+                        <span className={`text-xl font-bold font-mono ${statusCombate.absorcaoDanoAgravado > 0 ? 'text-amber-400' : 'text-[#8e8273]'}`}>
+                          {statusCombate.absorcaoDanoAgravado}
+                        </span>
+                        <span className="text-xs text-[#a89f91] ml-0.5">dados</span>
+                      </div>
+                      <span className="text-[9px] text-[#8e8273]">
+                        {statusCombate.absorcaoDanoAgravado > 0 ? 'Fortitude' : 'Sem Fortitude'}
+                      </span>
+                    </div>
+
+                    {/* Destreza Efetiva */}
+                    <div className="bg-[#180e13] p-2.5 rounded border border-[#2d1217] flex flex-col justify-between">
+                      <span className="text-[10px] uppercase font-gothic text-[#a89f91] block">
+                        Destreza Efetiva
+                      </span>
+                      <div className="my-1">
+                        <span className={`text-xl font-bold font-mono ${statusCombate.totalPenalidadeArmadura < 0 ? 'text-amber-300' : 'text-white'}`}>
+                          {statusCombate.destrezaEfetiva}
+                        </span>
+                        <span className="text-xs text-[#a89f91] ml-0.5">pts</span>
+                      </div>
+                      <span className="text-[9px] text-[#8e8273]">
+                        Base {statusCombate.destrezaBase} {statusCombate.totalPenalidadeArmadura < 0 ? `(${statusCombate.totalPenalidadeArmadura} arm.)` : '(sem ônus)'}
+                      </span>
+                    </div>
+
+                    {/* Esquiva Efetiva */}
+                    <div className="bg-[#180e13] p-2.5 rounded border border-[#2d1217] flex flex-col justify-between">
+                      <span className="text-[10px] uppercase font-gothic text-[#a89f91] block">
+                        Parada de Esquiva
+                      </span>
+                      <div className="my-1">
+                        <span className="text-xl font-bold text-sky-400 font-mono">
+                          {statusCombate.esquivaEfetiva}
+                        </span>
+                        <span className="text-xs text-[#a89f91] ml-0.5">dados</span>
+                      </div>
+                      <span className="text-[9px] text-[#8e8273]">
+                        Des Efetiva + Esquiva
+                      </span>
+                    </div>
+
+                    {/* Iniciativa Base */}
+                    <div className="bg-[#180e13] p-2.5 rounded border border-[#2d1217] flex flex-col justify-between">
+                      <span className="text-[10px] uppercase font-gothic text-[#a89f91] block">
+                        Iniciativa Base
+                      </span>
+                      <div className="my-1">
+                        <span className="text-xl font-bold text-purple-400 font-mono">
+                          {statusCombate.iniciativaBase}
+                        </span>
+                        <span className="text-xs text-[#a89f91] ml-0.5">+ 1d10</span>
+                      </div>
+                      <span className="text-[9px] text-[#8e8273]">
+                        Des + Rac {statusCombate.rapidezNivel > 0 ? `+ Rap ${statusCombate.rapidezNivel}` : ''}
+                      </span>
+                    </div>
+
+                    {/* Potência no Dano */}
+                    <div className="bg-[#180e13] p-2.5 rounded border border-[#2d1217] flex flex-col justify-between">
+                      <span className="text-[10px] uppercase font-gothic text-[#a89f91] block">
+                        Bônus de Potência
+                      </span>
+                      <div className="my-1">
+                        <span className={`text-xl font-bold font-mono ${statusCombate.potenciaNivel > 0 ? 'text-red-400' : 'text-[#8e8273]'}`}>
+                          +{statusCombate.potenciaNivel}
+                        </span>
+                        <span className="text-xs text-[#a89f91] ml-0.5">suc. auto</span>
+                      </div>
+                      <span className="text-[9px] text-[#8e8273]">
+                        Dano Corpo a Corpo
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* ARMAS */}
                 <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-4">
-                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
+                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 flex-wrap gap-2">
                     <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-2">
-                      <Swords className="w-4 h-4 text-[#ef4444]" /> Armas de Combate
+                      <Swords className="w-4 h-4 text-[#ef4444]" /> Armas & Ataques
                     </h3>
                     {podeEditar && (
-                      <button
-                        type="button"
-                        onClick={handleAdicionarArma}
-                        className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer bg-[#241318] px-2 py-1 rounded border border-[#522228]"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Adicionar Arma
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setModalCatalogoArmasAberto(true)}
+                          className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer bg-[#241318] hover:bg-[#341820] px-2.5 py-1 rounded border border-[#522228] transition-colors"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" /> Catálogo 1ª Edição
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAdicionarArma}
+                          className="text-xs text-[#a89f91] hover:text-white flex items-center gap-1 cursor-pointer bg-[#190f13] hover:bg-[#251319] px-2 py-1 rounded border border-[#3b181b] transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Adicionar Custom
+                        </button>
+                      </div>
                     )}
                   </div>
 
                   {ficha.armas.length === 0 ? (
-                    <p className="text-xs text-[#706456] italic">Nenhuma arma equipada no momento.</p>
+                    <p className="text-xs text-[#706456] italic">Nenhuma arma adicionada no momento. Utilize o Catálogo para escolher armas da 1ª Edição.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs text-left">
                         <thead className="text-[10px] uppercase font-gothic text-[#a89f91] border-b border-[#3b181b]">
                           <tr>
                             <th className="py-2 px-2">Arma</th>
-                            <th className="py-2 px-2">Dificuldade</th>
-                            <th className="py-2 px-2">Dano</th>
+                            <th className="py-2 px-2 text-center">Dificuldade</th>
+                            <th className="py-2 px-2 text-center">Ataque Automático</th>
+                            <th className="py-2 px-2 text-center">Dano Automático</th>
                             <th className="py-2 px-2">Ocultação</th>
                             <th className="py-2 px-2">Alcance</th>
                             {podeEditar && <th className="py-2 px-2 text-right">Ação</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#241318]">
-                          {ficha.armas.map((arma) => (
-                            <tr key={arma.id} className="hover:bg-[#1a1115]">
-                              <td className="py-1 px-2 font-semibold">
-                                <InlineField
-                                  value={arma.nome}
-                                  onChange={(v) => handleEditarArma(arma.id, 'nome', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="Nome da Arma"
-                                />
-                              </td>
-                              <td className="py-1 px-2">
-                                <InlineField
-                                  value={arma.dificuldade}
-                                  onChange={(v) => handleEditarArma(arma.id, 'dificuldade', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="6"
-                                />
-                              </td>
-                              <td className="py-1 px-2 text-[#ef4444] font-bold">
-                                <InlineField
-                                  value={arma.dano}
-                                  onChange={(v) => handleEditarArma(arma.id, 'dano', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="For+2"
-                                />
-                              </td>
-                              <td className="py-1 px-2">
-                                <InlineField
-                                  value={arma.ocultacao}
-                                  onChange={(v) => handleEditarArma(arma.id, 'ocultacao', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="Capa"
-                                />
-                              </td>
-                              <td className="py-1 px-2">
-                                <InlineField
-                                  value={arma.alcance}
-                                  onChange={(v) => handleEditarArma(arma.id, 'alcance', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="Corpo a corpo"
-                                />
-                              </td>
-                              {podeEditar && (
-                                <td className="py-1 px-2 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoverArma(arma.id)}
-                                    className="text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer"
-                                    title="Remover Arma"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                          {ficha.armas.map((arma) => {
+                            const ataqueInfo = calcularParadaAtaqueArma(arma, statusCombate.destrezaEfetiva, ficha.habilidades);
+                            const danoInfo = calcularDanoArma(arma.dano, ficha.atributos.forca, statusCombate.potenciaNivel);
+                            return (
+                              <tr key={arma.id} className="hover:bg-[#1a1115]">
+                                <td className="py-2 px-2 font-semibold">
+                                  <InlineField
+                                    value={arma.nome}
+                                    onChange={(v) => handleEditarArma(arma.id, 'nome', v)}
+                                    readonly={!podeEditar}
+                                    placeholder="Nome da Arma"
+                                  />
                                 </td>
-                              )}
-                            </tr>
-                          ))}
+                                <td className="py-2 px-2 text-center">
+                                  <span className="font-mono font-bold text-amber-300">
+                                    Dif {arma.dificuldade || '6'}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <div className="inline-flex flex-col items-center">
+                                    <span className="font-mono font-bold text-sky-400 bg-sky-950/60 border border-sky-800/80 px-2 py-0.5 rounded-xs">
+                                      {ataqueInfo.paradaDados} dados
+                                    </span>
+                                    <span className="text-[9px] text-[#8e8273] mt-0.5">
+                                      Des ({statusCombate.destrezaEfetiva}) + {ataqueInfo.habilidadeUsada} ({ataqueInfo.habilidadeNivel})
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <div className="inline-flex flex-col items-center">
+                                    <span className="font-mono font-bold text-red-400 bg-red-950/60 border border-red-800/80 px-2 py-0.5 rounded-xs">
+                                      {danoInfo.resumoVisual}
+                                    </span>
+                                    <span className="text-[9px] text-[#8e8273] mt-0.5">
+                                      Fórmula: {arma.dano || 'For'} (Força {ficha.atributos.forca})
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-2">
+                                  <InlineField
+                                    value={arma.ocultacao}
+                                    onChange={(v) => handleEditarArma(arma.id, 'ocultacao', v)}
+                                    readonly={!podeEditar}
+                                    placeholder="Capa"
+                                  />
+                                </td>
+                                <td className="py-2 px-2">
+                                  <InlineField
+                                    value={arma.alcance}
+                                    onChange={(v) => handleEditarArma(arma.id, 'alcance', v)}
+                                    readonly={!podeEditar}
+                                    placeholder="Corpo a corpo"
+                                  />
+                                </td>
+                                {podeEditar && (
+                                  <td className="py-2 px-2 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoverArma(arma.id)}
+                                      className="text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer transition-colors"
+                                      title="Remover Arma"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -3067,75 +3283,115 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
                 {/* ARMADURAS */}
                 <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-4">
-                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
-                    <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-[#ef4444]" /> Armadura e Proteção
-                    </h3>
+                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[#ef4444]" /> Armadura e Proteção
+                      </h3>
+                      {statusCombate.totalClasseArmadura > 0 && (
+                        <span className="text-[10px] font-mono text-green-400 bg-green-950/60 border border-green-800 px-2 py-0.5 rounded-xs">
+                          +{statusCombate.totalClasseArmadura} dados de Absorção ativos
+                        </span>
+                      )}
+                      {statusCombate.totalPenalidadeArmadura < 0 && (
+                        <span className="text-[10px] font-mono text-amber-300 bg-amber-950/60 border border-amber-800 px-2 py-0.5 rounded-xs">
+                          {statusCombate.totalPenalidadeArmadura} Destreza ativo
+                        </span>
+                      )}
+                    </div>
                     {podeEditar && (
-                      <button
-                        type="button"
-                        onClick={handleAdicionarArmadura}
-                        className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer bg-[#241318] px-2 py-1 rounded border border-[#522228]"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Adicionar Armadura
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setModalCatalogoArmadurasAberto(true)}
+                          className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer bg-[#241318] hover:bg-[#341820] px-2.5 py-1 rounded border border-[#522228] transition-colors"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" /> Catálogo 1ª Edição
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAdicionarArmadura}
+                          className="text-xs text-[#a89f91] hover:text-white flex items-center gap-1 cursor-pointer bg-[#190f13] hover:bg-[#251319] px-2 py-1 rounded border border-[#3b181b] transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Adicionar Custom
+                        </button>
+                      </div>
                     )}
                   </div>
 
                   {ficha.armaduras.length === 0 ? (
-                    <p className="text-xs text-[#706456] italic">Nenhuma armadura em uso.</p>
+                    <p className="text-xs text-[#706456] italic">Nenhuma armadura no inventário. Utilize o Catálogo para escolher armaduras da 1ª Edição.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs text-left">
                         <thead className="text-[10px] uppercase font-gothic text-[#a89f91] border-b border-[#3b181b]">
                           <tr>
+                            <th className="py-2 px-2 text-center">Estado</th>
                             <th className="py-2 px-2">Tipo de Armadura</th>
-                            <th className="py-2 px-2">Classe / Proteção</th>
-                            <th className="py-2 px-2">Penalidade de Destreza</th>
+                            <th className="py-2 px-2 text-center">Classe / Absorção</th>
+                            <th className="py-2 px-2 text-center">Penalidade na Destreza</th>
                             {podeEditar && <th className="py-2 px-2 text-right">Ação</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#241318]">
-                          {ficha.armaduras.map((arm) => (
-                            <tr key={arm.id} className="hover:bg-[#1a1115]">
-                              <td className="py-1 px-2 font-semibold">
-                                <InlineField
-                                  value={arm.nome}
-                                  onChange={(v) => handleEditarArmadura(arm.id, 'nome', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="Cota de Malha"
-                                />
-                              </td>
-                              <td className="py-1 px-2 text-[#d4af37] font-bold">
-                                <InlineField
-                                  value={arm.classe}
-                                  onChange={(v) => handleEditarArmadura(arm.id, 'classe', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="3"
-                                />
-                              </td>
-                              <td className="py-1 px-2 text-[#ef4444]">
-                                <InlineField
-                                  value={arm.penalidade}
-                                  onChange={(v) => handleEditarArmadura(arm.id, 'penalidade', v)}
-                                  readonly={!podeEditar}
-                                  placeholder="-1"
-                                />
-                              </td>
-                              {podeEditar && (
-                                <td className="py-1 px-2 text-right">
+                          {ficha.armaduras.map((arm) => {
+                            const isEquipada = (arm as any).equipada !== false;
+                            const classeNum = extrairClasseArmadura(arm.classe);
+                            const penNum = extrairPenalidadeArmadura(arm.penalidade);
+                            return (
+                              <tr key={arm.id} className={`hover:bg-[#1a1115] ${!isEquipada ? 'opacity-60' : ''}`}>
+                                <td className="py-2 px-2 text-center">
                                   <button
                                     type="button"
-                                    onClick={() => handleRemoverArmadura(arm.id)}
-                                    className="text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer"
-                                    title="Remover Armadura"
+                                    onClick={() => handleAlternarEquiparArmadura(arm.id)}
+                                    disabled={!podeEditar}
+                                    className={`px-2.5 py-1 rounded text-[11px] font-bold font-gothic uppercase tracking-wide cursor-pointer transition-colors border ${
+                                      isEquipada
+                                        ? 'bg-green-950/80 text-green-300 border-green-700 hover:bg-green-900'
+                                        : 'bg-[#181115] text-[#8e8273] border-[#3b181b] hover:text-[#ded6cb]'
+                                    }`}
+                                    title={isEquipada ? 'Equipada (bônus e penalidades ativos na ficha)' : 'Guardada na bagagem (sem efeito)'}
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    {isEquipada ? '✓ Em Uso' : 'Guardada'}
                                   </button>
                                 </td>
-                              )}
-                            </tr>
-                          ))}
+                                <td className="py-2 px-2 font-semibold">
+                                  <InlineField
+                                    value={arm.nome}
+                                    onChange={(v) => handleEditarArmadura(arm.id, 'nome', v)}
+                                    readonly={!podeEditar}
+                                    placeholder="Cota de Malha"
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <span className="font-mono font-bold text-green-400 bg-green-950/50 border border-green-800/80 px-2 py-0.5 rounded-xs">
+                                    +{classeNum} dados de absorção
+                                  </span>
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <span className={`font-mono font-bold px-2 py-0.5 rounded-xs border ${
+                                    penNum < 0
+                                      ? 'text-amber-300 bg-amber-950/50 border-amber-800/80'
+                                      : 'text-[#8e8273] bg-[#1a1114] border-[#3b181b]'
+                                  }`}>
+                                    {penNum < 0 ? `${penNum} Destreza & Ações Físicas` : 'Sem penalidade (0)'}
+                                  </span>
+                                </td>
+                                {podeEditar && (
+                                  <td className="py-2 px-2 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoverArmadura(arm.id)}
+                                      className="text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer transition-colors"
+                                      title="Remover Armadura"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -4530,6 +4786,263 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>Salvar História</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL DO CATÁLOGO DE ARMAS DA 1ª EDIÇÃO */}
+      {modalCatalogoArmasAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-[#120a0e] border border-[#522228] rounded-sm max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Cabeçalho */}
+            <div className="bg-[#180e13] px-5 py-3.5 border-b border-[#3b181b] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Swords className="w-5 h-5 text-[#ef4444]" />
+                <div>
+                  <h3 className="text-base font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                    Arsenal & Armas Medievais (1ª Edição - 1996)
+                  </h3>
+                  <p className="text-[11px] text-[#8e8273]">
+                    Selecione uma arma canônica para adicionar diretamente à ficha com bônus e fórmulas calculadas
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalCatalogoArmasAberto(false)}
+                className="text-[#8e8273] hover:text-white p-1 rounded transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filtros e Busca */}
+            <div className="p-4 bg-[#140c10] border-b border-[#2d1217] flex flex-wrap items-center justify-between gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={buscaCatalogoArmas}
+                  onChange={(e) => setBuscaCatalogoArmas(e.target.value)}
+                  placeholder="Buscar arma por nome ou alcance..."
+                  className="w-full bg-[#1b1116] border border-[#3b181b] focus:border-[#ef4444] text-xs text-[#ded6cb] pl-9 pr-3 py-1.5 rounded-xs focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {(
+                  [
+                    { id: 'todas', label: 'Todas as Armas' },
+                    { id: 'branca', label: 'Armas Brancas' },
+                    { id: 'distancia', label: 'Projéteis / Distância' },
+                    { id: 'briga', label: 'Naturais / Briga' },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setFiltroCategoriaArmas(tab.id)}
+                    className={`px-3 py-1 text-xs font-gothic uppercase tracking-wide rounded-xs cursor-pointer border transition-colors ${
+                      filtroCategoriaArmas === tab.id
+                        ? 'bg-[#8b0000] text-white border-[#b31419]'
+                        : 'bg-[#1b1116] text-[#8e8273] border-[#3b181b] hover:text-[#ded6cb]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista de Armas */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+              {ARMAS_CATALOGO_1E.filter((arma) => {
+                const bateCat = filtroCategoriaArmas === 'todas' || arma.categoria === filtroCategoriaArmas;
+                const termo = buscaCatalogoArmas.toLowerCase().trim();
+                const bateBusca = !termo || arma.nome.toLowerCase().includes(termo) || (arma.descricao || '').toLowerCase().includes(termo);
+                return bateCat && bateBusca;
+              }).map((arma, idx) => {
+                const ataqueCalc = calcularParadaAtaqueArma(
+                  { id: 'temp', nome: arma.nome, dificuldade: arma.dificuldade, dano: arma.dano, ocultacao: arma.ocultacao, alcance: arma.alcance },
+                  statusCombate.destrezaEfetiva,
+                  ficha.habilidades
+                );
+                const danoCalc = calcularDanoArma(arma.dano, ficha.atributos.forca, statusCombate.potenciaNivel);
+
+                return (
+                  <div
+                    key={idx}
+                    className="bg-[#160f13] hover:bg-[#1f141a] border border-[#2d1217] hover:border-[#522228] p-3 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-gothic font-bold text-white text-sm">
+                          {arma.nome}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-2 py-0.5 rounded border border-[#522228]">
+                          {arma.categoria === 'branca' ? 'Armas Brancas' : arma.categoria === 'distancia' ? 'Projétil / Arquearia' : 'Briga / Sobrenatural'}
+                        </span>
+                        <span className="text-[10px] text-[#8e8273]">
+                          Alcance: <strong className="text-[#ded6cb]">{arma.alcance}</strong> • Ocultação: <strong className="text-[#ded6cb]">{arma.ocultacao}</strong>
+                        </span>
+                      </div>
+                      {arma.descricao && (
+                        <p className="text-[11px] text-[#a89f91] italic">{arma.descricao}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 flex-wrap justify-between md:justify-end">
+                      {/* Dificuldade */}
+                      <div className="text-center bg-[#10090c] px-2.5 py-1 rounded border border-[#2d1217]">
+                        <span className="text-[9px] uppercase font-gothic text-[#8e8273] block">Dificuldade</span>
+                        <span className="font-mono font-bold text-amber-300 text-xs">Dif {arma.dificuldade}</span>
+                      </div>
+
+                      {/* Parada de Ataque Calculada */}
+                      <div className="text-center bg-[#10090c] px-2.5 py-1 rounded border border-[#2d1217]">
+                        <span className="text-[9px] uppercase font-gothic text-[#8e8273] block">Parada de Ataque</span>
+                        <span className="font-mono font-bold text-sky-400 text-xs">{ataqueCalc.paradaDados} dados</span>
+                      </div>
+
+                      {/* Dano Calculado */}
+                      <div className="text-center bg-[#10090c] px-2.5 py-1 rounded border border-[#2d1217]">
+                        <span className="text-[9px] uppercase font-gothic text-[#8e8273] block">Dano Efetivo</span>
+                        <span className="font-mono font-bold text-red-400 text-xs">{danoCalc.resumoVisual}</span>
+                      </div>
+
+                      {/* Botão Adicionar */}
+                      <button
+                        type="button"
+                        onClick={() => handleAdicionarArmaDoCatalogo(arma)}
+                        className="px-3.5 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md flex items-center gap-1 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Adicionar</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Rodapé */}
+            <div className="bg-[#180e13] px-5 py-3 border-t border-[#3b181b] flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setModalCatalogoArmasAberto(false)}
+                className="px-4 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] rounded-xs border border-[#3b181b] cursor-pointer"
+              >
+                Fechar Arsenal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DO CATÁLOGO DE ARMADURAS DA 1ª EDIÇÃO */}
+      {modalCatalogoArmadurasAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-[#120a0e] border border-[#522228] rounded-sm max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Cabeçalho */}
+            <div className="bg-[#180e13] px-5 py-3.5 border-b border-[#3b181b] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-5 h-5 text-[#ef4444]" />
+                <div>
+                  <h3 className="text-base font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                    Armaduras & Proteções Medievais (1ª Edição - 1996)
+                  </h3>
+                  <p className="text-[11px] text-[#8e8273]">
+                    Selecione uma armadura para adicionar à ficha com aplicação automática de bônus de absorção e penalidade de destreza
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalCatalogoArmadurasAberto(false)}
+                className="text-[#8e8273] hover:text-white p-1 rounded transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Busca */}
+            <div className="p-4 bg-[#140c10] border-b border-[#2d1217]">
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={buscaCatalogoArmaduras}
+                  onChange={(e) => setBuscaCatalogoArmaduras(e.target.value)}
+                  placeholder="Buscar armadura por nome ou tipo..."
+                  className="w-full bg-[#1b1116] border border-[#3b181b] focus:border-[#ef4444] text-xs text-[#ded6cb] pl-9 pr-3 py-1.5 rounded-xs focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            {/* Lista de Armaduras */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+              {ARMADURAS_CATALOGO_1E.filter((arm) => {
+                const termo = buscaCatalogoArmaduras.toLowerCase().trim();
+                return !termo || arm.nome.toLowerCase().includes(termo) || (arm.descricao || '').toLowerCase().includes(termo);
+              }).map((arm, idx) => {
+                const classeNum = extrairClasseArmadura(arm.classe);
+                const penNum = extrairPenalidadeArmadura(arm.penalidade);
+
+                return (
+                  <div
+                    key={idx}
+                    className="bg-[#160f13] hover:bg-[#1f141a] border border-[#2d1217] hover:border-[#522228] p-3.5 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-gothic font-bold text-white text-sm">
+                          {arm.nome}
+                        </span>
+                      </div>
+                      {arm.descricao && (
+                        <p className="text-[11px] text-[#a89f91]">{arm.descricao}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 flex-wrap justify-between sm:justify-end">
+                      {/* Bônus de Absorção */}
+                      <div className="text-center bg-[#10090c] px-3 py-1 rounded border border-[#2d1217]">
+                        <span className="text-[9px] uppercase font-gothic text-[#8e8273] block">Absorção</span>
+                        <span className="font-mono font-bold text-green-400 text-xs">+{classeNum} dados</span>
+                      </div>
+
+                      {/* Penalidade */}
+                      <div className="text-center bg-[#10090c] px-3 py-1 rounded border border-[#2d1217]">
+                        <span className="text-[9px] uppercase font-gothic text-[#8e8273] block">Penalidade</span>
+                        <span className={`font-mono font-bold text-xs ${penNum < 0 ? 'text-amber-300' : 'text-[#8e8273]'}`}>
+                          {penNum < 0 ? `${penNum} Destreza` : 'Sem penalidade'}
+                        </span>
+                      </div>
+
+                      {/* Botão Adicionar */}
+                      <button
+                        type="button"
+                        onClick={() => handleAdicionarArmaduraDoCatalogo(arm)}
+                        className="px-3.5 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md flex items-center gap-1 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Adicionar</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Rodapé */}
+            <div className="bg-[#180e13] px-5 py-3 border-t border-[#3b181b] flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setModalCatalogoArmadurasAberto(false)}
+                className="px-4 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] rounded-xs border border-[#3b181b] cursor-pointer"
+              >
+                Fechar Catálogo
               </button>
             </div>
           </div>

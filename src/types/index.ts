@@ -107,6 +107,7 @@ export interface Armadura {
   nome: string;
   classe: string;
   penalidade: string;
+  equipada?: boolean; // Se está em uso pelo personagem (padrão true)
 }
 
 export interface LacoDeSangue {
