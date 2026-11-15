@@ -144,6 +144,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     setTimeout(() => setMensagemSalvo(false), 3000);
   };
 
+  const autoResizeTextarea = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.max(260, el.scrollHeight + 4)}px`;
+  };
+
   // Cálculo de Custo Exato em XP
   const calcularCustoXP = (
     tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
@@ -4167,23 +4173,27 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {abaModalHistoria === 'historia' && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
                       História do Personagem
                     </label>
-                    <span className="text-[10px] text-[#8e8273]">
-                      {tempHistoria.length} caracteres
+                    <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-2 py-0.5 rounded border border-[#522228]">
+                      ✦ Espaço Livre • Sem limite de caracteres ({tempHistoria.length} digitados)
                     </span>
                   </div>
                   <p className="text-[11px] text-[#a89f91]">
-                    Descreva os acontecimentos marcantes da vida do cainita, sua linhagem, origem mortal, feitos e tragédias.
+                    Descreva os acontecimentos marcantes da vida do cainita, sua linhagem, origem mortal, feitos e tragédias. O campo expande-se automaticamente ao digitar.
                   </p>
                   <textarea
+                    ref={(el) => autoResizeTextarea(el)}
                     rows={12}
                     value={tempHistoria}
-                    onChange={(e) => setTempHistoria(e.target.value)}
-                    placeholder="Escreva a narrativa sobre as origens do seu cainita, sua família na época medieval, os conflitos enfrentados..."
-                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    onChange={(e) => {
+                      setTempHistoria(e.target.value);
+                      autoResizeTextarea(e.target);
+                    }}
+                    placeholder="Escreva livremente a narrativa sobre as origens do seu cainita, sua família na época medieval, os conflitos enfrentados (sem limite de tamanho)..."
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y min-h-[260px] transition-[height] duration-75"
                     autoFocus
                   />
                 </div>
@@ -4191,23 +4201,27 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
               {abaModalHistoria === 'preludio' && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
                       Prelúdio (A Noite do Abraço)
                     </label>
-                    <span className="text-[10px] text-[#8e8273]">
-                      {tempPreludio.length} caracteres
+                    <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-2 py-0.5 rounded border border-[#522228]">
+                      ✦ Espaço Livre • Sem limite de caracteres ({tempPreludio.length} digitados)
                     </span>
                   </div>
                   <p className="text-[11px] text-[#a89f91]">
-                    Relate a noite em que o personagem deixou a vida mortal e recebeu o Abraço de seu senhor.
+                    Relate a noite em que o personagem deixou a vida mortal e recebeu o Abraço de seu senhor. O campo expande-se automaticamente ao digitar.
                   </p>
                   <textarea
+                    ref={(el) => autoResizeTextarea(el)}
                     rows={12}
                     value={tempPreludio}
-                    onChange={(e) => setTempPreludio(e.target.value)}
-                    placeholder="Descreva o fatídico encontro com o seu senhor cainita, a dor e o êxtase da transformação..."
-                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    onChange={(e) => {
+                      setTempPreludio(e.target.value);
+                      autoResizeTextarea(e.target);
+                    }}
+                    placeholder="Descreva o fatídico encontro com o seu senhor cainita, a dor e o êxtase da transformação (sem limite de tamanho)..."
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y min-h-[260px] transition-[height] duration-75"
                     autoFocus
                   />
                 </div>
@@ -4215,23 +4229,27 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
               {abaModalHistoria === 'objetivos' && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
                       Objetivos & Ambições da Noite
                     </label>
-                    <span className="text-[10px] text-[#8e8273]">
-                      {tempObjetivos.length} caracteres
+                    <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-2 py-0.5 rounded border border-[#522228]">
+                      ✦ Espaço Livre • Sem limite de caracteres ({tempObjetivos.length} digitados)
                     </span>
                   </div>
                   <p className="text-[11px] text-[#a89f91]">
                     Ambições feudais, desejos imediatos e grandes metas a longo prazo para o personagem.
                   </p>
                   <textarea
+                    ref={(el) => autoResizeTextarea(el)}
                     rows={10}
                     value={tempObjetivos}
-                    onChange={(e) => setTempObjetivos(e.target.value)}
+                    onChange={(e) => {
+                      setTempObjetivos(e.target.value);
+                      autoResizeTextarea(e.target);
+                    }}
                     placeholder="O que move este cainita? Vingança, busca pelo conhecimento de sua Trilha, domínio de um feudo..."
-                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y min-h-[220px] transition-[height] duration-75"
                     autoFocus
                   />
                 </div>
@@ -4239,23 +4257,27 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
               {abaModalHistoria === 'notas' && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <label className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
                       Notas & Segredos da Crônica
                     </label>
-                    <span className="text-[10px] text-[#8e8273]">
-                      {tempNotas.length} caracteres
+                    <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-2 py-0.5 rounded border border-[#522228]">
+                      ✦ Espaço Livre • Sem limite de caracteres ({tempNotas.length} digitados)
                     </span>
                   </div>
                   <p className="text-[11px] text-[#a89f91]">
                     Anotações particulares, nomes de aliados ou rivais, pistas e mistérios descobertos.
                   </p>
                   <textarea
+                    ref={(el) => autoResizeTextarea(el)}
                     rows={10}
                     value={tempNotas}
-                    onChange={(e) => setTempNotas(e.target.value)}
+                    onChange={(e) => {
+                      setTempNotas(e.target.value);
+                      autoResizeTextarea(e.target);
+                    }}
                     placeholder="Contatos secretos, dívidas de sangue, itens raros em sua posse..."
-                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y"
+                    className="w-full bg-[#181115] border border-[#522228] focus:border-[#ef4444] text-xs sm:text-sm text-[#ded6cb] p-3 rounded-xs focus:outline-hidden font-serif leading-relaxed resize-y min-h-[220px] transition-[height] duration-75"
                     autoFocus
                   />
                 </div>

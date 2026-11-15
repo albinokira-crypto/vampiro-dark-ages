@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface InlineFieldProps {
   label?: string;
@@ -27,10 +27,24 @@ export const InlineField: React.FC<InlineFieldProps> = ({
 }) => {
   const [editing, setEditing] = useState(false);
   const [tempValue, setTempValue] = useState(String(value ?? ''));
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.max(rows * 24, textareaRef.current.scrollHeight)}px`;
+    }
+  };
 
   useEffect(() => {
     setTempValue(String(value ?? ''));
   }, [value]);
+
+  useEffect(() => {
+    if (editing && multiline) {
+      autoResize();
+    }
+  }, [editing, multiline, tempValue]);
 
   const handleBlur = () => {
     setEditing(false);
@@ -59,20 +73,24 @@ export const InlineField: React.FC<InlineFieldProps> = ({
       )}
 
       {readonly ? (
-        <div className="py-0.5 text-xs sm:text-sm font-medium text-[#ded6cb] border-b border-white/5 truncate">
+        <div className="py-0.5 text-xs sm:text-sm font-medium text-[#ded6cb] border-b border-white/5 whitespace-pre-wrap leading-relaxed">
           {value || placeholder}
         </div>
       ) : editing ? (
         multiline ? (
           <textarea
+            ref={textareaRef}
             autoFocus
             rows={rows}
             value={tempValue}
-            onChange={(e) => setTempValue(e.target.value)}
+            onChange={(e) => {
+              setTempValue(e.target.value);
+              autoResize();
+            }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full bg-[#1b1719] text-[#ded6cb] text-xs sm:text-sm p-2 rounded-xs border border-[#8b0000] focus:outline-none focus:ring-1 focus:ring-[#8b0000] resize-y"
+            className="w-full bg-[#1b1719] text-[#ded6cb] text-xs sm:text-sm p-2.5 rounded-xs border border-[#8b0000] focus:outline-none focus:ring-1 focus:ring-[#8b0000] resize-y leading-relaxed transition-[height] duration-75"
           />
         ) : (
           <input
@@ -91,8 +109,8 @@ export const InlineField: React.FC<InlineFieldProps> = ({
           onClick={() => setEditing(true)}
           title="Clique para editar este campo diretamente"
           className={`
-            cursor-pointer py-0.5 px-1 rounded-xs border-b border-[#3b181b] hover:border-[#8b0000] hover:bg-white/5 transition-all text-xs sm:text-sm
-            ${value ? 'text-[#ded6cb] font-semibold' : 'text-[#6e645c] italic'}
+            cursor-pointer py-1 px-1.5 rounded-xs border-b border-[#3b181b] hover:border-[#8b0000] hover:bg-white/5 transition-all text-xs sm:text-sm leading-relaxed
+            ${value ? 'text-[#ded6cb] font-normal' : 'text-[#6e645c] italic'}
             ${multiline ? 'whitespace-pre-wrap min-h-[3rem]' : 'truncate'}
           `}
         >
