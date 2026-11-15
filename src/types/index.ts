@@ -90,6 +90,7 @@ export interface QualidadeDefeitoItem {
   categoria: 'fisico' | 'mental' | 'social' | 'sobrenatural';
   custo: number; // Valor positivo: se qualidade gasta pontos bônus; se defeito concede pontos bônus
   descricao?: string;
+  observacao?: string; // Especificação personalizada (ex: tipo de sangue para Digestão Seletiva, fobia, inimigo, etc.)
 }
 
 export interface Arma {

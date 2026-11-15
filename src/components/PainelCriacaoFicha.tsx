@@ -57,6 +57,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   >('fisico');
   const [pontosCustomQD, setPontosCustomQD] = useState<number>(1);
   const [descCustomQD, setDescCustomQD] = useState('');
+  const [obsCustomQD, setObsCustomQD] = useState('');
   const [avisoDefeitos, setAvisoDefeitos] = useState<string | null>(null);
 
   const criacao = ficha.criacao || {
@@ -298,6 +299,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
       categoria: catCustomQD,
       custo: custoFinal,
       descricao: descCustomQD.trim() || undefined,
+      observacao: obsCustomQD.trim() || undefined,
     };
 
     const novaLista = [...listaQD, novo];
@@ -311,6 +313,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
 
     setNomeCustomQD('');
     setDescCustomQD('');
+    setObsCustomQD('');
     setPontosCustomQD(1);
   };
 
@@ -920,6 +923,23 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                     Adicionar
                   </button>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Descrição ou regra (opcional)..."
+                  value={descCustomQD}
+                  onChange={(e) => setDescCustomQD(e.target.value)}
+                  className="bg-[#1b1216] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Observação (ex: tipo de sangue, fobia, restrição)..."
+                  value={obsCustomQD}
+                  onChange={(e) => setObsCustomQD(e.target.value)}
+                  className="bg-[#1b1216] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                />
               </div>
             </form>
 

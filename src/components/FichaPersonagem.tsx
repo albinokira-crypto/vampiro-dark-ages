@@ -812,6 +812,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }));
   };
 
+  // Atualização direta da observação/especificação de uma qualidade ou defeito
+  const handleAtualizarObservacaoQD = (id: string, observacao: string) => {
+    if (!podeEditar) return;
+    updateFicha((prev) => ({
+      ...prev,
+      qualidadesDefeitos: (prev.qualidadesDefeitos || []).map((item) =>
+        item.id === id ? { ...item, observacao } : item
+      ),
+    }));
+  };
+
   // Estados e handlers para o Catálogo Oficial de Qualidades e Defeitos (1ª Edição)
   const [modalCatalogoQDAberto, setModalCatalogoQDAberto] = useState(false);
   const [filtroTipoQD, setFiltroTipoQD] = useState<'todos' | 'qualidade' | 'defeito'>('todos');
@@ -868,6 +879,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [catCustomQD, setCatCustomQD] = useState<'fisico' | 'mental' | 'social' | 'sobrenatural'>('fisico');
   const [pontosCustomQD, setPontosCustomQD] = useState<number>(1);
   const [descCustomQD, setDescCustomQD] = useState('');
+  const [obsCustomQD, setObsCustomQD] = useState('');
 
   // Estado e handlers para edição de Qualidades/Defeitos (Exclusivo Mestre)
   const [itemEditandoQD, setItemEditandoQD] = useState<QualidadeDefeitoItem | null>(null);
@@ -877,12 +889,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     custo: number;
     categoria: 'fisico' | 'mental' | 'social' | 'sobrenatural';
     descricao: string;
+    observacao: string;
   }>({
     nome: '',
     tipo: 'qualidade',
     custo: 1,
     categoria: 'fisico',
     descricao: '',
+    observacao: '',
   });
 
   const handleAbrirEdicaoQD = (item: QualidadeDefeitoItem) => {
@@ -893,6 +907,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       custo: item.custo,
       categoria: item.categoria,
       descricao: item.descricao || '',
+      observacao: item.observacao || '',
     });
   };
 
@@ -909,6 +924,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           custo: Math.max(1, formEditQD.custo),
           categoria: formEditQD.categoria,
           descricao: formEditQD.descricao.trim() || undefined,
+          observacao: formEditQD.observacao.trim() || undefined,
         };
       }
       return q;
@@ -936,6 +952,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       categoria: catCustomQD,
       custo: custoFinal,
       descricao: descCustomQD.trim() || undefined,
+      observacao: obsCustomQD.trim() || undefined,
     };
     const novaLista = [...(ficha.qualidadesDefeitos || []), novo];
     const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
@@ -946,6 +963,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }));
     setNomeCustomQD('');
     setDescCustomQD('');
+    setObsCustomQD('');
     setPontosCustomQD(1);
     setMostrarFormCustomQD(false);
   };
@@ -2327,19 +2345,28 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         />
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input
                         type="text"
                         placeholder="Descrição ou efeito mecânico (opcional)..."
                         value={descCustomQD}
                         onChange={(e) => setDescCustomQD(e.target.value)}
-                        className="flex-1 bg-[#1b1216] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                        className="bg-[#1b1216] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
                       />
+                      <input
+                        type="text"
+                        placeholder="Observação (ex: tipo de sangue, fobia, inimigo)..."
+                        value={obsCustomQD}
+                        onChange={(e) => setObsCustomQD(e.target.value)}
+                        className="bg-[#1b1216] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex justify-end">
                       <button
                         type="submit"
-                        className="px-3 py-1 bg-[#3d1a21] hover:bg-[#5a252d] text-[#d4af37] border border-[#722f37] rounded-xs cursor-pointer font-bold transition-colors shrink-0"
+                        className="px-3.5 py-1 bg-[#3d1a21] hover:bg-[#5a252d] text-[#d4af37] border border-[#722f37] rounded-xs cursor-pointer font-bold transition-colors"
                       >
-                        Adicionar
+                        Adicionar Traço
                       </button>
                     </div>
                   </form>
@@ -2375,6 +2402,24 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               {q.descricao && (
                                 <p className="text-[11px] text-[#a89f91]">{q.descricao}</p>
                               )}
+                              {/* Campo de observação / especificação */}
+                              {podeEditar ? (
+                                <div className="pt-1.5 flex items-center gap-1.5">
+                                  <span className="text-[10px] font-semibold text-[#d4af37] shrink-0">Obs:</span>
+                                  <input
+                                    type="text"
+                                    value={q.observacao || ''}
+                                    onChange={(e) => handleAtualizarObservacaoQD(q.id, e.target.value)}
+                                    placeholder="Especificar detalhes (ex: tipo de sangue, especialidade)..."
+                                    className="flex-1 bg-[#120a0d] border-b border-[#3b181b] focus:border-[#d4af37] px-1.5 py-0.5 text-[11px] text-[#ded6cb] placeholder:text-[#5c524a] focus:outline-none transition-colors"
+                                  />
+                                </div>
+                              ) : q.observacao ? (
+                                <p className="text-[11px] text-[#ded6cb] pt-1">
+                                  <span className="text-[10px] font-semibold text-[#d4af37]">Obs: </span>
+                                  {q.observacao}
+                                </p>
+                              ) : null}
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               {usuarioAtual.role === 'mestre' && (
@@ -2433,6 +2478,24 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               {d.descricao && (
                                 <p className="text-[11px] text-[#a89f91]">{d.descricao}</p>
                               )}
+                              {/* Campo de observação / especificação */}
+                              {podeEditar ? (
+                                <div className="pt-1.5 flex items-center gap-1.5">
+                                  <span className="text-[10px] font-semibold text-green-400 shrink-0">Obs:</span>
+                                  <input
+                                    type="text"
+                                    value={d.observacao || ''}
+                                    onChange={(e) => handleAtualizarObservacaoQD(d.id, e.target.value)}
+                                    placeholder="Especificar detalhes (ex: sangue de virgens, fobia a fogo, inimigo mortal)..."
+                                    className="flex-1 bg-[#120a0d] border-b border-[#3b181b] focus:border-green-500 px-1.5 py-0.5 text-[11px] text-[#ded6cb] placeholder:text-[#5c524a] focus:outline-none transition-colors"
+                                  />
+                                </div>
+                              ) : d.observacao ? (
+                                <p className="text-[11px] text-[#ded6cb] pt-1">
+                                  <span className="text-[10px] font-semibold text-green-400">Obs: </span>
+                                  {d.observacao}
+                                </p>
+                              ) : null}
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               {usuarioAtual.role === 'mestre' && (
@@ -3875,6 +3938,21 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   }
                   placeholder="Descrição opcional do efeito do traço..."
                   className="w-full bg-[#181115] border border-[#4a2228] focus:border-[#d4af37] text-xs text-[#ded6cb] p-2 rounded-xs focus:outline-hidden resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-gothic font-bold uppercase tracking-wider text-[#a89f91] block mb-1">
+                  Observação / Especificação Personalizada
+                </label>
+                <input
+                  type="text"
+                  value={formEditQD.observacao}
+                  onChange={(e) =>
+                    setFormEditQD((prev) => ({ ...prev, observacao: e.target.value }))
+                  }
+                  placeholder="Ex: tipo de sangue específico, fobia, nome do inimigo..."
+                  className="w-full bg-[#181115] border border-[#4a2228] focus:border-[#d4af37] text-xs text-[#ded6cb] px-2.5 py-1.5 rounded-xs focus:outline-hidden"
                 />
               </div>
 
