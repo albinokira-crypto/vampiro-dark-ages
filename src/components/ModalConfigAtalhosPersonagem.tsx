@@ -7,15 +7,6 @@ import {
   X,
   RotateCcw,
   Check,
-  Swords,
-  Flame,
-  Zap,
-  Shield,
-  Footprints,
-  Eye,
-  Sparkles,
-  Skull,
-  Dices,
 } from 'lucide-react';
 import {
   MAPA_TRACOS,

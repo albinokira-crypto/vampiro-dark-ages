@@ -47,7 +47,6 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
-import type { AtalhoParadaDado } from '../types';
 
 interface FichaPersonagemProps {
   personagem: Personagem;
