@@ -1370,8 +1370,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   {ficha.nome || 'Sem Nome'}
                 </h1>
                 {ficha.tipo === 'npc' && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950/60 text-amber-300 border border-amber-800">
-                    NPC
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-[#3f1620] text-[#d4af37] border border-[#722f37]">
+                    NPC • Modo Livre
                   </span>
                 )}
               </div>

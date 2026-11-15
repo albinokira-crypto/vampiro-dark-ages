@@ -353,7 +353,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const vit = getStatusVitalidade(p);
                 const sangueDisp = p.pontosDeSangueAtual;
                 const sangueMax = p.pontosDeSangueMax;
-                const isEmCriacao = p.criacao?.status === 'em_criacao';
+                const isEmCriacao = p.tipo !== 'npc' && p.criacao?.status === 'em_criacao';
                 const atalhos =
                   p.atalhosCard && p.atalhosCard.length > 0
                     ? p.atalhosCard
@@ -389,7 +389,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <h3 className="text-base sm:text-lg font-gothic font-bold text-[#d4af37] group-hover:text-white transition-colors truncate">
                               {p.nome || 'Sem Nome'}
                             </h3>
-                            {isEmCriacao ? (
+                            {p.tipo === 'npc' ? (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#3f1620] text-[#d4af37] border border-[#722f37] shrink-0">
+                                NPC • Modo Livre
+                              </span>
+                            ) : isEmCriacao ? (
                               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-950/80 text-amber-300 border border-amber-600 shrink-0">
                                 Em Criação
                               </span>

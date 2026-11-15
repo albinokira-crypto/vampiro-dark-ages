@@ -369,6 +369,16 @@ export function normalizarPersonagem(p: Personagem): Personagem {
   // Sincronizar Vitalidade com a qualidade 'Corpo Grande'
   copia.vitalidade = ajustarVitalidadeCorpoGrande(copia.vitalidade, copia.qualidadesDefeitos);
 
+  // NPCs ficam sempre em modo livre de edição e nunca possuem status 'em_criacao'
+  if (copia.tipo === 'npc') {
+    copia.criacao = {
+      status: 'finalizada',
+      etapa: 'concluida',
+      disciplinasPrimariasIds: copia.criacao?.disciplinasPrimariasIds || [],
+      pontosBonusGastos: 0,
+    };
+  }
+
   // Normalização retroativa de Objetivo Condutor para o valor canônico da 1ª Edição (2 pontos)
   if (copia.qualidadesDefeitos && Array.isArray(copia.qualidadesDefeitos)) {
     copia.qualidadesDefeitos = copia.qualidadesDefeitos.map((qd) => {
