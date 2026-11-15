@@ -47,7 +47,9 @@ import {
   ChevronDown,
   SlidersHorizontal,
   Pencil,
+  Search,
 } from 'lucide-react';
+import { QUALIDADES_DEFEITOS_1E, type ModeloQualidadeDefeito } from '../data/qualidadesDefeitos1E';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 
 interface FichaPersonagemProps {
@@ -753,8 +755,57 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const maxDefeitosConfig = configMesa.maxPontosDefeitos ?? 7;
 
   const handleRemoverQualidadeDefeito = (id: string) => {
-    if (!isEmCriacao && usuarioAtual.role !== 'mestre' && !podeEditar) return;
+    if (!isNpc && !isEmCriacao && usuarioAtual.role !== 'mestre' && !podeEditar) return;
     const novaLista = (ficha.qualidadesDefeitos || []).filter((q) => q.id !== id);
+    const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
+    updateFicha((prev) => ({
+      ...prev,
+      qualidadesDefeitos: novaLista,
+      vitalidade: novaVitalidade,
+    }));
+  };
+
+  // Estados e handlers para o Catálogo Oficial de Qualidades e Defeitos (1ª Edição)
+  const [modalCatalogoQDAberto, setModalCatalogoQDAberto] = useState(false);
+  const [filtroTipoQD, setFiltroTipoQD] = useState<'todos' | 'qualidade' | 'defeito'>('todos');
+  const [filtroCatQD, setFiltroCatQD] = useState<'todas' | 'fisico' | 'mental' | 'social' | 'sobrenatural'>('todas');
+  const [buscaQD, setBuscaQD] = useState('');
+
+  const listaFiltradaQD = QUALIDADES_DEFEITOS_1E.filter((item) => {
+    const bateTipo = filtroTipoQD === 'todos' || item.tipo === filtroTipoQD;
+    const bateCat = filtroCatQD === 'todas' || item.categoria === filtroCatQD;
+    const termo = buscaQD.toLowerCase().trim();
+    const bateBusca =
+      !termo ||
+      item.nome.toLowerCase().includes(termo) ||
+      item.descricao.toLowerCase().includes(termo);
+
+    return bateTipo && bateCat && bateBusca;
+  });
+
+  const handleToggleQualidadeDefeito = (item: ModeloQualidadeDefeito) => {
+    if (!podeEditar) return;
+    const jaExiste = (ficha.qualidadesDefeitos || []).some(
+      (q) => q.nome.toLowerCase().trim() === item.nome.toLowerCase().trim()
+    );
+
+    let novaLista: QualidadeDefeitoItem[];
+    if (jaExiste) {
+      novaLista = (ficha.qualidadesDefeitos || []).filter(
+        (q) => q.nome.toLowerCase().trim() !== item.nome.toLowerCase().trim()
+      );
+    } else {
+      const novo: QualidadeDefeitoItem = {
+        id: 'qd_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+        nome: item.nome,
+        tipo: item.tipo,
+        categoria: item.categoria,
+        custo: item.pontos,
+        descricao: item.descricao,
+      };
+      novaLista = [...(ficha.qualidadesDefeitos || []), novo];
+    }
+
     const novaVitalidade = ajustarVitalidadeCorpoGrande(ficha.vitalidade, novaLista);
     updateFicha((prev) => ({
       ...prev,
@@ -2146,15 +2197,26 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       Defeitos: {defeitosEscolhidos.length} (+{totalPontosDefeitos}{isNpc ? ' pts' : ` / ${maxDefeitosConfig} pts máx`})
                     </span>
                     {podeEditar && (
-                      <button
-                        type="button"
-                        onClick={() => setMostrarFormCustomQD(!mostrarFormCustomQD)}
-                        className="px-2 py-0.5 text-xs font-semibold bg-[#2d1217] text-[#d4af37] hover:bg-[#3d1a21] border border-[#5a252d] rounded-xs cursor-pointer transition-colors flex items-center gap-1"
-                        title="Adicionar qualidade ou defeito personalizado de outras edições ou livros"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        {mostrarFormCustomQD ? 'Fechar' : '+ Personalizado'}
-                      </button>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setModalCatalogoQDAberto(true)}
+                          className="px-2.5 py-1 text-xs font-gothic font-bold uppercase tracking-wider bg-[#8b0000] hover:bg-[#a30d12] text-white border border-[#ef4444]/60 rounded-xs cursor-pointer transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)] flex items-center gap-1.5"
+                          title="Abrir catálogo oficial de Qualidades e Defeitos do livro básico"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-[#d4af37]" />
+                          <span>+ Catálogo Oficial</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMostrarFormCustomQD(!mostrarFormCustomQD)}
+                          className="px-2 py-1 text-xs font-semibold bg-[#2d1217] text-[#d4af37] hover:bg-[#3d1a21] border border-[#5a252d] rounded-xs cursor-pointer transition-colors flex items-center gap-1"
+                          title="Adicionar qualidade ou defeito personalizado de outras edições ou livros"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{mostrarFormCustomQD ? 'Fechar' : '+ Personalizado'}</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -2266,7 +2328,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                   <Pencil className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
+                              {(isNpc || isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
                                 <button
                                   type="button"
                                   onClick={() => handleRemoverQualidadeDefeito(q.id)}
@@ -2324,7 +2386,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                   <Pencil className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              {(isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
+                              {(isNpc || isEmCriacao || usuarioAtual.role === 'mestre') && podeEditar && (
                                 <button
                                   type="button"
                                   onClick={() => handleRemoverQualidadeDefeito(d.id)}
@@ -3723,6 +3785,204 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL DE CATÁLOGO OFICIAL DE QUALIDADES E DEFEITOS (1ª EDIÇÃO 1996) */}
+      {modalCatalogoQDAberto && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="w-full max-w-3xl bg-[#120a0e] border border-[#8b0000] rounded-sm shadow-2xl p-4 sm:p-6 space-y-4 text-[#ded6cb] flex flex-col max-h-[90vh]">
+            {/* Cabeçalho */}
+            <div className="flex items-center justify-between border-b border-[#3b181b] pb-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-[#ef4444]" />
+                <div>
+                  <h3 className="text-base font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
+                    Catálogo Oficial de Qualidades & Defeitos
+                  </h3>
+                  <p className="text-[11px] text-[#a89f91]">
+                    {isNpc
+                      ? 'Adição livre para NPCs (sem limites de pontos bônus ou defeitos).'
+                      : 'Vampiro: A Idade das Trevas (1ª Edição 1996 / Devir 1998).'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalCatalogoQDAberto(false)}
+                className="text-[#8e8273] hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Barra de Filtros e Busca */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-[#160e12] p-2.5 rounded-xs border border-[#2d1217]">
+              {/* Filtro por Tipo */}
+              <div className="flex rounded-xs bg-[#120c10] border border-[#3b181b] p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFiltroTipoQD('todos')}
+                  className={`flex-1 py-1 rounded-xs font-semibold cursor-pointer transition-colors ${
+                    filtroTipoQD === 'todos'
+                      ? 'bg-[#8b0000] text-white shadow-xs'
+                      : 'text-[#a89f91] hover:text-white'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFiltroTipoQD('qualidade')}
+                  className={`flex-1 py-1 rounded-xs font-semibold cursor-pointer transition-colors ${
+                    filtroTipoQD === 'qualidade'
+                      ? 'bg-amber-900 text-amber-200'
+                      : 'text-[#a89f91] hover:text-white'
+                  }`}
+                >
+                  Qualidades
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFiltroTipoQD('defeito')}
+                  className={`flex-1 py-1 rounded-xs font-semibold cursor-pointer transition-colors ${
+                    filtroTipoQD === 'defeito'
+                      ? 'bg-green-900 text-green-200'
+                      : 'text-[#a89f91] hover:text-white'
+                  }`}
+                >
+                  Defeitos
+                </button>
+              </div>
+
+              {/* Filtro por Categoria */}
+              <select
+                value={filtroCatQD}
+                onChange={(e) =>
+                  setFiltroCatQD(
+                    e.target.value as 'todas' | 'fisico' | 'mental' | 'social' | 'sobrenatural'
+                  )
+                }
+                className="bg-[#120c10] border border-[#3b181b] px-2.5 py-1 text-xs text-[#ded6cb] rounded-xs focus:outline-none focus:border-[#ef4444] cursor-pointer"
+              >
+                <option value="todas">Todas as Categorias</option>
+                <option value="fisico">Físicos</option>
+                <option value="mental">Mentais</option>
+                <option value="social">Sociais</option>
+                <option value="sobrenatural">Sobrenaturais</option>
+              </select>
+
+              {/* Busca por Nome */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-[#8e8273] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar qualidade ou defeito..."
+                  value={buscaQD}
+                  onChange={(e) => setBuscaQD(e.target.value)}
+                  className="w-full bg-[#120c10] border border-[#3b181b] pl-8 pr-2.5 py-1 text-xs text-[#ded6cb] placeholder:text-[#6e645c] rounded-xs focus:outline-none focus:border-[#ef4444]"
+                />
+              </div>
+            </div>
+
+            {/* Listagem de Itens (Scrollável) */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[260px]">
+              {listaFiltradaQD.length === 0 ? (
+                <div className="p-8 text-center text-xs text-[#8e8273] italic">
+                  Nenhuma qualidade ou defeito encontrado com os filtros aplicados.
+                </div>
+              ) : (
+                listaFiltradaQD.map((item) => {
+                  const jaSelecionado = (ficha.qualidadesDefeitos || []).some(
+                    (q) => q.nome.toLowerCase() === item.nome.toLowerCase()
+                  );
+                  const bloqueadoDefeito =
+                    !isNpc &&
+                    !jaSelecionado &&
+                    item.tipo === 'defeito' &&
+                    totalPontosDefeitos + item.pontos > maxDefeitosConfig;
+
+                  return (
+                    <div
+                      key={item.nome}
+                      className={`p-2.5 rounded-xs border text-xs transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                        jaSelecionado
+                          ? 'bg-[#2b1016] border-[#ef4444]'
+                          : bloqueadoDefeito
+                          ? 'bg-[#120c10] border-[#251016] opacity-60'
+                          : 'bg-[#140e11] border-[#2d1217] hover:border-[#522228]'
+                      }`}
+                    >
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-[#ded6cb] text-sm">
+                            {item.nome}
+                          </span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold uppercase ${
+                              item.tipo === 'qualidade'
+                                ? 'bg-amber-950/80 text-amber-300 border border-amber-700'
+                                : 'bg-green-950/80 text-green-300 border border-green-700'
+                            }`}
+                          >
+                            {item.tipo === 'qualidade'
+                              ? `Qualidade (-${item.pontos} pt${item.pontos > 1 ? 's' : ''})`
+                              : `Defeito (+${item.pontos} pt${item.pontos > 1 ? 's' : ''})`}
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded text-[9px] uppercase font-semibold bg-[#1f1519] text-[#8e8273] border border-[#3b181b]">
+                            {item.categoria}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#a89f91] leading-relaxed">
+                          {item.descricao}
+                        </p>
+                        {bloqueadoDefeito && (
+                          <p className="text-[10px] text-red-400 font-semibold">
+                            Ultrapassa o limite de {maxDefeitosConfig} pts de defeitos ({totalPontosDefeitos} + {item.pontos} = {totalPontosDefeitos + item.pontos} pts).
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={bloqueadoDefeito}
+                        onClick={() => handleToggleQualidadeDefeito(item)}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-xs transition-colors shrink-0 cursor-pointer ${
+                          jaSelecionado
+                            ? 'bg-[#8b0000] text-white hover:bg-[#a30d12]'
+                            : bloqueadoDefeito
+                            ? 'bg-[#1b1216] text-[#706456] border border-[#3b181b] cursor-not-allowed opacity-50'
+                            : 'bg-[#221217] hover:bg-[#341822] text-[#d4af37] border border-[#522228]'
+                        }`}
+                        title={
+                          bloqueadoDefeito
+                            ? `Limite máximo de ${maxDefeitosConfig} pontos de defeitos atingido`
+                            : jaSelecionado
+                            ? 'Remover da ficha'
+                            : 'Adicionar à ficha'
+                        }
+                      >
+                        {jaSelecionado ? '✓ Removível' : bloqueadoDefeito ? `Limite (${maxDefeitosConfig})` : '+ Escolher'}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="border-t border-[#3b181b] pt-3 flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs text-[#a89f91]">
+                Total na ficha: <strong className="text-[#d4af37]">{(ficha.qualidadesDefeitos || []).length} traços</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setModalCatalogoQDAberto(false)}
+                className="px-4 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md"
+              >
+                Concluir Seleção
+              </button>
+            </div>
           </div>
         </div>
       )}
