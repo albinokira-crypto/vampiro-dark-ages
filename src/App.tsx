@@ -44,6 +44,7 @@ export function App() {
 
   const handleCriarNovo = (tipo: 'jogador' | 'npc') => {
     if (!usuarioAtual) return;
+    if (tipo === 'npc' && usuarioAtual.role !== 'mestre') return;
     const novo = storageService.criarNovoPersonagem(usuarioAtual, tipo);
     setPersonagemAtivoId(novo.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });

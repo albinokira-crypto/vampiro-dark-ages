@@ -909,20 +909,24 @@ export const storageService = {
   },
 
   criarNovoPersonagem(autor: User, tipo: 'jogador' | 'npc' = 'jogador'): Personagem {
+    // Apenas o Mestre tem permissão para criar fichas do tipo NPC
+    const tipoFinal: 'jogador' | 'npc' = tipo === 'npc' && autor.role === 'mestre' ? 'npc' : 'jogador';
+
     const novo: Personagem = {
       ...PERSONAGEM_ZERADO_MODELO,
       id: 'char_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
       usuarioId: autor.id,
       usuarioNome: autor.nome,
-      jogador: autor.role === 'jogador' ? autor.nome : '',
-      tipo,
-      nome: tipo === 'npc' ? 'Novo NPC da Crônica' : 'Novo Cainita',
+      jogador: tipoFinal === 'jogador' && autor.role === 'jogador' ? autor.nome : '',
+      tipo: tipoFinal,
+      nome: tipoFinal === 'npc' ? 'Novo NPC da Crônica' : 'Novo Cainita',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       vitalidade: NIVEIS_VITALIDADE_PADRAO.map((n) => ({ ...n })),
+      // NPCs não possuem assistente travando distribuição de pontos: iniciam no modo livre completo!
       criacao: {
-        status: 'em_criacao',
-        etapa: 'prioridades',
+        status: tipoFinal === 'npc' ? 'finalizada' : 'em_criacao',
+        etapa: tipoFinal === 'npc' ? 'concluida' : 'prioridades',
         disciplinasPrimariasIds: [],
         pontosBonusGastos: 0,
       },

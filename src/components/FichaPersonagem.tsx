@@ -162,9 +162,10 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     extra?: { isPrimaria?: boolean; isClan?: boolean }
   ) => {
     const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+    const isNpc = ficha.tipo === 'npc';
 
-    // Se estiver em modo de criação ou diminuindo o valor diretamente
-    if (isEmCriacao || novoValor < valorAtual) {
+    // Se estiver em modo de criação, for NPC ou diminuindo o valor diretamente
+    if (isNpc || isEmCriacao || novoValor < valorAtual) {
       updateFicha(aplicarMudanca);
       return;
     }
@@ -466,8 +467,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   // Alteração de geração sincronizada com o Antecedente Geração
   const handleGeracaoChange = (novaGeracaoStr: string) => {
     let pontos = 0;
-    for (let p = 0; p <= 5; p++) {
-      if (novaGeracaoStr.includes(TABELA_GERACAO_1E[p].geracaoNome)) {
+    for (let p = 0; p <= 9; p++) {
+      if (TABELA_GERACAO_1E[p] && novaGeracaoStr.includes(TABELA_GERACAO_1E[p].geracaoNome)) {
         pontos = p;
         break;
       }
@@ -534,7 +535,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     const nova: ItemSimplesNivel = {
       id: 'disc_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
       nome: nomeFinal,
-      nivel: Math.max(1, Math.min(8, discNivelInicial)),
+      nivel: Math.max(1, Math.min(isNpc ? 10 : 8, discNivelInicial)),
     };
 
     updateFicha((prev) => ({
@@ -611,7 +612,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         : antSelecionado || 'Novo Antecedente';
     if (!nomeFinal) return;
 
-    const nivelFinal = Math.max(1, Math.min(5, antNivelInicial));
+    const ehGeracao = nomeFinal.toLowerCase().includes('geração') || nomeFinal.toLowerCase().includes('geracao');
+    const maxPermitido = ehGeracao ? (isNpc ? 9 : 5) : (isNpc ? 10 : 5);
+    const nivelFinal = Math.max(1, Math.min(maxPermitido, antNivelInicial));
     const novo: ItemSimplesNivel = {
       id: 'ant_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
       nome: nomeFinal,
@@ -683,7 +686,10 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     })),
   ];
 
-  // Opções de Geração da 1ª Edição (12ª à 7ª geração)
+  const isNpc = ficha.tipo === 'npc';
+  const maxBolinhasTraço = isNpc ? 10 : 8;
+
+  // Opções de Geração da 1ª Edição (12ª à 3ª geração para NPCs / Mestre)
   const opcoesGeracao = [
     {
       valor: '12ª Geração',
@@ -709,6 +715,26 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       valor: '7ª Geração',
       label: '7ª Geração (5 pts no Antecedente • Reserva: 20 • 4 sangues/turno • Atrib máx 6)',
     },
+    ...(isNpc || usuarioAtual.role === 'mestre'
+      ? [
+          {
+            valor: '6ª Geração',
+            label: '6ª Geração (6 pts no Antecedente • Reserva: 30 • 6 sangues/turno • Traço máx 7)',
+          },
+          {
+            valor: '5ª Geração',
+            label: '5ª Geração (7 pts no Antecedente • Reserva: 40 • 8 sangues/turno • Traço máx 8)',
+          },
+          {
+            valor: '4ª Geração',
+            label: '4ª Geração (Matusalém • 8 pts no Antecedente • Reserva: 50 • 10 sangues/turno • Traço máx 9)',
+          },
+          {
+            valor: '3ª Geração',
+            label: '3ª Geração (Antediluviano • 9 pts no Antecedente • Reserva: 100 • 10 sangues/turno • Traço máx 10)',
+          },
+        ]
+      : []),
   ];
 
   const discDisponiveis = DISCIPLINAS_LIVRO_1E.filter(
@@ -717,7 +743,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
   // Configuração da Mesa e Regras de Prioridades
   const dadosCriacao = ficha.criacao;
-  const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+  const isEmCriacao = !isNpc && ficha.criacao?.status === 'em_criacao';
 
   const listaQD = ficha.qualidadesDefeitos || [];
   const qualidadesEscolhidas = listaQD.filter((q) => q.tipo === 'qualidade');
@@ -1399,8 +1425,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         </div>
       )}
 
-      {/* PAINEL DE CRIAÇÃO (Se a ficha estiver em modo de criação) */}
-      {ficha.criacao?.status === 'em_criacao' && podeEditar && (
+      {/* PAINEL DE CRIAÇÃO (Se a ficha for de jogador e estiver em modo de criação) */}
+      {isEmCriacao && podeEditar && (
         <PainelCriacaoFicha
           ficha={ficha}
           config={configMesa}
@@ -1592,13 +1618,13 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Físicos
                       </h4>
-                      {renderBadgePontos(gastosFisicos, limiteFisicos.max, limiteFisicos.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosFisicos, limiteFisicos.max, limiteFisicos.prioridade)}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Força</span>
                       <Bolinhas
                         valor={ficha.atributos.forca}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('forca', v)}
                         readonly={!podeEditar}
@@ -1608,7 +1634,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Destreza</span>
                       <Bolinhas
                         valor={ficha.atributos.destreza}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('destreza', v)}
                         readonly={!podeEditar}
@@ -1618,7 +1644,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Vigor</span>
                       <Bolinhas
                         valor={ficha.atributos.vigor}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('vigor', v)}
                         readonly={!podeEditar}
@@ -1632,13 +1658,13 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Sociais
                       </h4>
-                      {renderBadgePontos(gastosSociais, limiteSociais.max, limiteSociais.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosSociais, limiteSociais.max, limiteSociais.prioridade)}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Carisma</span>
                       <Bolinhas
                         valor={ficha.atributos.carisma}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('carisma', v)}
                         readonly={!podeEditar}
@@ -1648,7 +1674,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Manipulação</span>
                       <Bolinhas
                         valor={ficha.atributos.manipulacao}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('manipulacao', v)}
                         readonly={!podeEditar}
@@ -1658,7 +1684,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Aparência</span>
                       <Bolinhas
                         valor={ficha.atributos.aparencia}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={0}
                         onChange={(v) => handleAtributoChange('aparencia', v)}
                         readonly={!podeEditar}
@@ -1672,13 +1698,13 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Mentais
                       </h4>
-                      {renderBadgePontos(gastosMentais, limiteMentais.max, limiteMentais.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosMentais, limiteMentais.max, limiteMentais.prioridade)}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Percepção</span>
                       <Bolinhas
                         valor={ficha.atributos.percepcao}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('percepcao', v)}
                         readonly={!podeEditar}
@@ -1688,7 +1714,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Inteligência</span>
                       <Bolinhas
                         valor={ficha.atributos.inteligencia}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('inteligencia', v)}
                         readonly={!podeEditar}
@@ -1698,7 +1724,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Raciocínio</span>
                       <Bolinhas
                         valor={ficha.atributos.raciocinio}
-                        max={8}
+                        max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('raciocinio', v)}
                         readonly={!podeEditar}
@@ -1712,15 +1738,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               <div>
                 <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4 flex-wrap gap-2">
                   <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
-                    Habilidades (Escala 0 a 8)
+                    Habilidades (Escala 0 a {maxBolinhasTraço})
                   </h3>
-                  <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
-                    <span className="text-[#a89f91]">Talentos: <strong className="text-[#ded6cb]">{gastosTalentos}/{limiteTalentos.max}</strong></span>
-                    <span className="text-[#3b181b]">•</span>
-                    <span className="text-[#a89f91]">Perícias: <strong className="text-[#ded6cb]">{gastosPericias}/{limitePericias.max}</strong></span>
-                    <span className="text-[#3b181b]">•</span>
-                    <span className="text-[#a89f91]">Conhecimentos: <strong className="text-[#ded6cb]">{gastosConhecimentos}/{limiteConhecimentos.max}</strong></span>
-                  </div>
+                  {!isNpc && (
+                    <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
+                      <span className="text-[#a89f91]">Talentos: <strong className="text-[#ded6cb]">{gastosTalentos}/{limiteTalentos.max}</strong></span>
+                      <span className="text-[#3b181b]">•</span>
+                      <span className="text-[#a89f91]">Perícias: <strong className="text-[#ded6cb]">{gastosPericias}/{limitePericias.max}</strong></span>
+                      <span className="text-[#3b181b]">•</span>
+                      <span className="text-[#a89f91]">Conhecimentos: <strong className="text-[#ded6cb]">{gastosConhecimentos}/{limiteConhecimentos.max}</strong></span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1730,7 +1758,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Talentos
                       </h4>
-                      {renderBadgePontos(gastosTalentos, limiteTalentos.max, limiteTalentos.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosTalentos, limiteTalentos.max, limiteTalentos.prioridade)}
                     </div>
                     {(
                       [
@@ -1750,7 +1778,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
                           valor={ficha.habilidades[chave] ?? 0}
-                          max={8}
+                          max={maxBolinhasTraço}
                           min={0}
                           tamanho="sm"
                           onChange={(v) => handleHabilidadeChange(chave, v)}
@@ -1766,7 +1794,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Perícias
                       </h4>
-                      {renderBadgePontos(gastosPericias, limitePericias.max, limitePericias.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosPericias, limitePericias.max, limitePericias.prioridade)}
                     </div>
                     {(
                       [
@@ -1786,7 +1814,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
                           valor={ficha.habilidades[chave] ?? 0}
-                          max={8}
+                          max={maxBolinhasTraço}
                           min={0}
                           tamanho="sm"
                           onChange={(v) => handleHabilidadeChange(chave, v)}
@@ -1802,7 +1830,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Conhecimentos
                       </h4>
-                      {renderBadgePontos(gastosConhecimentos, limiteConhecimentos.max, limiteConhecimentos.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosConhecimentos, limiteConhecimentos.max, limiteConhecimentos.prioridade)}
                     </div>
                     {(
                       [
@@ -1822,7 +1850,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
                           valor={ficha.habilidades[chave] ?? 0}
-                          max={8}
+                          max={maxBolinhasTraço}
                           min={0}
                           tamanho="sm"
                           onChange={(v) => handleHabilidadeChange(chave, v)}
@@ -1840,13 +1868,15 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
                     Vantagens
                   </h3>
-                  <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
-                    <span className="text-[#a89f91]">Disciplinas: <strong className="text-[#ded6cb]">{gastosDisciplinas}/{maxDisciplinas}</strong></span>
-                    <span className="text-[#3b181b]">•</span>
-                    <span className="text-[#a89f91]">Antecedentes: <strong className="text-[#ded6cb]">{gastosAntecedentes}/{maxAntecedentes}</strong></span>
-                    <span className="text-[#3b181b]">•</span>
-                    <span className="text-[#a89f91]">Virtudes: <strong className="text-[#ded6cb]">{gastosVirtudes}/{maxVirtudes}</strong></span>
-                  </div>
+                  {!isNpc && (
+                    <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
+                      <span className="text-[#a89f91]">Disciplinas: <strong className="text-[#ded6cb]">{gastosDisciplinas}/{maxDisciplinas}</strong></span>
+                      <span className="text-[#3b181b]">•</span>
+                      <span className="text-[#a89f91]">Antecedentes: <strong className="text-[#ded6cb]">{gastosAntecedentes}/{maxAntecedentes}</strong></span>
+                      <span className="text-[#3b181b]">•</span>
+                      <span className="text-[#a89f91]">Virtudes: <strong className="text-[#ded6cb]">{gastosVirtudes}/{maxVirtudes}</strong></span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1910,7 +1940,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <Bolinhas
                                   valor={disc.nivel}
-                                  max={8}
+                                  max={maxBolinhasTraço}
                                   min={0}
                                   tamanho="sm"
                                   onChange={(v) => handleEditarDisciplina(disc.id, 'nivel', v)}
@@ -1941,7 +1971,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                           Antecedentes
                         </h4>
-                        {renderBadgePontos(gastosAntecedentes, maxAntecedentes, 'Inicial')}
+                        {!isNpc && renderBadgePontos(gastosAntecedentes, maxAntecedentes, 'Inicial')}
                       </div>
                       {podeEditar && (
                         <button
@@ -1982,7 +2012,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <Bolinhas
                                   valor={ant.nivel}
-                                  max={ehGeracao ? 5 : 8}
+                                  max={ehGeracao ? (isNpc ? 9 : 5) : maxBolinhasTraço}
                                   min={1}
                                   tamanho="sm"
                                   onChange={(v) => handleEditarAntecedente(ant.id, 'nivel', v)}
@@ -2012,7 +2042,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Virtudes
                       </h4>
-                      {renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial')}
+                      {!isNpc && renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial')}
                     </div>
 
                     {/* Consciência ou Convicção */}
@@ -2108,12 +2138,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     </span>
                     <span
                       className={`px-2 py-0.5 rounded border ${
-                        totalPontosDefeitos > maxDefeitosConfig
+                        !isNpc && totalPontosDefeitos > maxDefeitosConfig
                           ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
                           : 'bg-green-950/40 text-green-300 border-green-800'
                       }`}
                     >
-                      Defeitos: {defeitosEscolhidos.length} (+{totalPontosDefeitos} / {maxDefeitosConfig} pts máx)
+                      Defeitos: {defeitosEscolhidos.length} (+{totalPontosDefeitos}{isNpc ? ' pts' : ` / ${maxDefeitosConfig} pts máx`})
                     </span>
                     {podeEditar && (
                       <button
@@ -2419,7 +2449,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <input
                           type="number"
                           min={1}
-                          max={50}
+                          max={isNpc ? 100 : 50}
                           disabled={!podeEditar}
                           value={ficha.pontosDeSangueMax}
                           onChange={(e) => {
@@ -2917,7 +2947,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
-                      Trilhas Taumatúrgicas (1 a 8 Pontos)
+                      Trilhas Taumatúrgicas (1 a {maxBolinhasTraço} Pontos)
                     </h4>
                     {podeEditar && (
                       <button
@@ -2947,7 +2977,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           <div className="flex items-center gap-2 shrink-0">
                             <Bolinhas
                               valor={linha.nivel}
-                              max={8}
+                              max={maxBolinhasTraço}
                               min={1}
                               tamanho="sm"
                               onChange={(v) => handleEditarLinha(linha.id, 'nivel', v)}
@@ -3385,7 +3415,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 <div className="flex items-center gap-2">
                   <Bolinhas
                     valor={discNivelInicial}
-                    max={5}
+                    max={isNpc ? 10 : 5}
                     min={1}
                     onChange={(v) => setDiscNivelInicial(v)}
                   />
@@ -3490,7 +3520,15 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444]" /> Regra de Geração:
                   </p>
                   <p>
-                    A geração base é <strong>12ª Geração</strong>. Cada ponto neste antecedente reduz a geração em 1 nível (máx 5 pts = 7ª Geração) e aumenta automaticamente a Reserva de Sangue máxima (de 11 até 20).
+                    {isNpc ? (
+                      <>
+                        Para NPCs, o antecedente Geração pode ir até <strong>9 pontos (3ª Geração - Antediluviano)</strong>, liberando até 100 de Reserva de Sangue e traços até 10.
+                      </>
+                    ) : (
+                      <>
+                        A geração base é <strong>12ª Geração</strong>. Cada ponto neste antecedente reduz a geração em 1 nível (máx 5 pts = 7ª Geração) e aumenta automaticamente a Reserva de Sangue máxima (de 11 até 20).
+                      </>
+                    )}
                   </p>
                 </div>
               )}
@@ -3502,7 +3540,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 <div className="flex items-center gap-2">
                   <Bolinhas
                     valor={antNivelInicial}
-                    max={5}
+                    max={
+                      antSelecionado === 'Geração' || antCustomNome.toLowerCase().includes('geração')
+                        ? (isNpc ? 9 : 5)
+                        : (isNpc ? 10 : 5)
+                    }
                     min={1}
                     onChange={(v) => setAntNivelInicial(v)}
                   />

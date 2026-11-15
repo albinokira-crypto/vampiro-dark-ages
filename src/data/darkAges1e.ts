@@ -225,13 +225,41 @@ export const TABELA_GERACAO_1E: Record<number, InfoGeracao> = {
     pontosPorTurno: 4,
     maxAtributo: 6,
   },
+  6: {
+    pontosAntecedente: 6,
+    geracaoNome: '6ª Geração',
+    reservaSangueMax: 30,
+    pontosPorTurno: 6,
+    maxAtributo: 7,
+  },
+  7: {
+    pontosAntecedente: 7,
+    geracaoNome: '5ª Geração',
+    reservaSangueMax: 40,
+    pontosPorTurno: 8,
+    maxAtributo: 8,
+  },
+  8: {
+    pontosAntecedente: 8,
+    geracaoNome: '4ª Geração',
+    reservaSangueMax: 50,
+    pontosPorTurno: 10,
+    maxAtributo: 9,
+  },
+  9: {
+    pontosAntecedente: 9,
+    geracaoNome: '3ª Geração',
+    reservaSangueMax: 100,
+    pontosPorTurno: 10,
+    maxAtributo: 10,
+  },
 };
 
 /**
- * Calcula a geração e a reserva de sangue baseando-se no antecedente 'Geração'
+ * Calcula a geração e a reserva de sangue baseando-se no antecedente 'Geração' (até a 3ª Geração)
  */
 export function calcularGeracaoEpoolSangue(pontosAntecedenteGeracao: number = 0): InfoGeracao {
-  const pontosClamped = Math.max(0, Math.min(5, Math.floor(pontosAntecedenteGeracao)));
+  const pontosClamped = Math.max(0, Math.min(9, Math.floor(pontosAntecedenteGeracao)));
   return TABELA_GERACAO_1E[pontosClamped] || TABELA_GERACAO_1E[0];
 }
 
