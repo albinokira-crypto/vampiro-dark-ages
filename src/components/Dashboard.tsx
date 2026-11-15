@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Personagem, User, ConfiguracaoMesa } from '../types';
+import type { Personagem, User, ConfiguracaoMesa, AtalhoParadaDado } from '../types';
 import { storageService } from '../services/storage';
 import {
   Skull,
@@ -14,10 +14,12 @@ import {
   Zap,
   Radio,
   Users,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { FotoPersonagem } from './FotoPersonagem';
 import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
 import { PainelJogadoresMestre } from './PainelJogadoresMestre';
+import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import {
   calcularValorAtalho,
   ATALHOS_CARD_PADRAO,
@@ -49,6 +51,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [config, setConfig] = useState<ConfiguracaoMesa>(() =>
     storageService.getConfiguracaoMesa()
   );
+  const [personagemConfigurandoAtalhos, setPersonagemConfigurandoAtalhos] = useState<Personagem | null>(null);
+
+  const handleSalvarAtalhosPersonagem = async (novosAtalhos: AtalhoParadaDado[] | undefined) => {
+    if (!personagemConfigurandoAtalhos) return;
+    const atualizado: Personagem = {
+      ...personagemConfigurandoAtalhos,
+      atalhosCard: novosAtalhos,
+    };
+    await storageService.salvarPersonagem(atualizado);
+    setPersonagens((prev) =>
+      prev.map((item) => (item.id === atualizado.id ? atualizado : item))
+    );
+    setPersonagemConfigurandoAtalhos(null);
+  };
 
   const sincronizar = async () => {
     setSincronizando(true);
@@ -339,7 +355,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const sangueMax = p.pontosDeSangueMax;
                 const isEmCriacao = p.criacao?.status === 'em_criacao';
                 const atalhos =
-                  config.atalhosCard && config.atalhosCard.length > 0
+                  p.atalhosCard && p.atalhosCard.length > 0
+                    ? p.atalhosCard
+                    : config.atalhosCard && config.atalhosCard.length > 0
                     ? config.atalhosCard
                     : ATALHOS_CARD_PADRAO;
                 const forcaVontadeAtual =
@@ -425,9 +443,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                       {/* Resumo Numérico das Características Mais Usadas em Testes */}
                       <div className="space-y-1.5 pt-1">
-                        <span className="text-[9px] font-gothic uppercase tracking-wider text-[#706456] block">
-                          Paradas de Dados para Testes Frequentes
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-gothic uppercase tracking-wider text-[#706456] block">
+                            Paradas de Dados {p.atalhosCard && p.atalhosCard.length > 0 ? '(Personalizadas)' : ''}
+                          </span>
+                          {(usuarioAtual.role === 'mestre' || p.usuarioId === usuarioAtual.id) && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPersonagemConfigurandoAtalhos(p);
+                              }}
+                              title="Configurar os atalhos exibidos neste card"
+                              className="text-[10px] text-[#a89f91] hover:text-[#d4af37] flex items-center gap-1 cursor-pointer transition-colors px-1.5 py-0.5 rounded bg-[#181115] hover:bg-[#251419] border border-[#3b181b]"
+                            >
+                              <SlidersHorizontal className="w-2.5 h-2.5 text-[#d4af37]" />
+                              <span>Configurar</span>
+                            </button>
+                          )}
+                        </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
                           {atalhos.map((atalho) => {
                             const valor = calcularValorAtalho(p, atalho);
@@ -514,6 +548,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Modal de Configuração de Atalhos do Personagem */}
+      {personagemConfigurandoAtalhos && (
+        <ModalConfigAtalhosPersonagem
+          personagem={personagemConfigurandoAtalhos}
+          configMesa={config}
+          onSalvar={handleSalvarAtalhosPersonagem}
+          onFechar={() => setPersonagemConfigurandoAtalhos(null)}
+        />
       )}
     </div>
   );

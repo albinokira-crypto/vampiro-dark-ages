@@ -44,7 +44,10 @@ import {
   RotateCcw,
   X,
   ChevronDown,
+  SlidersHorizontal,
 } from 'lucide-react';
+import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
+import type { AtalhoParadaDado } from '../types';
 
 interface FichaPersonagemProps {
   personagem: Personagem;
@@ -93,6 +96,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [antSelecionado, setAntSelecionado] = useState<string>('Aliados');
   const [antCustomNome, setAntCustomNome] = useState<string>('');
   const [antNivelInicial, setAntNivelInicial] = useState<number>(1);
+
+  // Modal de Configuração de Atalhos do Card
+  const [modalAtalhosAberto, setModalAtalhosAberto] = useState(false);
 
   // Cálculo de Custo Exato em XP
   const calcularCustoXP = (
@@ -1244,6 +1250,19 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               <span>3. Magia & Biografia</span>
             </button>
           </div>
+
+          {/* Botão de Atalhos do Card Resumido */}
+          {podeEditar && (
+            <button
+              type="button"
+              onClick={() => setModalAtalhosAberto(true)}
+              title="Configurar os atalhos exibidos no card resumido do Dashboard"
+              className="px-2.5 py-1.5 rounded-xs text-xs font-semibold text-[#d4af37] hover:text-white bg-[#1a1014] hover:bg-[#8b0000] border border-[#522228] hover:border-[#8b0000] flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Atalhos do Card</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -3319,6 +3338,25 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Modal de Configuração de Atalhos do Card Resumido */}
+      {modalAtalhosAberto && (
+        <ModalConfigAtalhosPersonagem
+          personagem={ficha}
+          configMesa={configMesa}
+          onSalvar={(novosAtalhos) => {
+            updateFicha((prev) => ({
+              ...prev,
+              atalhosCard: novosAtalhos,
+            }));
+            onSalvar({
+              ...ficha,
+              atalhosCard: novosAtalhos,
+            });
+            setModalAtalhosAberto(false);
+          }}
+          onFechar={() => setModalAtalhosAberto(false)}
+        />
       )}
     </div>
   );

@@ -241,6 +241,9 @@ export interface Personagem {
   // Vitalidade
   vitalidade: NivelVitalidade[];
 
+  // Atalhos Personalizados para o Card Resumido (se não definido, usa o da mesa)
+  atalhosCard?: AtalhoParadaDado[];
+
   // SEÇÃO 2: EXPERIÊNCIA, COMBATE E LAÇOS
   xp: {
     atual: number;
