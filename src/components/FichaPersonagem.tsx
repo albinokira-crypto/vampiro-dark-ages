@@ -1637,7 +1637,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <div key={chave} className="flex items-center justify-between text-xs py-0.5">
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
-                          valor={ficha.habilidades[chave]}
+                          valor={ficha.habilidades[chave] ?? 0}
                           max={8}
                           min={0}
                           tamanho="sm"
@@ -1673,7 +1673,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <div key={chave} className="flex items-center justify-between text-xs py-0.5">
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
-                          valor={ficha.habilidades[chave]}
+                          valor={ficha.habilidades[chave] ?? 0}
                           max={8}
                           min={0}
                           tamanho="sm"
@@ -1709,7 +1709,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <div key={chave} className="flex items-center justify-between text-xs py-0.5">
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
-                          valor={ficha.habilidades[chave]}
+                          valor={ficha.habilidades[chave] ?? 0}
                           max={8}
                           min={0}
                           tamanho="sm"
