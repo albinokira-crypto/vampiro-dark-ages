@@ -66,14 +66,14 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Se não estiver logado, exibe a Tela de Login e Cadastro (com splash se ativo)
+  // Splash Screen de abertura: NADA do sistema é renderizado enquanto o splash estiver ativo
+  if (splashAtivo) {
+    return <SplashScreen onComplete={() => setSplashAtivo(false)} />;
+  }
+
+  // Se não estiver logado, exibe a Tela de Login e Cadastro
   if (!usuarioAtual) {
-    return (
-      <>
-        {splashAtivo && <SplashScreen onComplete={() => setSplashAtivo(false)} />}
-        <TelaLogin onLoginSucesso={(user) => setUsuarioAtual(user)} />
-      </>
-    );
+    return <TelaLogin onLoginSucesso={(user) => setUsuarioAtual(user)} />;
   }
 
   const personagemAtivo = personagemAtivoId
@@ -82,7 +82,6 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#070506] text-[#ded6cb] selection:bg-[#8b0000] selection:text-white flex flex-col font-body">
-      {splashAtivo && <SplashScreen onComplete={() => setSplashAtivo(false)} />}
       <Navbar
         usuarioAtual={usuarioAtual}
         onTrocarUsuario={handleTrocarUsuario}

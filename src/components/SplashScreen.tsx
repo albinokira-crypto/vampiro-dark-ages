@@ -13,6 +13,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [fase, setFase] = useState<'entrando' | 'visivel' | 'saindo'>('entrando');
 
   useEffect(() => {
+    // Remove o splash estático do HTML assim que o componente React assume
+    const nativeEl = document.getElementById('native-splash');
+    if (nativeEl) {
+      nativeEl.remove();
+    }
+
     // Transição de entrada suave
     const timerEntrada = setTimeout(() => {
       setFase('visivel');

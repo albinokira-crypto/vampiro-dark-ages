@@ -36,7 +36,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=MedievalSharp&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#0c0a0b] text-[#d6d0c7] selection:bg-[#8b0000] selection:text-white antialiased min-h-screen">
+  <body class="bg-[#070506] text-[#d6d0c7] selection:bg-[#8b0000] selection:text-white antialiased min-h-screen m-0 p-0 overflow-x-hidden">
+    <!-- Splash Screen Nativo Estático: Exibido no instante 0 ao clicar no atalho -->
+    <div id="native-splash" style="position:fixed;inset:0;z-index:99999;background-color:#070506;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;user-select:none;">
+      <div style="position:absolute;width:550px;height:550px;max-width:90vw;max-height:90vw;background:radial-gradient(circle, rgba(139,0,0,0.22) 0%, rgba(7,5,6,0) 70%);border-radius:50%;pointer-events:none;"></div>
+      <div style="position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;max-width:480px;width:100%;text-align:center;">
+        <img src="/vampire-dark-ages-logo.png" alt="Vampire: The Dark Ages" style="width:100%;max-width:440px;height:auto;object-fit:contain;filter:drop-shadow(0 4px 25px rgba(255,255,255,0.22));" />
+        <div style="width:200px;height:1px;background:linear-gradient(to right, transparent, #8b0000, transparent);margin:16px 0 12px 0;"></div>
+        <p style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:0.25em;text-transform:uppercase;color:#d4af37;margin:0;opacity:0.9;">
+          Livro Básico de Regras • 1ª Edição
+        </p>
+      </div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
