@@ -24,6 +24,19 @@ export interface CargoElisio {
   categoria: 'principe' | 'xerife' | 'senescal_algoz' | 'nobres' | 'harpias' | 'custom';
   personagemId?: string;
   tituloPersonalizado?: string;
+  ocupanteNome?: string;
+  ocupanteFoto?: string;
+  ocupanteCla?: string;
+  ocupanteGeracao?: string;
+  ocupanteTipo?: 'jogador' | 'npc';
+  ocupanteJogador?: string;
+  ocupanteHistoria?: string;
+  ocupantePreludio?: string;
+  ocupanteObjetivos?: string;
+  ocupanteConceito?: string;
+  ocupanteNatureza?: string;
+  ocupanteComportamento?: string;
+  ocupanteSenhor?: string;
 }
 
 export interface DadosElisio {

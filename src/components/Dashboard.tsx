@@ -250,6 +250,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <PainelElisio
           usuarioAtual={usuarioAtual}
           personagens={personagens}
+          config={config}
+          onConfigChange={setConfig}
           onVoltar={() => setAbaPrincipal('fichas')}
           onAbrirFicha={onAbrirFicha}
         />

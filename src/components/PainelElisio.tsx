@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import type { Personagem, User, DadosElisio, CargoElisio } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import type { Personagem, User, DadosElisio, CargoElisio, ConfiguracaoMesa } from '../types';
 import {
   Crown,
   Shield,
@@ -20,9 +20,29 @@ import {
 import { comprimirImagem } from '../utils/imageCompressor';
 import { storageService, DADOS_ELISIO_PADRAO } from '../services/storage';
 
+interface InfoOcupanteExibicao {
+  id?: string;
+  nome: string;
+  foto?: string;
+  cla: string;
+  geracao: string;
+  tipo: 'jogador' | 'npc';
+  jogador?: string;
+  historia: string;
+  preludio?: string;
+  objetivos?: string;
+  conceito?: string;
+  natureza?: string;
+  comportamento?: string;
+  senhor?: string;
+  personagemCompleto?: Personagem;
+}
+
 interface PainelElisioProps {
   usuarioAtual: User;
   personagens: Personagem[];
+  config?: ConfiguracaoMesa;
+  onConfigChange?: (novaConfig: ConfiguracaoMesa) => void;
   onVoltar: () => void;
   onAbrirFicha?: (id: string) => void;
 }
@@ -30,18 +50,48 @@ interface PainelElisioProps {
 export const PainelElisio: React.FC<PainelElisioProps> = ({
   usuarioAtual,
   personagens,
+  config,
+  onConfigChange,
   onVoltar,
   onAbrirFicha,
 }) => {
   const isMestre = usuarioAtual.role === 'mestre';
-  const [dadosElisio, setDadosElisio] = useState<DadosElisio>(() => storageService.getDadosElisio());
+  const [dadosElisio, setDadosElisio] = useState<DadosElisio>(() => {
+    return config?.elisio || storageService.getDadosElisio();
+  });
   const [salvando, setSalvando] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
+
+  // Sincronizar com mudanças remotas de configuração
+  useEffect(() => {
+    if (config?.elisio) {
+      setDadosElisio(config.elisio);
+    }
+  }, [config?.elisio]);
+
+  // Carregar dados remotos do Elísio no primeiro carregamento
+  useEffect(() => {
+    let ativo = true;
+    storageService.carregarConfiguracaoMesaRemota().then((remota) => {
+      if (ativo && remota?.elisio) {
+        setDadosElisio(remota.elisio);
+        if (onConfigChange) {
+          onConfigChange(remota);
+        }
+      }
+    }).catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   // Modais
   const [modalHistoriaAberto, setModalHistoriaAberto] = useState(false);
   const [modalHierarquiaAberto, setModalHierarquiaAberto] = useState(false);
-  const [personagemSelecionadoModal, setPersonagemSelecionadoModal] = useState<Personagem | null>(null);
+  const [ocupanteModalDetalhes, setOcupanteModalDetalhes] = useState<{
+    info: InfoOcupanteExibicao;
+    cargoNome: string;
+  } | null>(null);
 
   // Upload de Imagem do Elísio
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,22 +101,25 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
   // Estado local da história para edição no modal
   const [historiaTemp, setHistoriaTemp] = useState(dadosElisio.historia || '');
 
-  // Salvar alterações gerais
+  // Persistir dados local e remotamente
   const persistirDadosElisio = async (novosDados: DadosElisio) => {
     setDadosElisio(novosDados);
+    if (config && onConfigChange) {
+      onConfigChange({ ...config, elisio: novosDados });
+    }
     setSalvando(true);
     try {
       await storageService.salvarDadosElisio(novosDados);
-      setMensagemSucesso('Dados do Elísio atualizados com sucesso!');
+      setMensagemSucesso('Hierarquia e informações do Elísio sincronizadas!');
       setTimeout(() => setMensagemSucesso(null), 3000);
     } catch {
-      // Ignora erro offline
+      // Offline fallback
     } finally {
       setSalvando(false);
     }
   };
 
-  // Upload e compressão de imagem do Elísio (máx 800x500 para não pesar)
+  // Upload e compressão de imagem do Elísio (máx 800x500 para leveza máxima)
   const handleSelecionarImagem = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
@@ -75,7 +128,6 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
     setErroImagem(null);
 
     try {
-      // Comprime a imagem para dimensões otimizadas e qualidade controlada
       const resultado = await comprimirImagem(arquivo, 800, 500, 0.75);
       const novos = { ...dadosElisio, imagem: resultado.base64 };
       await persistirDadosElisio(novos);
@@ -106,11 +158,55 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
     setModalHistoriaAberto(false);
   };
 
-  // Ações de Hierarquia
+  // Alterar ocupante com captura completa de snapshot público da corte
   const handleAlterarOcupante = async (cargoId: string, personagemId: string) => {
-    const novaHierarquia = dadosElisio.hierarquia.map((c) =>
-      c.id === cargoId ? { ...c, personagemId: personagemId === 'vago' ? undefined : personagemId } : c
-    );
+    let pAlvo: Personagem | undefined;
+    if (personagemId !== 'vago') {
+      pAlvo = personagens.find((x) => x.id === personagemId);
+    }
+
+    const novaHierarquia: CargoElisio[] = dadosElisio.hierarquia.map((c) => {
+      if (c.id !== cargoId) return c;
+
+      if (!pAlvo || personagemId === 'vago') {
+        return {
+          ...c,
+          personagemId: undefined,
+          ocupanteNome: undefined,
+          ocupanteFoto: undefined,
+          ocupanteCla: undefined,
+          ocupanteGeracao: undefined,
+          ocupanteTipo: undefined,
+          ocupanteJogador: undefined,
+          ocupanteHistoria: undefined,
+          ocupantePreludio: undefined,
+          ocupanteObjetivos: undefined,
+          ocupanteConceito: undefined,
+          ocupanteNatureza: undefined,
+          ocupanteComportamento: undefined,
+          ocupanteSenhor: undefined,
+        };
+      }
+
+      return {
+        ...c,
+        personagemId: pAlvo.id,
+        ocupanteNome: pAlvo.nome,
+        ocupanteFoto: pAlvo.foto || '',
+        ocupanteCla: pAlvo.cla || 'Cainita',
+        ocupanteGeracao: pAlvo.geracao || '12ª Geração',
+        ocupanteTipo: pAlvo.tipo,
+        ocupanteJogador: pAlvo.jogador || '',
+        ocupanteHistoria: pAlvo.biografia?.historia || '',
+        ocupantePreludio: pAlvo.biografia?.preludio || '',
+        ocupanteObjetivos: pAlvo.biografia?.objetivos || '',
+        ocupanteConceito: pAlvo.conceito || '',
+        ocupanteNatureza: pAlvo.natureza || '',
+        ocupanteComportamento: pAlvo.comportamento || '',
+        ocupanteSenhor: pAlvo.senhor || '',
+      };
+    });
+
     await persistirDadosElisio({ ...dadosElisio, hierarquia: novaHierarquia });
   };
 
@@ -125,18 +221,61 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
   };
 
   const handleRemoverCargo = async (cargoId: string) => {
-    if (!confirm('Deseja remover esta posição da hierarquia do Elísio?')) return;
+    if (!confirm('Deseja remover esta posição da Hierarquia do Elísio?')) return;
     const novaHierarquia = dadosElisio.hierarquia.filter((c) => c.id !== cargoId);
     await persistirDadosElisio({ ...dadosElisio, hierarquia: novaHierarquia });
   };
 
-  // Localiza personagem por ID
-  const getPersonagemPorId = (id?: string) => {
-    if (!id) return undefined;
-    return personagens.find((p) => p.id === id);
+  // Recupera informações completas do ocupante (pela lista ao vivo ou pelo snapshot público)
+  const getInfoOcupante = (cargo: CargoElisio): InfoOcupanteExibicao | undefined => {
+    // 1. Tenta achar na lista carregada
+    if (cargo.personagemId) {
+      const live = personagens.find((p) => p.id === cargo.personagemId);
+      if (live) {
+        return {
+          id: live.id,
+          nome: live.nome,
+          foto: live.foto,
+          cla: live.cla || 'Cainita',
+          geracao: live.geracao || '12ª Geração',
+          tipo: live.tipo,
+          jogador: live.jogador,
+          historia: live.biografia?.historia || '',
+          preludio: live.biografia?.preludio,
+          objetivos: live.biografia?.objetivos,
+          conceito: live.conceito,
+          natureza: live.natureza,
+          comportamento: live.comportamento,
+          senhor: live.senhor,
+          personagemCompleto: live,
+        };
+      }
+    }
+
+    // 2. Fallback obrigatório: snapshot gravado pelo Mestre (permite que qualquer jogador veja NPCs sem segredo)
+    if (cargo.ocupanteNome) {
+      return {
+        id: cargo.personagemId,
+        nome: cargo.ocupanteNome,
+        foto: cargo.ocupanteFoto,
+        cla: cargo.ocupanteCla || 'Cainita',
+        geracao: cargo.ocupanteGeracao || '12ª Geração',
+        tipo: cargo.ocupanteTipo || 'npc',
+        jogador: cargo.ocupanteJogador,
+        historia: cargo.ocupanteHistoria || '',
+        preludio: cargo.ocupantePreludio,
+        objetivos: cargo.ocupanteObjetivos,
+        conceito: cargo.ocupanteConceito,
+        natureza: cargo.ocupanteNatureza,
+        comportamento: cargo.ocupanteComportamento,
+        senhor: cargo.ocupanteSenhor,
+      };
+    }
+
+    return undefined;
   };
 
-  // Ícone por categoria
+  // Ícones por categoria
   const getIconeCategoria = (categoria: CargoElisio['categoria']) => {
     switch (categoria) {
       case 'principe':
@@ -154,7 +293,7 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
     }
   };
 
-  // Separação em níveis da hierarquia
+  // Níveis da chave
   const principe = dadosElisio.hierarquia.find((c) => c.categoria === 'principe');
   const xerife = dadosElisio.hierarquia.find((c) => c.categoria === 'xerife');
   const senescalAlgoz = dadosElisio.hierarquia.filter((c) => c.categoria === 'senescal_algoz');
@@ -162,20 +301,20 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
   const harpias = dadosElisio.hierarquia.filter((c) => c.categoria === 'harpias');
   const custom = dadosElisio.hierarquia.filter((c) => c.categoria === 'custom');
 
-  // Renderizador de Card de Cargo na Chave
+  // Renderizador de Card Individual de Cargo
   const renderCardCargo = (cargo: CargoElisio, podeExcluir = false) => {
-    const ocupante = getPersonagemPorId(cargo.personagemId);
+    const info = getInfoOcupante(cargo);
 
     return (
       <div
         key={cargo.id}
-        className="bg-[#180e13] border border-[#3b181b] hover:border-[#8b0000] rounded-sm p-3 shadow-md flex flex-col justify-between transition-all min-w-[200px] max-w-[240px] relative group"
+        className="bg-[#180e13] border-2 border-[#3b181b] hover:border-[#8b0000] rounded-sm p-3 shadow-xl flex flex-col justify-between transition-all w-[210px] shrink-0 relative group"
       >
         {/* Cabeçalho do Cargo */}
         <div className="flex items-center justify-between border-b border-[#2d1217] pb-1.5 mb-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 truncate">
             {getIconeCategoria(cargo.categoria)}
-            <span className="font-gothic font-bold text-xs uppercase tracking-wider text-[#d4af37]">
+            <span className="font-gothic font-bold text-[11px] uppercase tracking-wider text-[#d4af37] truncate">
               {cargo.cargo}
             </span>
           </div>
@@ -183,7 +322,7 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
             <button
               type="button"
               onClick={() => handleRemoverCargo(cargo.id)}
-              className="text-[#706456] hover:text-red-400 p-0.5 rounded transition-colors"
+              className="text-[#706456] hover:text-red-400 p-0.5 rounded transition-colors shrink-0"
               title="Remover posição da hierarquia"
             >
               <Trash2 className="w-3 h-3" />
@@ -191,26 +330,25 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
           )}
         </div>
 
-        {/* Informações do Ocupante */}
+        {/* Informações do Ocupante com Foto Clicável */}
         <div className="flex items-center gap-2.5 my-1">
-          {/* Foto clicável para ver história */}
           <div
             onClick={() => {
-              if (ocupante) {
-                setPersonagemSelecionadoModal(ocupante);
+              if (info) {
+                setOcupanteModalDetalhes({ info, cargoNome: cargo.cargo });
               }
             }}
-            className={`w-12 h-14 rounded-xs border-2 overflow-hidden bg-[#120a0e] shrink-0 flex items-center justify-center transition-transform ${
-              ocupante
-                ? 'cursor-pointer border-[#8b0000] hover:scale-105 hover:border-[#d4af37] shadow-[0_0_8px_rgba(239,68,68,0.3)]'
+            className={`w-12 h-14 rounded-xs border-2 overflow-hidden bg-[#120a0e] shrink-0 flex items-center justify-center transition-all ${
+              info
+                ? 'cursor-pointer border-[#8b0000] hover:scale-105 hover:border-[#d4af37] shadow-[0_0_10px_rgba(239,68,68,0.35)]'
                 : 'border-[#2d1217]'
             }`}
-            title={ocupante ? `Ver biografia e história de ${ocupante.nome}` : 'Cargo vago'}
+            title={info ? `Clique para ler a história de ${info.nome}` : 'Cargo vago no Elísio'}
           >
-            {ocupante && ocupante.foto ? (
+            {info && info.foto ? (
               <img
-                src={ocupante.foto}
-                alt={ocupante.nome}
+                src={info.foto}
+                alt={info.nome}
                 className="w-full h-full object-cover object-top"
               />
             ) : (
@@ -219,21 +357,21 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
           </div>
 
           <div className="flex-1 min-w-0">
-            {ocupante ? (
+            {info ? (
               <div>
                 <button
                   type="button"
-                  onClick={() => setPersonagemSelecionadoModal(ocupante)}
-                  className="text-left font-bold text-xs text-white hover:text-[#d4af37] truncate block transition-colors cursor-pointer"
-                  title="Clique para ler a história deste personagem"
+                  onClick={() => setOcupanteModalDetalhes({ info, cargoNome: cargo.cargo })}
+                  className="text-left font-bold text-xs text-white hover:text-[#d4af37] truncate block transition-colors cursor-pointer w-full"
+                  title="Clique para abrir a história"
                 >
-                  {ocupante.nome}
+                  {info.nome}
                 </button>
-                <span className="text-[10px] text-[#a89f91] block truncate">
-                  {ocupante.cla || 'Cainita'} • {ocupante.tipo === 'npc' ? 'NPC' : 'Jogador'}
+                <span className="text-[10px] text-[#a89f91] block truncate font-serif">
+                  {info.cla} • {info.tipo === 'npc' ? 'NPC' : 'Jogador'}
                 </span>
-                <span className="text-[9px] text-[#8e8273] block truncate">
-                  {ocupante.geracao || '12ª Geração'}
+                <span className="text-[9px] text-[#8e8273] block truncate font-mono">
+                  {info.geracao}
                 </span>
               </div>
             ) : (
@@ -242,15 +380,18 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
           </div>
         </div>
 
-        {/* Seletor para o Mestre designar qualquer personagem da crônica */}
+        {/* Seletor exclusivo para o Narrador designar ocupante */}
         {isMestre && (
           <div className="mt-2 pt-2 border-t border-[#251015]">
             <select
-              value={cargo.personagemId || 'vago'}
+              value={cargo.personagemId || (cargo.ocupanteNome ? 'custom_ocupado' : 'vago')}
               onChange={(e) => handleAlterarOcupante(cargo.id, e.target.value)}
               className="w-full bg-[#120a0e] border border-[#3b181b] rounded-xs text-[10px] text-[#ded6cb] py-1 px-1.5 focus:outline-hidden focus:border-[#ef4444]"
             >
-              <option value="vago">-- Designar Personagem --</option>
+              <option value="vago">-- Cargo Vago --</option>
+              {cargo.personagemId && !personagens.some((p) => p.id === cargo.personagemId) && cargo.ocupanteNome && (
+                <option value={cargo.personagemId}>{cargo.ocupanteNome} (Gravado)</option>
+              )}
               <optgroup label="NPCs da Crônica">
                 {personagens
                   .filter((p) => p.tipo === 'npc')
@@ -275,6 +416,9 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
       </div>
     );
   };
+
+  // Conector vertical de árvore
+  const LinhaVertical = () => <div className="w-0.5 h-6 bg-[#6b1e25]" />;
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
@@ -384,7 +528,7 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
               </div>
             )}
 
-            {/* Exibição da Imagem (com proporção agradável e visual de afresco) */}
+            {/* Imagem do Elísio com proporção adequada */}
             <div className="relative rounded-xs overflow-hidden border border-[#522228] bg-[#0c0709] aspect-video flex items-center justify-center shadow-inner group">
               {dadosElisio.imagem ? (
                 <img
@@ -433,18 +577,18 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
           </button>
         </div>
 
-        {/* Chave Hierárquica em Destaque */}
-        <div className="lg:col-span-2 bg-[#140e11] border border-[#2d1217] p-5 rounded-sm space-y-4 shadow-lg flex flex-col justify-between">
+        {/* Chave da Hierarquia do Elísio */}
+        <div className="lg:col-span-2 bg-[#140e11] border border-[#2d1217] p-5 rounded-sm space-y-4 shadow-lg flex flex-col justify-between overflow-hidden">
           <div>
             <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4">
               <div className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-amber-300" />
                 <div>
                   <h3 className="text-sm font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
-                    Hierarquia da Corte Feudal
+                    Hierarquia do Elísio
                   </h3>
                   <p className="text-[11px] text-[#8e8273]">
-                    Clique na foto de qualquer cainita para visualizar sua história e antecedentes
+                    Estrutura feudal em chave perfeita partindo do Príncipe no topo central
                   </p>
                 </div>
               </div>
@@ -459,96 +603,113 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
               </button>
             </div>
 
-            {/* Visualização Rápida da Hierarquia em Chave */}
-            <div className="space-y-4 overflow-x-auto p-2">
-              {/* 1. Príncipe */}
-              {principe && (
-                <div className="flex flex-col items-center">
-                  <span className="text-[9px] font-gothic text-[#8e8273] uppercase tracking-widest mb-1">
-                    Corte Soberana
-                  </span>
-                  {renderCardCargo(principe)}
-                  <div className="w-0.5 h-4 bg-[#522228] my-1" />
-                </div>
-              )}
-
-              {/* 2. Xerife */}
-              {xerife && (
-                <div className="flex flex-col items-center">
-                  <span className="text-[9px] font-gothic text-[#8e8273] uppercase tracking-widest mb-1">
-                    Defesa da Tradição & Castigo
-                  </span>
-                  {renderCardCargo(xerife)}
-                  <div className="w-0.5 h-4 bg-[#522228] my-1" />
-                </div>
-              )}
-
-              {/* 3. Senescal & Algoz */}
-              {senescalAlgoz.length > 0 && (
-                <div className="flex flex-col items-center">
-                  <span className="text-[9px] font-gothic text-[#8e8273] uppercase tracking-widest mb-1">
-                    Oficiais Maiores
-                  </span>
-                  <div className="flex items-center justify-center gap-3 flex-wrap">
-                    {senescalAlgoz.map((c) => renderCardCargo(c, isMestre))}
+            {/* CHAVE PERFEITA EM ÁRVORE (ROLAGEM HORIZONTAL SE NECESSÁRIO) */}
+            <div className="w-full overflow-x-auto pb-4 pt-1">
+              <div className="min-w-max flex flex-col items-center mx-auto px-4">
+                {/* Nível 1: Príncipe Centralizado */}
+                {principe && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#241318] border border-[#522228] px-4 py-0.5 rounded-full text-[9px] font-gothic font-bold uppercase tracking-widest text-amber-300 mb-1.5 shadow-md">
+                      1. Príncipe Soberano
+                    </div>
+                    {renderCardCargo(principe)}
+                    <LinhaVertical />
                   </div>
-                  <div className="w-0.5 h-4 bg-[#522228] my-1" />
-                </div>
-              )}
+                )}
 
-              {/* 4. Nobres */}
-              {nobres.length > 0 && (
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center justify-between w-full max-w-2xl px-2 mb-1">
-                    <span className="text-[9px] font-gothic text-[#8e8273] uppercase tracking-widest">
-                      Nobres & Primigênie
+                {/* Nível 2: Xerife Centralizado */}
+                {xerife && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#241318] border border-[#522228] px-4 py-0.5 rounded-full text-[9px] font-gothic font-bold uppercase tracking-widest text-red-400 mb-1.5 shadow-md">
+                      2. Xerife da Cidade
+                    </div>
+                    {renderCardCargo(xerife)}
+                    <LinhaVertical />
+                  </div>
+                )}
+
+                {/* Nível 3: Oficiais Maiores (Senescal e Algoz LADO A LADO) */}
+                {senescalAlgoz.length > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#241318] border border-[#522228] px-4 py-0.5 rounded-full text-[9px] font-gothic font-bold uppercase tracking-widest text-purple-300 mb-1.5 shadow-md">
+                      3. Oficiais Maiores
+                    </div>
+                    {/* Linha horizontal para Senescal e Algoz lado a lado */}
+                    <div className="flex items-start justify-center gap-6 sm:gap-10 flex-nowrap">
+                      {senescalAlgoz.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
+                    <LinhaVertical />
+                  </div>
+                )}
+
+                {/* Nível 4: Nobres da Corte (TODOS LADO A LADO) */}
+                {nobres.length > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center justify-between gap-4 mb-1.5">
+                      <div className="bg-[#241318] border border-[#522228] px-4 py-0.5 rounded-full text-[9px] font-gothic font-bold uppercase tracking-widest text-sky-300 shadow-md">
+                        4. Nobres da Corte
+                      </div>
+                      {isMestre && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdicionarCargo('nobres', 'Nobre / Primigênie')}
+                          className="px-2 py-0.5 text-[10px] bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3 h-3" /> Adicionar Nobre
+                        </button>
+                      )}
+                    </div>
+                    {/* Linha horizontal para todos os Nobres lado a lado */}
+                    <div className="flex items-start justify-center gap-4 flex-nowrap">
+                      {nobres.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
+                    <LinhaVertical />
+                  </div>
+                )}
+
+                {/* Nível 5: Harpias da Corte (TODAS LADO A LADO) */}
+                {harpias.length > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center justify-between gap-4 mb-1.5">
+                      <div className="bg-[#241318] border border-[#522228] px-4 py-0.5 rounded-full text-[9px] font-gothic font-bold uppercase tracking-widest text-emerald-300 shadow-md">
+                        5. Harpias da Cidade
+                      </div>
+                      {isMestre && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdicionarCargo('harpias', 'Hárpia')}
+                          className="px-2 py-0.5 text-[10px] bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3 h-3" /> Adicionar Hárpia
+                        </button>
+                      )}
+                    </div>
+                    {/* Linha horizontal para todas as Harpias lado a lado */}
+                    <div className="flex items-start justify-center gap-4 flex-nowrap">
+                      {harpias.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cargos Customizados Adicionais */}
+                {custom.length > 0 && (
+                  <div className="flex flex-col items-center pt-4 mt-2 border-t border-[#251015]">
+                    <span className="text-[9px] font-gothic text-[#8e8273] uppercase tracking-widest mb-2">
+                      Outros Títulos & Guarda
                     </span>
-                    {isMestre && (
-                      <button
-                        type="button"
-                        onClick={() => handleAdicionarCargo('nobres', 'Nobre / Primigênie')}
-                        className="text-[10px] text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" /> Adicionar Nobre
-                      </button>
-                    )}
+                    <div className="flex items-start justify-center gap-4 flex-nowrap">
+                      {custom.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-center gap-3 flex-wrap">
-                    {nobres.map((c) => renderCardCargo(c, isMestre))}
-                  </div>
-                  <div className="w-0.5 h-4 bg-[#522228] my-1" />
-                </div>
-              )}
-
-              {/* 5. Harpias */}
-              {harpias.length > 0 && (
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center justify-between w-full max-w-2xl px-2 mb-1">
-                    <span className="text-[9px] font-gothic text-[#8e8273] uppercase tracking-widest">
-                      Harpias (Vozes do Prestígio)
-                    </span>
-                    {isMestre && (
-                      <button
-                        type="button"
-                        onClick={() => handleAdicionarCargo('harpias', 'Hárpia')}
-                        className="text-[10px] text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" /> Adicionar Hárpia
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-center gap-3 flex-wrap">
-                    {harpias.map((c) => renderCardCargo(c, isMestre))}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: HISTÓRIA DO ELÍSIO (IMAGEM + TEXTO EDITÁVEL) */}
+      {/* MODAL 1: HISTÓRIA DO ELÍSIO */}
       {/* ========================================================================= */}
       {modalHistoriaAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs animate-fadeIn">
@@ -630,7 +791,7 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
             {/* Rodapé */}
             <div className="bg-[#180e13] px-5 py-3 border-t border-[#3b181b] flex items-center justify-between">
               <span className="text-[10px] text-[#706456]">
-                {isMestre ? 'Alterações serão salvas para toda a crônica.' : 'Visualização da crônica do Elísio.'}
+                {isMestre ? 'Alterações salvas para todos os membros da crônica.' : 'Visualização da crônica do Elísio.'}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -658,21 +819,21 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: HIERARQUIA COMPLETA EM CHAVE (ORGANOGRAMA DA CORTE) */}
+      {/* MODAL 2: HIERARQUIA DO ELÍSIO EXPANDIDA (CHAVE COMPLETA) */}
       {/* ========================================================================= */}
       {modalHierarquiaAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-[#120a0e] border border-[#522228] rounded-sm max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-[#120a0e] border border-[#522228] rounded-sm max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Cabeçalho */}
             <div className="bg-[#180e13] px-5 py-3.5 border-b border-[#3b181b] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Crown className="w-5 h-5 text-amber-300" />
                 <div>
                   <h3 className="text-base font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
-                    Organograma Feudal • Corte do Elísio
+                    Hierarquia do Elísio
                   </h3>
                   <p className="text-[11px] text-[#8e8273]">
-                    Estrutura de poder e nobreza da cidade. Clique na foto de um ocupante para ler sua história.
+                    Estrutura feudal em chave com oficiais maiores, nobres e harpias dispostos lado a lado
                   </p>
                 </div>
               </div>
@@ -685,107 +846,109 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
               </button>
             </div>
 
-            {/* Conteúdo da Chave */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1d1017] via-[#120a0e] to-[#0c0709]">
-              {/* Nível 1: Príncipe */}
-              {principe && (
-                <div className="flex flex-col items-center">
-                  <div className="bg-[#241318] border border-[#522228] px-4 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-amber-300 mb-2 shadow-md">
-                    1. Príncipe Soberano
-                  </div>
-                  {renderCardCargo(principe)}
-                  <div className="w-0.5 h-6 bg-[#522228] my-1" />
-                </div>
-              )}
-
-              {/* Nível 2: Xerife */}
-              {xerife && (
-                <div className="flex flex-col items-center">
-                  <div className="bg-[#241318] border border-[#522228] px-4 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-red-400 mb-2 shadow-md">
-                    2. Xerife da Cidade
-                  </div>
-                  {renderCardCargo(xerife)}
-                  <div className="w-0.5 h-6 bg-[#522228] my-1" />
-                </div>
-              )}
-
-              {/* Nível 3: Senescal & Algoz */}
-              {senescalAlgoz.length > 0 && (
-                <div className="flex flex-col items-center">
-                  <div className="bg-[#241318] border border-[#522228] px-4 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-purple-300 mb-2 shadow-md">
-                    3. Senescal & Algoz
-                  </div>
-                  <div className="flex items-center justify-center gap-4 flex-wrap">
-                    {senescalAlgoz.map((c) => renderCardCargo(c, isMestre))}
-                  </div>
-                  <div className="w-0.5 h-6 bg-[#522228] my-1" />
-                </div>
-              )}
-
-              {/* Nível 4: Nobres (Primigênie) */}
-              {nobres.length > 0 && (
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center justify-between w-full max-w-3xl px-2 mb-2">
-                    <div className="bg-[#241318] border border-[#522228] px-4 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-sky-300 shadow-md">
-                      4. Nobres da Corte
+            {/* Conteúdo da Chave Expandida com Rolagem Horizontal Suave */}
+            <div className="flex-1 overflow-x-auto overflow-y-auto p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1d1017] via-[#120a0e] to-[#0c0709]">
+              <div className="min-w-max flex flex-col items-center mx-auto px-6 py-4">
+                {/* Nível 1: Príncipe */}
+                {principe && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#241318] border border-[#522228] px-5 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-amber-300 mb-2 shadow-lg">
+                      1. Príncipe Soberano
                     </div>
-                    {isMestre && (
-                      <button
-                        type="button"
-                        onClick={() => handleAdicionarCargo('nobres', 'Nobre / Primigênie')}
-                        className="px-2.5 py-1 text-xs bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Adicionar Nobre
-                      </button>
-                    )}
+                    {renderCardCargo(principe)}
+                    <LinhaVertical />
                   </div>
-                  <div className="flex items-center justify-center gap-4 flex-wrap">
-                    {nobres.map((c) => renderCardCargo(c, isMestre))}
-                  </div>
-                  <div className="w-0.5 h-6 bg-[#522228] my-1" />
-                </div>
-              )}
+                )}
 
-              {/* Nível 5: Harpias */}
-              {harpias.length > 0 && (
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center justify-between w-full max-w-3xl px-2 mb-2">
-                    <div className="bg-[#241318] border border-[#522228] px-4 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-emerald-300 shadow-md">
-                      5. Harpias da Cidade
+                {/* Nível 2: Xerife */}
+                {xerife && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#241318] border border-[#522228] px-5 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-red-400 mb-2 shadow-lg">
+                      2. Xerife da Cidade
                     </div>
-                    {isMestre && (
-                      <button
-                        type="button"
-                        onClick={() => handleAdicionarCargo('harpias', 'Hárpia')}
-                        className="px-2.5 py-1 text-xs bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Adicionar Hárpia
-                      </button>
-                    )}
+                    {renderCardCargo(xerife)}
+                    <LinhaVertical />
                   </div>
-                  <div className="flex items-center justify-center gap-4 flex-wrap">
-                    {harpias.map((c) => renderCardCargo(c, isMestre))}
-                  </div>
-                </div>
-              )}
+                )}
 
-              {/* Cargos Personalizados */}
-              {custom.length > 0 && (
-                <div className="flex flex-col items-center pt-4 border-t border-[#251015]">
-                  <span className="text-[10px] font-gothic text-[#8e8273] uppercase tracking-widest mb-2">
-                    Outros Oficiais & Guardiões
-                  </span>
-                  <div className="flex items-center justify-center gap-4 flex-wrap">
-                    {custom.map((c) => renderCardCargo(c, isMestre))}
+                {/* Nível 3: Oficiais Maiores (Senescal e Algoz LADO A LADO) */}
+                {senescalAlgoz.length > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#241318] border border-[#522228] px-5 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-purple-300 mb-2 shadow-lg">
+                      3. Oficiais Maiores
+                    </div>
+                    <div className="flex items-start justify-center gap-8 sm:gap-14 flex-nowrap">
+                      {senescalAlgoz.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
+                    <LinhaVertical />
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* Nível 4: Nobres da Corte (TODOS LADO A LADO) */}
+                {nobres.length > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center justify-between gap-4 mb-2">
+                      <div className="bg-[#241318] border border-[#522228] px-5 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-sky-300 shadow-lg">
+                        4. Nobres da Corte
+                      </div>
+                      {isMestre && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdicionarCargo('nobres', 'Nobre / Primigênie')}
+                          className="px-3 py-1 text-xs bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Adicionar Nobre
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-start justify-center gap-5 flex-nowrap">
+                      {nobres.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
+                    <LinhaVertical />
+                  </div>
+                )}
+
+                {/* Nível 5: Harpias da Corte (TODAS LADO A LADO) */}
+                {harpias.length > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center justify-between gap-4 mb-2">
+                      <div className="bg-[#241318] border border-[#522228] px-5 py-1 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-emerald-300 shadow-lg">
+                        5. Harpias da Cidade
+                      </div>
+                      {isMestre && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdicionarCargo('harpias', 'Hárpia')}
+                          className="px-3 py-1 text-xs bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Adicionar Hárpia
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-start justify-center gap-5 flex-nowrap">
+                      {harpias.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cargos Customizados */}
+                {custom.length > 0 && (
+                  <div className="flex flex-col items-center pt-6 mt-3 border-t border-[#251015]">
+                    <span className="text-[10px] font-gothic text-[#8e8273] uppercase tracking-widest mb-2">
+                      Outros Títulos da Corte
+                    </span>
+                    <div className="flex items-start justify-center gap-5 flex-nowrap">
+                      {custom.map((c) => renderCardCargo(c, isMestre))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Rodapé */}
             <div className="bg-[#180e13] px-5 py-3 border-t border-[#3b181b] flex items-center justify-between">
               <span className="text-[10px] text-[#706456]">
-                {isMestre ? 'Narrador pode atribuir qualquer personagem cadastrado aos cargos.' : 'Visualização da hierarquia da crônica.'}
+                {isMestre ? 'Ocupantes atribuídos são exibidos para todos os jogadores.' : 'Hierarquia oficial do Elísio da crônica.'}
               </span>
               <button
                 type="button"
@@ -802,7 +965,7 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
       {/* ========================================================================= */}
       {/* MODAL 3: BIOGRAFIA & HISTÓRIA DO PERSONAGEM (AO CLICAR NA FOTO) */}
       {/* ========================================================================= */}
-      {personagemSelecionadoModal && (
+      {ocupanteModalDetalhes && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs animate-fadeIn">
           <div className="bg-[#120a0e] border border-[#522228] rounded-sm max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Cabeçalho */}
@@ -811,16 +974,16 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
                 <Crown className="w-5 h-5 text-[#d4af37]" />
                 <div>
                   <h3 className="text-base font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
-                    Registro Histórico do Cainita
+                    {ocupanteModalDetalhes.cargoNome} • Registro Histórico
                   </h3>
                   <p className="text-[11px] text-[#8e8273]">
-                    Biografia, prelúdio e feitos arquivados na ficha deste nobre do Elísio
+                    Biografia, feitos e história arquivada na ficha deste cainita do Elísio
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setPersonagemSelecionadoModal(null)}
+                onClick={() => setOcupanteModalDetalhes(null)}
                 className="text-[#8e8273] hover:text-white p-1 rounded transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -832,10 +995,10 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
               {/* Topo com Foto e Identificação */}
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-[#180e13] p-4 rounded-xs border border-[#2d1217]">
                 <div className="w-28 h-36 rounded-xs overflow-hidden border-2 border-[#522228] bg-[#0c0709] shrink-0 shadow-lg flex items-center justify-center">
-                  {personagemSelecionadoModal.foto ? (
+                  {ocupanteModalDetalhes.info.foto ? (
                     <img
-                      src={personagemSelecionadoModal.foto}
-                      alt={personagemSelecionadoModal.nome}
+                      src={ocupanteModalDetalhes.info.foto}
+                      alt={ocupanteModalDetalhes.info.nome}
                       className="w-full h-full object-cover object-top"
                     />
                   ) : (
@@ -845,31 +1008,33 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
 
                 <div className="space-y-1.5 flex-1 text-center sm:text-left">
                   <h4 className="text-lg font-gothic font-bold text-white tracking-wide">
-                    {personagemSelecionadoModal.nome}
+                    {ocupanteModalDetalhes.info.nome}
                   </h4>
                   <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
                     <span className="text-[10px] font-mono font-bold text-[#d4af37] bg-[#241318] px-2 py-0.5 rounded-xs border border-[#522228]">
-                      {personagemSelecionadoModal.cla || 'Sem Clã'}
+                      {ocupanteModalDetalhes.info.cla}
                     </span>
                     <span className="text-[10px] font-mono text-purple-300 bg-purple-950/60 px-2 py-0.5 rounded-xs border border-purple-800">
-                      {personagemSelecionadoModal.geracao || '12ª Geração'}
+                      {ocupanteModalDetalhes.info.geracao}
                     </span>
                     <span className="text-[10px] font-mono text-sky-300 bg-sky-950/60 px-2 py-0.5 rounded-xs border border-sky-800">
-                      {personagemSelecionadoModal.tipo === 'npc' ? 'NPC da Crônica' : `Jogador: ${personagemSelecionadoModal.jogador}`}
+                      {ocupanteModalDetalhes.info.tipo === 'npc'
+                        ? 'NPC da Crônica'
+                        : `Jogador: ${ocupanteModalDetalhes.info.jogador || '—'}`}
                     </span>
                   </div>
 
                   <div className="text-xs text-[#a89f91] space-y-0.5 pt-1">
                     <p>
                       <strong>Natureza / Comportamento:</strong>{' '}
-                      {personagemSelecionadoModal.natureza || '—'} / {personagemSelecionadoModal.comportamento || '—'}
+                      {ocupanteModalDetalhes.info.natureza || '—'} / {ocupanteModalDetalhes.info.comportamento || '—'}
                     </p>
                     <p>
-                      <strong>Senhor:</strong> {personagemSelecionadoModal.senhor || 'Desconhecido'}
+                      <strong>Senhor:</strong> {ocupanteModalDetalhes.info.senhor || 'Desconhecido'}
                     </p>
-                    {personagemSelecionadoModal.conceito && (
+                    {ocupanteModalDetalhes.info.conceito && (
                       <p>
-                        <strong>Conceito:</strong> {personagemSelecionadoModal.conceito}
+                        <strong>Conceito:</strong> {ocupanteModalDetalhes.info.conceito}
                       </p>
                     )}
                   </div>
@@ -882,31 +1047,31 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
                   <BookOpen className="w-3.5 h-3.5 text-[#ef4444]" /> História do Personagem
                 </h5>
                 <div className="bg-[#180e13] border border-[#2b1418] p-4 rounded-xs text-xs text-[#ded6cb] leading-relaxed font-serif whitespace-pre-wrap">
-                  {personagemSelecionadoModal.biografia?.historia ||
+                  {ocupanteModalDetalhes.info.historia ||
                     'Nenhuma história formal foi registrada na ficha deste cainita.'}
                 </div>
               </div>
 
               {/* Prelúdio da Ficha */}
-              {personagemSelecionadoModal.biografia?.preludio && (
+              {ocupanteModalDetalhes.info.preludio && (
                 <div className="space-y-2">
                   <h5 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37] flex items-center gap-1.5">
                     <Feather className="w-3.5 h-3.5 text-[#ef4444]" /> Prelúdio (O Abraço)
                   </h5>
                   <div className="bg-[#180e13] border border-[#2b1418] p-4 rounded-xs text-xs text-[#ded6cb] leading-relaxed font-serif whitespace-pre-wrap italic">
-                    {personagemSelecionadoModal.biografia.preludio}
+                    {ocupanteModalDetalhes.info.preludio}
                   </div>
                 </div>
               )}
 
               {/* Objetivos da Ficha */}
-              {personagemSelecionadoModal.biografia?.objetivos && (
+              {ocupanteModalDetalhes.info.objetivos && (
                 <div className="space-y-2">
                   <h5 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37] flex items-center gap-1.5">
                     <Crown className="w-3.5 h-3.5 text-[#ef4444]" /> Ambições & Objetivos na Corte
                   </h5>
                   <div className="bg-[#180e13] border border-[#2b1418] p-4 rounded-xs text-xs text-[#ded6cb] leading-relaxed font-serif whitespace-pre-wrap">
-                    {personagemSelecionadoModal.biografia.objetivos}
+                    {ocupanteModalDetalhes.info.objetivos}
                   </div>
                 </div>
               )}
@@ -914,12 +1079,12 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
 
             {/* Rodapé */}
             <div className="bg-[#180e13] px-5 py-3 border-t border-[#3b181b] flex items-center justify-between">
-              {onAbrirFicha && (
+              {onAbrirFicha && ocupanteModalDetalhes.info.id && (
                 <button
                   type="button"
                   onClick={() => {
-                    const id = personagemSelecionadoModal.id;
-                    setPersonagemSelecionadoModal(null);
+                    const id = ocupanteModalDetalhes.info.id!;
+                    setOcupanteModalDetalhes(null);
                     setModalHierarquiaAberto(false);
                     onAbrirFicha(id);
                   }}
@@ -931,7 +1096,7 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
               )}
               <button
                 type="button"
-                onClick={() => setPersonagemSelecionadoModal(null)}
+                onClick={() => setOcupanteModalDetalhes(null)}
                 className="px-4 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] rounded-xs border border-[#3b181b] cursor-pointer ml-auto"
               >
                 Fechar
