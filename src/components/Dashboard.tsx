@@ -85,6 +85,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  const handleReabrirCriacao = (e: React.MouseEvent, id: string, nome: string) => {
+    e.stopPropagation();
+    if (
+      confirm(
+        `Deseja reabilitar o Modo de Criação para "${nome || 'este personagem'}"? O jogador poderá redistribuir atributos, habilidades, disciplinas e pontos bônus livremente.`
+      )
+    ) {
+      const atualizado = storageService.reabrirModoCriacao(id);
+      if (atualizado) {
+        setPersonagens((prev) => prev.map((p) => (p.id === id ? atualizado : p)));
+      }
+    }
+  };
+
+  const handleTravarCriacao = (e: React.MouseEvent, id: string, nome: string) => {
+    e.stopPropagation();
+    if (
+      confirm(
+        `Deseja finalizar/travar o Modo de Criação de "${nome || 'este personagem'}"? A ficha passará para o modo de jogo padrão.`
+      )
+    ) {
+      const atualizado = storageService.travarModoCriacao(id);
+      if (atualizado) {
+        setPersonagens((prev) => prev.map((p) => (p.id === id ? atualizado : p)));
+      }
+    }
+  };
+
   // Contagens para as abas
   const countMeus = personagens.filter((p) => {
     if (usuarioAtual.role === 'mestre') {
@@ -389,13 +417,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 NPC • Modo Livre
                               </span>
                             ) : isEmCriacao ? (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-950/80 text-amber-300 border border-amber-600 shrink-0">
-                                Em Criação
-                              </span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-950/80 text-amber-300 border border-amber-600">
+                                  Em Criação
+                                </span>
+                                {usuarioAtual.role === 'mestre' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleTravarCriacao(e, p.id, p.nome)}
+                                    title="Travar criação e colocar em modo jogo"
+                                    className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#182e1d] hover:bg-[#23472b] text-green-300 border border-green-600 cursor-pointer transition-colors"
+                                  >
+                                    Travar
+                                  </button>
+                                )}
+                              </div>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-green-950/40 text-green-400 border border-green-800 shrink-0">
-                                Pronto
-                              </span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-green-950/40 text-green-400 border border-green-800">
+                                  Pronto
+                                </span>
+                                {usuarioAtual.role === 'mestre' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleReabrirCriacao(e, p.id, p.nome)}
+                                    title="Reabrir modo de criação para o jogador poder redistribuir pontos"
+                                    className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#331c12] hover:bg-[#4d2919] text-amber-300 border border-amber-600 cursor-pointer transition-colors"
+                                  >
+                                    Reabrir Criação
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
 

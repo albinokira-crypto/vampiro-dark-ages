@@ -6,8 +6,10 @@ import { Dashboard } from './components/Dashboard';
 import { FichaPersonagem } from './components/FichaPersonagem';
 import { TelaLogin } from './components/TelaLogin';
 import { PainelConfigMestre } from './components/PainelConfigMestre';
+import { SplashScreen } from './components/SplashScreen';
 
 export function App() {
+  const [splashAtivo, setSplashAtivo] = useState(true);
   const [usuarioAtual, setUsuarioAtual] = useState<User | null>(() =>
     storageService.getUsuarioAtual()
   );
@@ -64,9 +66,14 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Se não estiver logado, exibe a Tela de Login e Cadastro
+  // Se não estiver logado, exibe a Tela de Login e Cadastro (com splash se ativo)
   if (!usuarioAtual) {
-    return <TelaLogin onLoginSucesso={(user) => setUsuarioAtual(user)} />;
+    return (
+      <>
+        {splashAtivo && <SplashScreen onComplete={() => setSplashAtivo(false)} />}
+        <TelaLogin onLoginSucesso={(user) => setUsuarioAtual(user)} />
+      </>
+    );
   }
 
   const personagemAtivo = personagemAtivoId
@@ -75,6 +82,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#070506] text-[#ded6cb] selection:bg-[#8b0000] selection:text-white flex flex-col font-body">
+      {splashAtivo && <SplashScreen onComplete={() => setSplashAtivo(false)} />}
       <Navbar
         usuarioAtual={usuarioAtual}
         onTrocarUsuario={handleTrocarUsuario}

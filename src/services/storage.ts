@@ -994,6 +994,64 @@ export const storageService = {
     }
   },
 
+  reabrirModoCriacao(id: string): Personagem | null {
+    const todos = this.getPersonagens();
+    const p = todos.find((item) => item.id === id);
+    if (!p) return null;
+    const atualizado: Personagem = {
+      ...p,
+      criacao: {
+        ...(p.criacao || {
+          distribuicaoAtributos: { fisica: 0, social: 0, mental: 0 },
+          distribuicaoHabilidades: { talentos: 0, pericias: 0, conhecimentos: 0 },
+          disciplinasPrimariasIds: [],
+          pontosBonusGastos: 0,
+        }),
+        status: 'em_criacao',
+        etapa: p.criacao?.etapa === 'concluida' ? 'bonus' : (p.criacao?.etapa || 'iniciais'),
+      },
+      updatedAt: new Date().toISOString(),
+    };
+    this.salvarPersonagem(atualizado);
+    this.registrarLogAlteracao({
+      personagemId: atualizado.id,
+      personagemNome: atualizado.nome,
+      jogadorNome: atualizado.jogador || atualizado.usuarioNome,
+      tipo: 'sistema',
+      descricao: `O Narrador reabriu o Modo de Criação de Ficha para ${atualizado.nome}.`,
+    });
+    return atualizado;
+  },
+
+  travarModoCriacao(id: string): Personagem | null {
+    const todos = this.getPersonagens();
+    const p = todos.find((item) => item.id === id);
+    if (!p) return null;
+    const atualizado: Personagem = {
+      ...p,
+      criacao: {
+        ...(p.criacao || {
+          distribuicaoAtributos: { fisica: 0, social: 0, mental: 0 },
+          distribuicaoHabilidades: { talentos: 0, pericias: 0, conhecimentos: 0 },
+          disciplinasPrimariasIds: [],
+          pontosBonusGastos: 0,
+        }),
+        status: 'finalizada',
+        etapa: 'concluida',
+      },
+      updatedAt: new Date().toISOString(),
+    };
+    this.salvarPersonagem(atualizado);
+    this.registrarLogAlteracao({
+      personagemId: atualizado.id,
+      personagemNome: atualizado.nome,
+      jogadorNome: atualizado.jogador || atualizado.usuarioNome,
+      tipo: 'sistema',
+      descricao: `O Narrador finalizou/travou a Criação de Ficha de ${atualizado.nome}.`,
+    });
+    return atualizado;
+  },
+
   exportarBackup(usuarioAtual?: User | null): string {
     const isJogador = usuarioAtual?.role === 'jogador';
     const personagensExportar = isJogador

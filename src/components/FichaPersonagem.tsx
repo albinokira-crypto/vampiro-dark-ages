@@ -80,7 +80,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [ficha, setFicha] = useState<Personagem>(() => normalizarPersonagem(personagem));
   const [configMesa, setConfigMesa] = useState(() => storageService.getConfiguracaoMesa());
   const [hasChanges, setHasChanges] = useState<boolean>(false);
-  const [abaAtiva, setAbaAtiva] = useState<'secao1' | 'secao2' | 'secao3'>('secao1');
+  type AbaFicha = 'caracteristicas' | 'combate' | 'equipamentos' | 'magia' | 'biografia';
+  const [abaAtiva, setAbaAtiva] = useState<AbaFicha>('caracteristicas');
   const [mensagemSalvo, setMensagemSalvo] = useState<boolean>(false);
   const [feedbackSincronizacao, setFeedbackSincronizacao] = useState<string | null>(null);
 
@@ -1567,6 +1568,55 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }
   };
 
+  const handleReabrirModoCriacao = () => {
+    if (
+      confirm(
+        `Deseja reabilitar o Modo de Criação para "${ficha.nome || 'este personagem'}"? O jogador poderá redistribuir atributos, habilidades, disciplinas e pontos bônus livremente.`
+      )
+    ) {
+      const atualizada: Personagem = {
+        ...ficha,
+        criacao: {
+          ...(ficha.criacao || {
+            distribuicaoAtributos: { fisica: 0, social: 0, mental: 0 },
+            distribuicaoHabilidades: { talentos: 0, pericias: 0, conhecimentos: 0 },
+            disciplinasPrimariasIds: [],
+            pontosBonusGastos: 0,
+          }),
+          status: 'em_criacao',
+          etapa: ficha.criacao?.etapa === 'concluida' ? 'bonus' : (ficha.criacao?.etapa || 'iniciais'),
+        },
+      };
+      setFicha(atualizada);
+      onSalvar(atualizada);
+      setHasChanges(false);
+      setSucessoXP('✓ Modo de Criação reaberto com sucesso!');
+      setTimeout(() => setSucessoXP(null), 4000);
+    }
+  };
+
+  const handleBloquearModoCriacao = () => {
+    if (
+      confirm(
+        `Deseja finalizar/travar o Modo de Criação de "${ficha.nome || 'este personagem'}"? A ficha passará para o modo de jogo padrão.`
+      )
+    ) {
+      const atualizada: Personagem = {
+        ...ficha,
+        criacao: {
+          ...ficha.criacao!,
+          status: 'finalizada',
+          etapa: 'concluida',
+        },
+      };
+      setFicha(atualizada);
+      onSalvar(atualizada);
+      setHasChanges(false);
+      setSucessoXP('✓ Modo de Criação travado! A ficha agora está no modo de jogo padrão.');
+      setTimeout(() => setSucessoXP(null), 4000);
+    }
+  };
+
   // Bloqueio de sigilo do Narrador: se o usuário atual for jogador e a ficha for NPC ou criada pelo Mestre, bloqueia visualização
   const usuarios = storageService.getUsuarios();
   const mestre = usuarios.find((u) => u.role === 'mestre');
@@ -1626,12 +1676,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           </div>
 
           {/* Abas de Navegação */}
-          <div className="flex items-center gap-1 bg-[#160d11] p-1 rounded-sm border border-[#3b181b]">
+          <div className="flex items-center gap-1 bg-[#160d11] p-1 rounded-sm border border-[#3b181b] flex-wrap">
             <button
               type="button"
-              onClick={() => setAbaAtiva('secao1')}
-              className={`px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                abaAtiva === 'secao1'
+              onClick={() => setAbaAtiva('caracteristicas')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                abaAtiva === 'caracteristicas'
                   ? 'bg-[#8b0000] text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]'
                   : 'text-[#a89f91] hover:text-white hover:bg-[#251419]'
               }`}
@@ -1641,9 +1691,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setAbaAtiva('secao2')}
-              className={`px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                abaAtiva === 'secao2'
+              onClick={() => setAbaAtiva('combate')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                abaAtiva === 'combate'
                   ? 'bg-[#8b0000] text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]'
                   : 'text-[#a89f91] hover:text-white hover:bg-[#251419]'
               }`}
@@ -1653,15 +1703,39 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setAbaAtiva('secao3')}
-              className={`px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                abaAtiva === 'secao3'
+              onClick={() => setAbaAtiva('equipamentos')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                abaAtiva === 'equipamentos'
+                  ? 'bg-[#8b0000] text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]'
+                  : 'text-[#a89f91] hover:text-white hover:bg-[#251419]'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>3. Equipamentos</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAbaAtiva('magia')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                abaAtiva === 'magia'
                   ? 'bg-[#8b0000] text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]'
                   : 'text-[#a89f91] hover:text-white hover:bg-[#251419]'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>3. Magia & Biografia</span>
+              <span>4. Magia & Rituais</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAbaAtiva('biografia')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xs text-xs font-gothic tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                abaAtiva === 'biografia'
+                  ? 'bg-[#8b0000] text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]'
+                  : 'text-[#a89f91] hover:text-white hover:bg-[#251419]'
+              }`}
+            >
+              <Scroll className="w-3.5 h-3.5" />
+              <span>5. Biografia & História</span>
             </button>
           </div>
 
@@ -1705,6 +1779,31 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* Opção Exclusiva do Mestre: Reabilitar / Travar Modo de Criação */}
+              {usuarioAtual.role === 'mestre' && ficha.tipo !== 'npc' && (
+                ficha.criacao?.status === 'em_criacao' ? (
+                  <button
+                    type="button"
+                    onClick={handleBloquearModoCriacao}
+                    title="Travar criação e consolidar a ficha no modo de jogo padrão"
+                    className="px-2.5 py-1.5 rounded-xs text-xs font-gothic font-bold uppercase tracking-wider text-green-300 bg-[#122416] hover:bg-[#1a3821] border border-green-600/70 hover:border-green-500 flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                    <span>Travar Criação</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReabrirModoCriacao}
+                    title="Reabilitar o modo de criação para permitir que o jogador altere pontos e distribuição inicial"
+                    className="px-2.5 py-1.5 rounded-xs text-xs font-gothic font-bold uppercase tracking-wider text-amber-300 bg-[#2b1810] hover:bg-[#422214] border border-amber-600/70 hover:border-amber-500 flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Reabrir Modo Criação</span>
+                  </button>
+                )
+              )}
 
               <button
                 type="button"
@@ -1961,7 +2060,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           {/* ========================================================================= */}
           {/* ABA 1: CARACTERÍSTICAS PRINCIPAIS (Atributos, Habilidades, Vantagens, etc.) */}
           {/* ========================================================================= */}
-          {abaAtiva === 'secao1' && (
+          {abaAtiva === 'caracteristicas' && (
             <div className="space-y-8 animate-fadeIn">
               {/* ATRIBUTOS */}
               <div>
@@ -2951,9 +3050,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           )}
 
           {/* ========================================================================= */}
-          {/* ABA 2: EXPERIÊNCIA, COMBATE E LAÇOS */}
+          {/* ABA 2: EXPERIÊNCIA E COMBATE */}
           {/* ========================================================================= */}
-          {abaAtiva === 'secao2' && (
+          {abaAtiva === 'combate' && (
             <div className="space-y-8 animate-fadeIn">
               {/* CONTROLE DE EXPERIÊNCIA (XP) */}
               <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-4">
@@ -3189,7 +3288,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
 
+          {/* ========================================================================= */}
+          {/* ABA 3: EQUIPAMENTOS, ARMAS E ARMADURAS */}
+          {/* ========================================================================= */}
+          {abaAtiva === 'equipamentos' && (
+            <div className="space-y-8 animate-fadeIn">
+              <div className="space-y-6">
                 {/* ARMAS */}
                 <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-4">
                   <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 flex-wrap gap-2">
@@ -3426,130 +3534,41 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 </div>
               </div>
 
-              {/* RELAÇÕES E MENTE: LAÇOS DE SANGUE E PERTURBAÇÕES */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* LAÇOS DE SANGUE / VINCULI */}
+                {/* PERTENCES & EQUIPAMENTOS GERAIS */}
                 <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-3">
-                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
+                  <div className="border-b border-[#3b181b] pb-2 flex items-center justify-between">
                     <div>
-                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
-                        Laços de Sangue & Vinculi
+                      <h4 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[#ef4444]" /> Pertences & Equipamentos Gerais
                       </h4>
-                      <p className="text-[10px] text-[#8e8273]">Graus de subserviência (1 a 3 goles)</p>
+                      <p className="text-[11px] text-[#8e8273]">
+                        Bolsas, moedas de prata e ouro, montarias, relíquias medievais, tochas e mantimentos.
+                      </p>
                     </div>
-                    {podeEditar && (
-                      <button
-                        type="button"
-                        onClick={handleAdicionarLaco}
-                        className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Adicionar
-                      </button>
-                    )}
                   </div>
-
-                  {ficha.lacosDeSangue.length === 0 ? (
-                    <p className="text-xs text-[#706456] italic">Nenhum laço de sangue registrado.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {ficha.lacosDeSangue.map((laco) => (
-                        <div key={laco.id} className="flex items-center justify-between gap-2 p-2 bg-[#1b1115] rounded-xs border border-[#2b161c]">
-                          <div className="flex-1">
-                            <InlineField
-                              value={laco.regente}
-                              onChange={(v) => handleEditarLaco(laco.id, 'regente', v)}
-                              readonly={!podeEditar}
-                              placeholder="Regente ou Vassalo"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Bolinhas
-                              valor={laco.nivel}
-                              max={3}
-                              min={1}
-                              tamanho="sm"
-                              onChange={(v) => handleEditarLaco(laco.id, 'nivel', v)}
-                              readonly={!podeEditar}
-                            />
-                            {podeEditar && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoverLaco(laco.id)}
-                                className="text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* PERTURBAÇÕES */}
-                <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-3">
-                  <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
-                    <div>
-                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
-                        Perturbações Mentais
-                      </h4>
-                      <p className="text-[10px] text-[#8e8273]">Fraturas da psique cainita</p>
-                    </div>
-                    {podeEditar && (
-                      <button
-                        type="button"
-                        onClick={handleAdicionarPerturbacao}
-                        className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Adicionar
-                      </button>
-                    )}
-                  </div>
-
-                  {ficha.perturbacoes.length === 0 ? (
-                    <p className="text-xs text-[#706456] italic">Mente lúcida (nenhuma perturbação ativa).</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {ficha.perturbacoes.map((pert) => (
-                        <div key={pert.id} className="p-2.5 bg-[#1b1115] rounded-xs border border-[#2b161c] space-y-1 relative">
-                          {podeEditar && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoverPerturbacao(pert.id)}
-                              className="absolute top-2 right-2 text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          <InlineField
-                            value={pert.nome}
-                            onChange={(v) => handleEditarPerturbacao(pert.id, 'nome', v)}
-                            readonly={!podeEditar}
-                            placeholder="Nome da Perturbação"
-                            className="font-bold text-[#d4af37]"
-                          />
-                          <InlineField
-                            value={pert.descricao}
-                            onChange={(v) => handleEditarPerturbacao(pert.id, 'descricao', v)}
-                            readonly={!podeEditar}
-                            placeholder="Descrição dos sintomas e gatilhos mentais..."
-                            multiline
-                            rows={2}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <InlineField
+                    label="Lista de Pertences & Equipamento Carregado"
+                    value={ficha.biografia?.notas || ''}
+                    onChange={(v) =>
+                      updateFicha((prev) => ({
+                        ...prev,
+                        biografia: { ...prev.biografia, notas: v },
+                      }))
+                    }
+                    multiline
+                    rows={4}
+                    placeholder="Ex: Cavalo de batalha com arreios, 20 denários de prata, odre de vinho, tochas, símbolos e relíquias..."
+                    readonly={!podeEditar}
+                  />
                 </div>
               </div>
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* ABA 3: MAGIA DE SANGUE, BIOGRAFIA E APARÊNCIA */}
+          {/* ABA 4: MAGIA DE SANGUE, RITUAIS E MENTE */}
           {/* ========================================================================= */}
-          {abaAtiva === 'secao3' && (
+          {abaAtiva === 'magia' && (
             <div className="space-y-8 animate-fadeIn">
               {/* MAGIA DE SANGUE / TAUMATURGIA */}
               <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-6">
@@ -3684,6 +3703,128 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* PERTURBAÇÕES MENTAIS */}
+              <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-3">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
+                  <div>
+                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                      Perturbações Mentais
+                    </h4>
+                    <p className="text-[10px] text-[#8e8273]">Fraturas da psique cainita</p>
+                  </div>
+                  {podeEditar && (
+                    <button
+                      type="button"
+                      onClick={handleAdicionarPerturbacao}
+                      className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Adicionar
+                    </button>
+                  )}
+                </div>
+
+                {ficha.perturbacoes.length === 0 ? (
+                  <p className="text-xs text-[#706456] italic">Mente lúcida (nenhuma perturbação ativa).</p>
+                ) : (
+                  <div className="space-y-2">
+                    {ficha.perturbacoes.map((pert) => (
+                      <div key={pert.id} className="p-2.5 bg-[#1b1115] rounded-xs border border-[#2b161c] space-y-1 relative">
+                        {podeEditar && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoverPerturbacao(pert.id)}
+                            className="absolute top-2 right-2 text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <InlineField
+                          value={pert.nome}
+                          onChange={(v) => handleEditarPerturbacao(pert.id, 'nome', v)}
+                          readonly={!podeEditar}
+                          placeholder="Nome da Perturbação"
+                          className="font-bold text-[#d4af37]"
+                        />
+                        <InlineField
+                          value={pert.descricao}
+                          onChange={(v) => handleEditarPerturbacao(pert.id, 'descricao', v)}
+                          readonly={!podeEditar}
+                          placeholder="Descrição dos sintomas e gatilhos mentais..."
+                          multiline
+                          rows={2}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* ABA 5: BIOGRAFIA, HISTÓRIA E LAÇOS DE SANGUE */}
+          {/* ========================================================================= */}
+          {abaAtiva === 'biografia' && (
+            <div className="space-y-8 animate-fadeIn">
+              {/* LAÇOS DE SANGUE / VINCULI */}
+              <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-3">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
+                  <div>
+                    <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                      Laços de Sangue & Vinculi
+                    </h4>
+                    <p className="text-[10px] text-[#8e8273]">Graus de subserviência (1 a 3 goles)</p>
+                  </div>
+                  {podeEditar && (
+                    <button
+                      type="button"
+                      onClick={handleAdicionarLaco}
+                      className="text-xs text-[#d4af37] hover:text-white flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Adicionar
+                    </button>
+                  )}
+                </div>
+
+                {ficha.lacosDeSangue.length === 0 ? (
+                  <p className="text-xs text-[#706456] italic">Nenhum laço de sangue registrado.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {ficha.lacosDeSangue.map((laco) => (
+                      <div key={laco.id} className="flex items-center justify-between gap-2 p-2 bg-[#1b1115] rounded-xs border border-[#2b161c]">
+                        <div className="flex-1">
+                          <InlineField
+                            value={laco.regente}
+                            onChange={(v) => handleEditarLaco(laco.id, 'regente', v)}
+                            readonly={!podeEditar}
+                            placeholder="Regente ou Vassalo"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Bolinhas
+                            valor={laco.nivel}
+                            max={3}
+                            min={1}
+                            tamanho="sm"
+                            onChange={(v) => handleEditarLaco(laco.id, 'nivel', v)}
+                            readonly={!podeEditar}
+                          />
+                          {podeEditar && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverLaco(laco.id)}
+                              className="text-[#8e8273] hover:text-[#ef4444] p-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* APARÊNCIA */}
