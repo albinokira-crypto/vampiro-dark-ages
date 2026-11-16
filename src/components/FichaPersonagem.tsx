@@ -1286,6 +1286,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       equipada: true,
       forcaMinima: modelo.forcaMinima,
       recursosMinimo: modelo.recursosMinimo,
+      penalidadePercepcao: modelo.penalidadePercepcao || 0,
     };
     updateFicha((prev) => ({
       ...prev,
@@ -2265,7 +2266,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       {!isNpc && renderBadgePontos(gastosMentais, limiteMentais.max, limiteMentais.prioridade)}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Percepção</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold">Percepção</span>
+                        {statusCombate.totalPenalidadePercepcao !== 0 && (
+                          <span
+                            className="text-[9px] font-mono font-bold text-amber-300 bg-amber-950/80 border border-amber-700 px-1 py-0.2 rounded-xs"
+                            title={`Penalidade de Elmo / Armadura: ${statusCombate.totalPenalidadePercepcao}. Percepção efetiva: ${statusCombate.percepcaoEfetiva}`}
+                          >
+                            Efetiva: {statusCombate.percepcaoEfetiva}
+                          </span>
+                        )}
+                      </div>
                       <Bolinhas
                         valor={ficha.atributos.percepcao}
                         max={maxBolinhasTraço}
@@ -3640,6 +3651,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                   {faltaForcaArm && isEquipada && (
                                     <span className="text-[9px] text-red-400 block font-mono mt-0.5">
                                       ({penNum} armadura - {penExtraForca} sobrecarga)
+                                    </span>
+                                  )}
+                                  {Boolean(arm.penalidadePercepcao && arm.penalidadePercepcao < 0 && isEquipada) && (
+                                    <span className="text-[9px] text-amber-400 block font-mono mt-0.5" title="Penalidade de visão e audição abafadas por elmo">
+                                      {arm.penalidadePercepcao} Percepção
                                     </span>
                                   )}
                                 </td>
@@ -5362,6 +5378,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         >
                           Recursos: {'•'.repeat(arm.recursosMinimo || 0) || '0'} {temRecursos ? '✓' : `(Requer ${arm.recursosMinimo})`}
                         </span>
+                        {Boolean(arm.penalidadePercepcao && arm.penalidadePercepcao < 0) && (
+                          <span
+                            className="text-[10px] font-mono px-2 py-0.5 rounded border text-amber-300 bg-amber-950/60 border-amber-800/70"
+                            title="Penalidade de visão e audição provocada por elmo ou viseira fechada"
+                          >
+                            Percepção: {arm.penalidadePercepcao}
+                          </span>
+                        )}
                       </div>
                       {arm.descricao && (
                         <p className="text-[11px] text-[#a89f91]">{arm.descricao}</p>

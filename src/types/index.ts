@@ -112,6 +112,7 @@ export interface Armadura {
   equipada?: boolean; // Se está em uso pelo personagem (padrão true)
   forcaMinima?: number;
   recursosMinimo?: number;
+  penalidadePercepcao?: number; // Penalidade em testes de Percepção/Prontidão devido a elmo ou viseira
 }
 
 export interface LacoDeSangue {

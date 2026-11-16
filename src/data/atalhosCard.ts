@@ -127,9 +127,9 @@ export const ATALHOS_CARD_PADRAO: AtalhoParadaDado[] = [
   },
   {
     id: 'vigorar',
-    nome: 'Vigorar / Absorção',
-    traco1: 'vigor',
-    traco2: 'absorcao',
+    nome: 'Absorção de Dano',
+    traco1: 'absorcao',
+    traco2: 'nenhum',
     tipoExibicao: 'dados',
     icone: 'Shield',
   },
@@ -188,22 +188,23 @@ export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado):
     return 0;
   };
 
-  // Se o traço já for 'absorcao', já contém o cálculo total consolidado
-  if (atalho.traco1 === 'absorcao' || atalho.traco2 === 'absorcao') {
+  // Se o atalho for de Absorção / Vigorar de Dano, utiliza o cálculo canônico consolidado da 1ª Edição
+  if (
+    atalho.id === 'vigorar' ||
+    atalho.traco1 === 'absorcao' ||
+    atalho.traco2 === 'absorcao' ||
+    atalho.nome.toLowerCase().includes('absorção') ||
+    atalho.nome.toLowerCase().includes('absorcao')
+  ) {
     const totalAbs = statusCombate.absorcaoDanoNormal;
     const vigBase = p.atributos.vigor || 1;
-    const bonusExtra = Math.max(0, totalAbs - vigBase);
-    const mods: string[] = [];
-    if (classeArmadura > 0) mods.push(`+${classeArmadura} armadura`);
-    if (fortitudeNivel > 0) mods.push(`+${fortitudeNivel} Fortitude`);
     return {
       valorTotal: totalAbs,
       valorBase: vigBase,
-      bonus: bonusExtra,
+      bonus: 0,
       onus: 0,
       temOnus: false,
-      temBonus: bonusExtra > 0,
-      rotuloModificador: mods.length > 0 ? mods.join(', ') : undefined,
+      temBonus: false,
       tipoExibicao: atalho.tipoExibicao,
       textoExibicao: atalho.tipoExibicao === 'total' ? `${totalAbs}` : `${totalAbs}d10`,
     };
@@ -217,7 +218,8 @@ export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado):
   let bonusTotal = 0;
   const modsDesc: string[] = [];
 
-  // 1. DÉBITO DE ÔNUS: Penalidade da Armadura em testes que utilizam Destreza ou ações físicas de combate
+  // 1. DÉBITO DE ÔNUS POR EQUIPAMENTOS:
+  // a) Penalidade da Armadura em testes que utilizam Destreza ou ações físicas de combate
   const usaDestreza =
     atalho.traco1 === 'destreza' ||
     atalho.traco2 === 'destreza' ||
@@ -242,6 +244,19 @@ export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado):
     modsDesc.push(`${penalidadeArmadura} armadura`);
   }
 
+  // b) Penalidade de Percepção por Elmo / Viseira fechada / Armadura Pesada (1ª Edição)
+  const penalidadePercepcao = statusCombate.totalPenalidadePercepcao; // ex: -1, -2
+  const usaPercepcao =
+    atalho.traco1 === 'percepcao' ||
+    atalho.traco2 === 'percepcao' ||
+    atalho.traco1 === 'prontidao' ||
+    atalho.traco2 === 'prontidao';
+
+  if (usaPercepcao && penalidadePercepcao < 0) {
+    onusTotal += penalidadePercepcao;
+    modsDesc.push(`${penalidadePercepcao} elmo/armadura`);
+  }
+
   // 2. CÁLCULO DE BÔNUS:
   // Se for atalho de Iniciativa:
   const isIniciativa = atalho.id === 'iniciativa' || atalho.nome.toLowerCase().includes('iniciativa');
@@ -254,35 +269,11 @@ export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado):
       onusTotal += penalidadeArmadura;
       modsDesc.push(`${penalidadeArmadura} armadura`);
     }
-  }
-
-  // Se for atalho de Defesa / Absorção / Vigorar:
-  const isDefesaOuVigor =
-    atalho.id === 'vigorar' ||
-    atalho.nome.toLowerCase().includes('vigorar') ||
-    atalho.nome.toLowerCase().includes('absorção') ||
-    atalho.nome.toLowerCase().includes('absorcao') ||
-    atalho.traco1 === 'vigor' ||
-    atalho.traco2 === 'vigor';
-
-  if (isDefesaOuVigor) {
-    if (classeArmadura > 0) {
-      bonusTotal += classeArmadura;
-      modsDesc.push(`+${classeArmadura} armadura`);
-    }
-    if (fortitudeNivel > 0) {
-      bonusTotal += fortitudeNivel;
-      modsDesc.push(`+${fortitudeNivel} Fortitude`);
+    if (!usaPercepcao && penalidadePercepcao < 0) {
+      onusTotal += penalidadePercepcao;
+      modsDesc.push(`${penalidadePercepcao} elmo`);
     }
   }
-
-  const isAtaqueFisico =
-    atalho.id === 'ataque_arma_branca' ||
-    atalho.id === 'ataque_briga' ||
-    atalho.traco1 === 'armasBrancas' ||
-    atalho.traco2 === 'armasBrancas' ||
-    atalho.traco1 === 'briga' ||
-    atalho.traco2 === 'briga';
 
   const valorCalculado = Math.max(valorBase > 0 ? 1 : 0, valorBase + onusTotal + bonusTotal);
 
@@ -293,10 +284,7 @@ export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado):
       ? 'dados'
       : atalho.tipoExibicao;
 
-  let textoExibicao = tipoEfetivo === 'total' ? `${valorCalculado}` : `${valorCalculado}d10`;
-  if (isAtaqueFisico && potenciaNivel > 0) {
-    textoExibicao += ` (+${potenciaNivel} Pot)`;
-  }
+  const textoExibicao = tipoEfetivo === 'total' ? `${valorCalculado}` : `${valorCalculado}d10`;
 
   return {
     valorTotal: valorCalculado,
@@ -304,7 +292,7 @@ export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado):
     bonus: bonusTotal,
     onus: onusTotal,
     temOnus: onusTotal < 0,
-    temBonus: bonusTotal > 0 || (isAtaqueFisico && potenciaNivel > 0),
+    temBonus: bonusTotal > 0,
     rotuloModificador: modsDesc.length > 0 ? modsDesc.join(', ') : undefined,
     tipoExibicao: tipoEfetivo,
     textoExibicao,

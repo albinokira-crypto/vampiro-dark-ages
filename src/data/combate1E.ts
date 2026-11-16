@@ -23,6 +23,7 @@ export interface ModeloArmadura1E {
   penalidade: string; // Penalidade em testes de Destreza (ex: -1, -2)
   forcaMinima: number; // Requisito mínimo de Força para suportar o peso
   recursosMinimo: number; // Nível mínimo no Antecedente Recursos
+  penalidadePercepcao?: number; // Penalidade em Percepção (visão e audição obstruídas por elmo/placas)
   descricao?: string;
 }
 
@@ -197,7 +198,8 @@ export const ARMADURAS_CATALOGO_1E: ModeloArmadura1E[] = [
     penalidade: '0',
     forcaMinima: 1,
     recursosMinimo: 1,
-    descricao: 'Proteção leve e flexível sem penalidade de movimento.',
+    penalidadePercepcao: 0,
+    descricao: 'Proteção leve e flexível sem penalidade de movimento ou visão.',
   },
   {
     nome: 'Couro Batido com Rebites',
@@ -205,6 +207,7 @@ export const ARMADURAS_CATALOGO_1E: ModeloArmadura1E[] = [
     penalidade: '-1',
     forcaMinima: 2,
     recursosMinimo: 2,
+    penalidadePercepcao: 0,
     descricao: 'Couro fervido rígido com rebites metálicos. -1 na Destreza.',
   },
   {
@@ -213,6 +216,7 @@ export const ARMADURAS_CATALOGO_1E: ModeloArmadura1E[] = [
     penalidade: '-1',
     forcaMinima: 2,
     recursosMinimo: 3,
+    penalidadePercepcao: 0,
     descricao: 'Anéis de aço entrelaçados. +3 dados de absorção, -1 Destreza.',
   },
   {
@@ -221,6 +225,7 @@ export const ARMADURAS_CATALOGO_1E: ModeloArmadura1E[] = [
     penalidade: '-1',
     forcaMinima: 3,
     recursosMinimo: 3,
+    penalidadePercepcao: 0,
     descricao: 'Malha com reforço de placas no torso. +3 dados, -1 Destreza.',
   },
   {
@@ -229,7 +234,8 @@ export const ARMADURAS_CATALOGO_1E: ModeloArmadura1E[] = [
     penalidade: '-2',
     forcaMinima: 3,
     recursosMinimo: 4,
-    descricao: 'Placas de aço sobre cota de malha. +4 dados de absorção, -2 Destreza.',
+    penalidadePercepcao: -1,
+    descricao: 'Placas de aço sobre cota de malha com elmo aberto. +4 absorção, -2 Destreza, -1 Percepção.',
   },
   {
     nome: 'Armadura Completa de Placas de Cavaleiro',
@@ -237,7 +243,26 @@ export const ARMADURAS_CATALOGO_1E: ModeloArmadura1E[] = [
     penalidade: '-2',
     forcaMinima: 4,
     recursosMinimo: 5,
-    descricao: 'Arnês completo de cavaleiro. +5 dados de absorção, -2 Destreza.',
+    penalidadePercepcao: -2,
+    descricao: 'Arnês completo de cavaleiro com grande elmo fechado. +5 absorção, -2 Destreza, -2 Percepção.',
+  },
+  {
+    nome: 'Grande Elmo Fechado de Cavaleiro',
+    classe: '1',
+    penalidade: '0',
+    forcaMinima: 1,
+    recursosMinimo: 3,
+    penalidadePercepcao: -2,
+    descricao: 'Elmo de aço cilíndrico com frestas de visão. +1 absorção na cabeça, -2 em Percepção.',
+  },
+  {
+    nome: 'Bacinete com Camail de Malha',
+    classe: '1',
+    penalidade: '0',
+    forcaMinima: 1,
+    recursosMinimo: 2,
+    penalidadePercepcao: -1,
+    descricao: 'Capacete cônico com proteção no pescoço e visor parcial. +1 absorção, -1 em Percepção.',
   },
 ];
 
@@ -385,8 +410,11 @@ export function calcularParadaAtaqueArma(
 export function calcularStatusCombate(ficha: Personagem): {
   totalClasseArmadura: number;
   totalPenalidadeArmadura: number;
+  totalPenalidadePercepcao: number;
   destrezaBase: number;
   destrezaEfetiva: number;
+  percepcaoBase: number;
+  percepcaoEfetiva: number;
   vigorBase: number;
   forcaBase: number;
   fortitudeNivel: number;
@@ -406,10 +434,14 @@ export function calcularStatusCombate(ficha: Personagem): {
   const forcaBase = ficha.atributos.forca || 1;
   let totalClasseArmadura = 0;
   let totalPenalidadeArmadura = 0;
+  let totalPenalidadePercepcao = 0;
 
   for (const arm of armadurasEquipadas) {
     totalClasseArmadura += extrairClasseArmadura(arm.classe);
     totalPenalidadeArmadura += extrairPenalidadeArmadura(arm.penalidade);
+    if (typeof arm.penalidadePercepcao === 'number' && arm.penalidadePercepcao !== 0) {
+      totalPenalidadePercepcao += arm.penalidadePercepcao;
+    }
     // Sobrecarga por Força insuficiente: se Força for inferior à forcaMinima da armadura, -1 Destreza extra por ponto faltante
     const forcaMin = arm.forcaMinima || 1;
     if (forcaBase < forcaMin) {
@@ -419,6 +451,8 @@ export function calcularStatusCombate(ficha: Personagem): {
 
   const destrezaBase = ficha.atributos.destreza || 1;
   const destrezaEfetiva = Math.max(1, destrezaBase + totalPenalidadeArmadura);
+  const percepcaoBase = ficha.atributos.percepcao || 1;
+  const percepcaoEfetiva = Math.max(1, percepcaoBase + totalPenalidadePercepcao);
   const vigorBase = ficha.atributos.vigor || 1;
 
   // Disciplinas Físicas
@@ -451,8 +485,11 @@ export function calcularStatusCombate(ficha: Personagem): {
   return {
     totalClasseArmadura,
     totalPenalidadeArmadura,
+    totalPenalidadePercepcao,
     destrezaBase,
     destrezaEfetiva,
+    percepcaoBase,
+    percepcaoEfetiva,
     vigorBase,
     forcaBase,
     fortitudeNivel,

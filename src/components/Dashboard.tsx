@@ -561,22 +561,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   >
                                     {detalhes.textoExibicao}
                                   </span>
-                                  {detalhes.temOnus && (
-                                    <span
-                                      className="text-[8px] font-mono font-bold text-amber-300 bg-amber-950 px-1 py-0.2 rounded-xs border border-amber-700/80"
-                                      title={detalhes.rotuloModificador}
-                                    >
-                                      {detalhes.onus}
-                                    </span>
-                                  )}
-                                  {detalhes.bonus > 0 && (
-                                    <span
-                                      className="text-[8px] font-mono font-bold text-green-300 bg-green-950 px-1 py-0.2 rounded-xs border border-green-700/80"
-                                      title={detalhes.rotuloModificador}
-                                    >
-                                      +{detalhes.bonus}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
                             );

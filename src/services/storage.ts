@@ -400,6 +400,16 @@ export function normalizarPersonagem(p: Personagem): Personagem {
     });
   }
 
+  // Normalização retroativa de atalhos de dados (evitar duplicação de Vigor em Absorção)
+  if (copia.atalhosCard && Array.isArray(copia.atalhosCard)) {
+    copia.atalhosCard = copia.atalhosCard.map((a: any) => {
+      if (a.id === 'vigorar' && (a.traco1 === 'vigor' || a.traco2 === 'absorcao')) {
+        return { ...a, nome: 'Absorção de Dano', traco1: 'absorcao', traco2: 'nenhum' };
+      }
+      return a;
+    });
+  }
+
   return copia;
 }
 
@@ -415,13 +425,16 @@ export const storageService = {
       if (!parsed.atalhosCard || parsed.atalhosCard.length === 0) {
         parsed.atalhosCard = ATALHOS_CARD_PADRAO;
       } else {
-        // Auto-sincronizar tipos de exibição canônicos: Esquiva (unidade) e Iniciativa (d10)
+        // Auto-sincronizar tipos de exibição canônicos: Esquiva (unidade), Iniciativa (d10) e Absorção limpa
         parsed.atalhosCard = parsed.atalhosCard.map((a: any) => {
           if (a.id === 'esquiva' && a.tipoExibicao === 'dados') {
             return { ...a, tipoExibicao: 'total' };
           }
           if (a.id === 'iniciativa' && a.tipoExibicao === 'total') {
             return { ...a, tipoExibicao: 'dados' };
+          }
+          if (a.id === 'vigorar' && (a.traco1 === 'vigor' || a.traco2 === 'absorcao')) {
+            return { ...a, nome: 'Absorção de Dano', traco1: 'absorcao', traco2: 'nenhum' };
           }
           return a;
         });
@@ -459,6 +472,9 @@ export const storageService = {
               }
               if (a.id === 'iniciativa' && a.tipoExibicao === 'total') {
                 return { ...a, tipoExibicao: 'dados' };
+              }
+              if (a.id === 'vigorar' && (a.traco1 === 'vigor' || a.traco2 === 'absorcao')) {
+                return { ...a, nome: 'Absorção de Dano', traco1: 'absorcao', traco2: 'nenhum' };
               }
               return a;
             });
