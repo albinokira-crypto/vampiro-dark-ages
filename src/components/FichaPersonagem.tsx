@@ -3562,7 +3562,6 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   />
                 </div>
               </div>
-            </div>
           )}
 
           {/* ========================================================================= */}

@@ -1017,7 +1017,7 @@ export const storageService = {
       personagemId: atualizado.id,
       personagemNome: atualizado.nome,
       jogadorNome: atualizado.jogador || atualizado.usuarioNome,
-      tipo: 'sistema',
+      tipo: 'geral',
       descricao: `O Narrador reabriu o Modo de Criação de Ficha para ${atualizado.nome}.`,
     });
     return atualizado;
@@ -1046,7 +1046,7 @@ export const storageService = {
       personagemId: atualizado.id,
       personagemNome: atualizado.nome,
       jogadorNome: atualizado.jogador || atualizado.usuarioNome,
-      tipo: 'sistema',
+      tipo: 'geral',
       descricao: `O Narrador finalizou/travou a Criação de Ficha de ${atualizado.nome}.`,
     });
     return atualizado;
