@@ -3,7 +3,6 @@ import type { Personagem, User, DadosElisio, CargoElisio } from '../types';
 import {
   Crown,
   Shield,
-  Swords,
   Users,
   Feather,
   Plus,
@@ -16,7 +15,6 @@ import {
   Loader2,
   Castle,
   ExternalLink,
-  ChevronRight,
   Gavel,
 } from 'lucide-react';
 import { comprimirImagem } from '../utils/imageCompressor';

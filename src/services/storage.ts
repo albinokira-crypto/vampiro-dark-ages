@@ -7,7 +7,6 @@ import type {
   LogAlteracao,
   QualidadeDefeitoItem,
   DadosElisio,
-  CargoElisio,
 } from '../types';
 import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
 import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
