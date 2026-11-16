@@ -299,3 +299,54 @@ export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado):
 export function calcularValorAtalho(p: Personagem, atalho: AtalhoParadaDado): number {
   return calcularDetalhesAtalho(p, atalho).valorTotal;
 }
+
+/**
+ * Verifica se o atalho pode ser exibido no card do personagem.
+ * Se depender de uma habilidade ou disciplina que o personagem NÃO possui (0 pontos),
+ * o atalho é ocultado do card.
+ */
+export function podeExibirAtalho(p: Personagem, atalho: AtalhoParadaDado): boolean {
+  if (!p || !atalho) return false;
+
+  const checarTraco = (traco: string | undefined): boolean => {
+    if (!traco || traco === 'nenhum' || traco === 'destreza_efetiva' || traco === 'absorcao' || traco === 'armadura') {
+      return true;
+    }
+    // Atributos base são sempre >= 1
+    if (traco in p.atributos) {
+      return true;
+    }
+    // Se for Habilidade (Talentos, Perícias, Conhecimentos)
+    if (traco in p.habilidades) {
+      const val = (p.habilidades as Record<string, number>)[traco] || 0;
+      return val > 0;
+    }
+    // Mapeamento de aliases legados
+    const habMap: Record<string, string> = {
+      expressao: 'representacao',
+      ladinagem: 'crime',
+      manha: 'labia',
+      tiroComArco: 'arqueirismo',
+      cavalaria: 'cavalgar',
+      herbalismo: 'herborismo',
+      academicos: 'instrucao',
+      senescencia: 'senescalia',
+    };
+    if (traco in habMap && habMap[traco] in p.habilidades) {
+      const val = (p.habilidades as Record<string, number>)[habMap[traco]] || 0;
+      return val > 0;
+    }
+    // Se for disciplina (ex: Fortitude, Potência, Rapidez)
+    const disc = p.disciplinas.find((d) => d.nome.toLowerCase() === traco.toLowerCase());
+    if (disc) {
+      return disc.nivel > 0;
+    }
+    // Se está no mapa de traços como habilidade e não encontrou com valor > 0, oculta
+    if (MAPA_TRACOS[traco]?.tipo === 'habilidade') {
+      return false;
+    }
+    return true;
+  };
+
+  return checarTraco(atalho.traco1) && checarTraco(atalho.traco2);
+}

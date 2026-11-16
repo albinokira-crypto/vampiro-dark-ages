@@ -6,6 +6,8 @@ import type {
   ConfiguracaoMesa,
   LogAlteracao,
   QualidadeDefeitoItem,
+  DadosElisio,
+  CargoElisio,
 } from '../types';
 import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
 import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
@@ -14,6 +16,20 @@ const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
 const STORAGE_KEY_USERS = 'vampiro_dark_ages_users_v1';
 const STORAGE_KEY_AUTH = 'vampiro_dark_ages_auth_v1';
 const STORAGE_KEY_CONFIG = 'vampiro_dark_ages_config_v1';
+
+export const DADOS_ELISIO_PADRAO: DadosElisio = {
+  imagem: '',
+  historia: 'Sob o manto solene da Pax Cainita e as leis inquebrantáveis da Primeira Tradição, o Elísio ergue-se como solo sagrado em nossa noite medieval. Aqui, sob os arcos góticos e afrescos iluminados por tochas, toda violência física ou o uso ofensivo de Disciplinas é terminantemente proibido sob pena de Morte Final pelo Príncipe da cidade. O Elísio é o palco primordial das cortes cainitas: o teatro das intrigas políticas, da etiqueta feudal, das deliberações de justiça e dos pactos secretos entre os clãs.',
+  hierarquia: [
+    { id: 'cargo_principe', cargo: 'Príncipe', categoria: 'principe' },
+    { id: 'cargo_xerife', cargo: 'Xerife', categoria: 'xerife' },
+    { id: 'cargo_senescal', cargo: 'Senescal', categoria: 'senescal_algoz' },
+    { id: 'cargo_algoz', cargo: 'Algoz', categoria: 'senescal_algoz' },
+    { id: 'cargo_nobre_1', cargo: 'Nobre / Primigênie', categoria: 'nobres' },
+    { id: 'cargo_nobre_2', cargo: 'Nobre / Primigênie', categoria: 'nobres' },
+    { id: 'cargo_harpia_1', cargo: 'Primeira Hárpia', categoria: 'harpias' },
+  ],
+};
 
 export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   pontosAtributos: {
@@ -32,6 +48,7 @@ export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   pontosBonus: 15,
   maxPontosDefeitos: 7,
   atalhosCard: ATALHOS_CARD_PADRAO,
+  elisio: DADOS_ELISIO_PADRAO,
 };
 
 export const NIVEIS_VITALIDADE_PADRAO: NivelVitalidade[] = [
@@ -446,6 +463,9 @@ export const storageService = {
       if (parsed.pontosDisciplinas === 3) {
         parsed.pontosDisciplinas = 4;
       }
+      if (!parsed.elisio) {
+        parsed.elisio = DADOS_ELISIO_PADRAO;
+      }
       return { ...CONFIGURACAO_MESA_PADRAO, ...parsed };
     } catch {
       return CONFIGURACAO_MESA_PADRAO;
@@ -462,6 +482,9 @@ export const storageService = {
             config.pontosDisciplinas = 4;
           }
           const mesclado = { ...CONFIGURACAO_MESA_PADRAO, ...config };
+          if (!mesclado.elisio) {
+            mesclado.elisio = DADOS_ELISIO_PADRAO;
+          }
           if (mesclado.pontosDisciplinas === 3) {
             mesclado.pontosDisciplinas = 4;
           }
@@ -500,6 +523,17 @@ export const storageService = {
     } catch {
       // Ignora erro se estiver offline
     }
+  },
+
+  getDadosElisio(): DadosElisio {
+    const config = this.getConfiguracaoMesa();
+    return config.elisio || DADOS_ELISIO_PADRAO;
+  },
+
+  async salvarDadosElisio(dados: DadosElisio): Promise<void> {
+    const config = this.getConfiguracaoMesa();
+    config.elisio = dados;
+    await this.salvarConfiguracaoMesa(config);
   },
 
   // Usuários e Autenticação

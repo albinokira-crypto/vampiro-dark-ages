@@ -10,16 +10,19 @@ import {
   Flame,
   Zap,
   SlidersHorizontal,
+  Castle,
 } from 'lucide-react';
 import { FotoPersonagem } from './FotoPersonagem';
 import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
 import { PainelJogadoresMestre } from './PainelJogadoresMestre';
+import { PainelElisio } from './PainelElisio';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import {
   calcularDetalhesAtalho,
   ATALHOS_CARD_PADRAO,
   MAPA_TRACOS,
   getIconeAtalho,
+  podeExibirAtalho,
 } from '../data/atalhosCard';
 
 interface DashboardProps {
@@ -39,6 +42,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     usuarioAtual.role === 'mestre' ? 'npcs' : 'meus'
   );
   const [abaMestre, setAbaMestre] = useState<'fichas' | 'auditoria' | 'jogadores'>('fichas');
+  const [abaPrincipal, setAbaPrincipal] = useState<'fichas' | 'elisio'>('fichas');
   const [sincronizando, setSincronizando] = useState(false);
   const [personagens, setPersonagens] = useState<Personagem[]>(() =>
     storageService.getPersonagensDoUsuario(usuarioAtual)
@@ -225,8 +229,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Skull className="w-4 h-4" />
             <span>Criar Cainita</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaPrincipal(abaPrincipal === 'elisio' ? 'fichas' : 'elisio')}
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md touch-manipulation border ${
+              abaPrincipal === 'elisio'
+                ? 'bg-[#d4af37] text-black border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                : 'bg-[#241318] hover:bg-[#341820] text-[#d4af37] border-[#522228] hover:border-[#8b0000]'
+            }`}
+            title="Acessar História e Hierarquia do Elísio"
+          >
+            <Castle className={`w-4 h-4 ${abaPrincipal === 'elisio' ? 'text-black' : 'text-[#ef4444]'}`} />
+            <span>Elísio</span>
+          </button>
         </div>
       </div>
+
+      {abaPrincipal === 'elisio' ? (
+        <PainelElisio
+          usuarioAtual={usuarioAtual}
+          personagens={personagens}
+          onVoltar={() => setAbaPrincipal('fichas')}
+          onAbrirFicha={onAbrirFicha}
+        />
+      ) : (
+        <>
 
       {/* ABAS DO MESTRE (Fichas vs Registros vs Jogadores na mesma linha sem rolagem lateral) */}
       {usuarioAtual.role === 'mestre' && (
@@ -377,12 +405,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const sangueDisp = p.pontosDeSangueAtual;
                 const sangueMax = p.pontosDeSangueMax;
                 const isEmCriacao = p.tipo !== 'npc' && p.criacao?.status === 'em_criacao';
-                const atalhos =
+                const atalhos = (
                   p.atalhosCard && p.atalhosCard.length > 0
                     ? p.atalhosCard
                     : config.atalhosCard && config.atalhosCard.length > 0
                     ? config.atalhosCard
-                    : ATALHOS_CARD_PADRAO;
+                    : ATALHOS_CARD_PADRAO
+                ).filter((a) => podeExibirAtalho(p, a));
                 const forcaVontadeAtual =
                   (p.forcaDeVontade || 1) - (p.forcaDeVontadeGasta || 0);
 
@@ -613,6 +642,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
         </div>
+      )}
+        </>
       )}
 
       {/* Modal de Configuração de Atalhos do Personagem */}

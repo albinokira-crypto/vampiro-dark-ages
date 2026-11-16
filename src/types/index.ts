@@ -18,6 +18,20 @@ export interface AtalhoParadaDado {
   icone?: string;
 }
 
+export interface CargoElisio {
+  id: string;
+  cargo: string;
+  categoria: 'principe' | 'xerife' | 'senescal_algoz' | 'nobres' | 'harpias' | 'custom';
+  personagemId?: string;
+  tituloPersonalizado?: string;
+}
+
+export interface DadosElisio {
+  imagem?: string;
+  historia?: string;
+  hierarquia: CargoElisio[];
+}
+
 export interface ConfiguracaoMesa {
   pontosAtributos: {
     primario: number; // 7
@@ -35,6 +49,7 @@ export interface ConfiguracaoMesa {
   pontosBonus: number; // 15
   maxPontosDefeitos?: number; // 7 padrão oficial de regras canônicas
   atalhosCard?: AtalhoParadaDado[];
+  elisio?: DadosElisio;
 }
 
 export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';
