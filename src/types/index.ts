@@ -100,6 +100,8 @@ export interface Arma {
   dano: string;
   ocultacao: string;
   alcance: string;
+  forcaMinima?: number;
+  recursosMinimo?: number;
 }
 
 export interface Armadura {
@@ -108,6 +110,8 @@ export interface Armadura {
   classe: string;
   penalidade: string;
   equipada?: boolean; // Se está em uso pelo personagem (padrão true)
+  forcaMinima?: number;
+  recursosMinimo?: number;
 }
 
 export interface LacoDeSangue {

@@ -12,6 +12,8 @@ export interface ModeloArma1E {
   dano: string;
   ocultacao: string;
   alcance: string;
+  forcaMinima: number; // Requisito mínimo de Força para empunhar sem penalidade
+  recursosMinimo: number; // Nível mínimo no Antecedente Recursos para possuir/comprar
   descricao?: string;
 }
 
@@ -19,6 +21,8 @@ export interface ModeloArmadura1E {
   nome: string;
   classe: string; // Dados extras de absorção
   penalidade: string; // Penalidade em testes de Destreza (ex: -1, -2)
+  forcaMinima: number; // Requisito mínimo de Força para suportar o peso
+  recursosMinimo: number; // Nível mínimo no Antecedente Recursos
   descricao?: string;
 }
 
@@ -32,6 +36,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+1',
     ocultacao: 'Bolso / Cinto',
     alcance: 'Corpo a corpo',
+    forcaMinima: 1,
+    recursosMinimo: 1,
     descricao: 'Pequena e rápida de sacar. Dificuldade 5.',
   },
   {
@@ -41,6 +47,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+2',
     ocultacao: 'Capa / Bainha',
     alcance: 'Corpo a corpo',
+    forcaMinima: 1,
+    recursosMinimo: 2,
     descricao: 'Arma ágil e equilibrada para escaramuças.',
   },
   {
@@ -50,6 +58,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+3',
     ocultacao: 'Bainha no cinto',
     alcance: 'Corpo a corpo',
+    forcaMinima: 2,
+    recursosMinimo: 3,
     descricao: 'A clássica lâmina nobre dos cavaleiros feudais.',
   },
   {
@@ -59,6 +69,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+5',
     ocultacao: 'Nenhuma',
     alcance: '2 metros',
+    forcaMinima: 3,
+    recursosMinimo: 4,
     descricao: 'Exige duas mãos e Força 3+. Golpe devastador.',
   },
   {
@@ -68,6 +80,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+4',
     ocultacao: 'Nenhuma',
     alcance: 'Corpo a corpo',
+    forcaMinima: 2,
+    recursosMinimo: 2,
     descricao: 'Capaz de fender escudos e cotas de malha.',
   },
   {
@@ -77,6 +91,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+3',
     ocultacao: 'Bainha',
     alcance: 'Corpo a corpo',
+    forcaMinima: 2,
+    recursosMinimo: 2,
     descricao: 'Arma de impacto letal contra armaduras pesadas.',
   },
   {
@@ -86,6 +102,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+3',
     ocultacao: 'Nenhuma',
     alcance: '3 metros',
+    forcaMinima: 2,
+    recursosMinimo: 2,
     descricao: 'Alcance avantajado para manter adversários à distância.',
   },
   {
@@ -95,6 +113,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+1',
     ocultacao: 'Nenhuma',
     alcance: '2 metros',
+    forcaMinima: 1,
+    recursosMinimo: 0,
     descricao: 'Dano contusivo, discreto para viajantes e monges.',
   },
 
@@ -106,6 +126,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: '3',
     ocultacao: 'Nenhuma',
     alcance: '50 metros',
+    forcaMinima: 1,
+    recursosMinimo: 1,
     descricao: 'Arma de caça ágil e leve.',
   },
   {
@@ -115,6 +137,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+1',
     ocultacao: 'Nenhuma',
     alcance: '90 metros',
+    forcaMinima: 3,
+    recursosMinimo: 3,
     descricao: 'Exige Força 3. Flechas perfurantes de longo alcance.',
   },
   {
@@ -124,6 +148,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: '5',
     ocultacao: 'Nenhuma',
     alcance: '60 metros',
+    forcaMinima: 2,
+    recursosMinimo: 3,
     descricao: 'Dano 5 fixo. Perfura armaduras; recarga de 1 turno.',
   },
 
@@ -135,6 +161,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For',
     ocultacao: '-',
     alcance: 'Corpo a corpo',
+    forcaMinima: 1,
+    recursosMinimo: 0,
     descricao: 'Dano contusivo. Absorvido normalmente por mortais e cainitas.',
   },
   {
@@ -144,6 +172,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+1',
     ocultacao: '-',
     alcance: 'Corpo a corpo',
+    forcaMinima: 1,
+    recursosMinimo: 0,
     descricao: 'Dano Agravado. Requer manobra de agarrar prévia ou ataque surpresa.',
   },
   {
@@ -153,6 +183,8 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     dano: 'For+1',
     ocultacao: '-',
     alcance: 'Corpo a corpo',
+    forcaMinima: 1,
+    recursosMinimo: 0,
     descricao: 'Dano Agravado por garras caims Gangrel.',
   },
 ];
@@ -163,36 +195,48 @@ export const ARMADURAS_CATALOGO_1E: ModeloArmadura1E[] = [
     nome: 'Couro Reforçado / Acolchoado',
     classe: '1',
     penalidade: '0',
+    forcaMinima: 1,
+    recursosMinimo: 1,
     descricao: 'Proteção leve e flexível sem penalidade de movimento.',
   },
   {
     nome: 'Couro Batido com Rebites',
     classe: '2',
     penalidade: '-1',
+    forcaMinima: 2,
+    recursosMinimo: 2,
     descricao: 'Couro fervido rígido com rebites metálicos. -1 na Destreza.',
   },
   {
     nome: 'Cota de Malha Medieval',
     classe: '3',
     penalidade: '-1',
+    forcaMinima: 2,
+    recursosMinimo: 3,
     descricao: 'Anéis de aço entrelaçados. +3 dados de absorção, -1 Destreza.',
   },
   {
     nome: 'Cota de Malha Reforçada com Peitoral',
     classe: '3',
     penalidade: '-1',
+    forcaMinima: 3,
+    recursosMinimo: 3,
     descricao: 'Malha com reforço de placas no torso. +3 dados, -1 Destreza.',
   },
   {
     nome: 'Meia Armadura de Placas',
     classe: '4',
     penalidade: '-2',
+    forcaMinima: 3,
+    recursosMinimo: 4,
     descricao: 'Placas de aço sobre cota de malha. +4 dados de absorção, -2 Destreza.',
   },
   {
     nome: 'Armadura Completa de Placas de Cavaleiro',
     classe: '5',
     penalidade: '-2',
+    forcaMinima: 4,
+    recursosMinimo: 5,
     descricao: 'Arnês completo de cavaleiro. +5 dados de absorção, -2 Destreza.',
   },
 ];
@@ -274,12 +318,14 @@ export function calcularDanoArma(
 export function calcularParadaAtaqueArma(
   arma: Arma,
   destrezaEfetiva: number,
-  habilidades: Personagem['habilidades']
+  habilidades: Personagem['habilidades'],
+  forcaPersonagem: number = 1
 ): {
   paradaDados: number;
   habilidadeUsada: string;
   habilidadeNivel: number;
   dificuldade: number;
+  penalidadeForca: number;
   resumoVisual: string;
 } {
   const nome = (arma.nome || '').toLowerCase();
@@ -312,14 +358,24 @@ export function calcularParadaAtaqueArma(
   }
 
   const paradaDados = destreza + habilidadeNivel;
-  const dif = parseInt(arma.dificuldade, 10) || 6;
+  const difBase = parseInt(arma.dificuldade, 10) || 6;
+
+  // Regra de Força Mínima (1ª Edição): se Força for menor que a exigida, penalidade na Dificuldade (+1 por ponto faltante)
+  const forcaExigida = arma.forcaMinima || 1;
+  const penalidadeForca = Math.max(0, forcaExigida - forcaPersonagem);
+  const difFinal = Math.min(10, difBase + penalidadeForca);
+
+  const detalheDif = penalidadeForca > 0
+    ? `Dif ${difFinal} (+${penalidadeForca} por Força < ${forcaExigida})`
+    : `Dif ${difFinal}`;
 
   return {
     paradaDados,
     habilidadeUsada,
     habilidadeNivel,
-    dificuldade: dif,
-    resumoVisual: `${paradaDados}d10 (Dif ${dif})`,
+    dificuldade: difFinal,
+    penalidadeForca,
+    resumoVisual: `${paradaDados}d10 (${detalheDif})`,
   };
 }
 
@@ -347,18 +403,23 @@ export function calcularStatusCombate(ficha: Personagem): {
     (a) => (a as any).equipada !== false
   );
 
+  const forcaBase = ficha.atributos.forca || 1;
   let totalClasseArmadura = 0;
   let totalPenalidadeArmadura = 0;
 
   for (const arm of armadurasEquipadas) {
     totalClasseArmadura += extrairClasseArmadura(arm.classe);
     totalPenalidadeArmadura += extrairPenalidadeArmadura(arm.penalidade);
+    // Sobrecarga por Força insuficiente: se Força for inferior à forcaMinima da armadura, -1 Destreza extra por ponto faltante
+    const forcaMin = arm.forcaMinima || 1;
+    if (forcaBase < forcaMin) {
+      totalPenalidadeArmadura -= (forcaMin - forcaBase);
+    }
   }
 
   const destrezaBase = ficha.atributos.destreza || 1;
   const destrezaEfetiva = Math.max(1, destrezaBase + totalPenalidadeArmadura);
   const vigorBase = ficha.atributos.vigor || 1;
-  const forcaBase = ficha.atributos.forca || 1;
 
   // Disciplinas Físicas
   const disc = ficha.disciplinas || [];

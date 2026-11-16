@@ -1142,6 +1142,43 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   };
 
   const handleAdicionarArmaDoCatalogo = (modelo: ModeloArma1E) => {
+    const forcaPersonagem = ficha.atributos.forca || 1;
+    const recursosPersonagem =
+      ficha.antecedentes.find((a) => a.nome.toLowerCase().includes('recurso'))?.nivel || 0;
+
+    const temForca = forcaPersonagem >= (modelo.forcaMinima || 1);
+    const temRecursos = recursosPersonagem >= (modelo.recursosMinimo || 0);
+
+    // Se jogador não tem recursos e não é mestre, bloqueia com aviso explicativo
+    if (!temRecursos && usuarioAtual.role !== 'mestre' && ficha.tipo !== 'npc') {
+      alert(
+        `Recursos Insuficientes: "${modelo.nome}" requer Recursos nível ${modelo.recursosMinimo} (seu personagem possui Recursos ${recursosPersonagem}). Você precisa da autorização do Narrador ou de espólio de batalha para adquirir esta arma.`
+      );
+      return;
+    }
+
+    // Se tiver recursos insuficientes mas for mestre (ou aprovado)
+    if (!temRecursos && usuarioAtual.role === 'mestre') {
+      if (
+        !confirm(
+          `Aviso do Narrador: "${modelo.nome}" requer Recursos nível ${modelo.recursosMinimo}, mas o personagem tem Recursos ${recursosPersonagem}. Deseja conceder esta arma como espólio ou presente de seu senhor?`
+        )
+      ) {
+        return;
+      }
+    }
+
+    // Se forca for insuficiente, avisa sobre a penalidade de dificuldade
+    if (!temForca) {
+      if (
+        !confirm(
+          `Aviso de Força Insuficiente: "${modelo.nome}" requer Força mínima ${modelo.forcaMinima} (seu personagem possui Força ${forcaPersonagem}). O personagem sofrerá penalidade de +${modelo.forcaMinima - forcaPersonagem} na Dificuldade dos testes de ataque devido ao peso da arma. Deseja adicionar mesmo assim?`
+        )
+      ) {
+        return;
+      }
+    }
+
     const nova: Arma = {
       id: 'arma_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
       nome: modelo.nome,
@@ -1149,6 +1186,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       dano: modelo.dano,
       ocultacao: modelo.ocultacao,
       alcance: modelo.alcance,
+      forcaMinima: modelo.forcaMinima,
+      recursosMinimo: modelo.recursosMinimo,
     };
     updateFicha((prev) => ({
       ...prev,
@@ -1202,12 +1241,51 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   };
 
   const handleAdicionarArmaduraDoCatalogo = (modelo: ModeloArmadura1E) => {
+    const forcaPersonagem = ficha.atributos.forca || 1;
+    const recursosPersonagem =
+      ficha.antecedentes.find((a) => a.nome.toLowerCase().includes('recurso'))?.nivel || 0;
+
+    const temForca = forcaPersonagem >= (modelo.forcaMinima || 1);
+    const temRecursos = recursosPersonagem >= (modelo.recursosMinimo || 0);
+
+    // Se jogador não tem recursos e não é mestre, bloqueia com aviso
+    if (!temRecursos && usuarioAtual.role !== 'mestre' && ficha.tipo !== 'npc') {
+      alert(
+        `Recursos Insuficientes: "${modelo.nome}" requer Recursos nível ${modelo.recursosMinimo} (seu personagem possui Recursos ${recursosPersonagem}). Armaduras medievais de metal são itens de alto prestígio e custo nobre. Consulte o Narrador para autorização.`
+      );
+      return;
+    }
+
+    // Se for mestre concedendo com recursos insuficientes
+    if (!temRecursos && usuarioAtual.role === 'mestre') {
+      if (
+        !confirm(
+          `Aviso do Narrador: "${modelo.nome}" requer Recursos nível ${modelo.recursosMinimo}, mas o personagem tem Recursos ${recursosPersonagem}. Deseja conceder esta armadura como espólio de guerra ou recompensa feudal?`
+        )
+      ) {
+        return;
+      }
+    }
+
+    // Se forca for insuficiente, avisa sobre a sobrecarga de peso
+    if (!temForca) {
+      if (
+        !confirm(
+          `Aviso de Sobrecarga de Armadura: "${modelo.nome}" requer Força mínima ${modelo.forcaMinima} para suportar o peso da couraça (seu personagem possui Força ${forcaPersonagem}). O personagem sofrerá -${modelo.forcaMinima - forcaPersonagem} Destreza ADICIONAL por sobrecarga de peso. Deseja adicionar mesmo assim?`
+        )
+      ) {
+        return;
+      }
+    }
+
     const nova: Armadura = {
       id: 'armadura_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
       nome: modelo.nome,
       classe: modelo.classe,
       penalidade: modelo.penalidade,
       equipada: true,
+      forcaMinima: modelo.forcaMinima,
+      recursosMinimo: modelo.recursosMinimo,
     };
     updateFicha((prev) => ({
       ...prev,
@@ -3342,22 +3420,49 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         </thead>
                         <tbody className="divide-y divide-[#241318]">
                           {ficha.armas.map((arma) => {
-                            const ataqueInfo = calcularParadaAtaqueArma(arma, statusCombate.destrezaEfetiva, ficha.habilidades);
-                            const danoInfo = calcularDanoArma(arma.dano, ficha.atributos.forca, statusCombate.potenciaNivel);
+                            const forcaPers = ficha.atributos.forca || 1;
+                            const ataqueInfo = calcularParadaAtaqueArma(arma, statusCombate.destrezaEfetiva, ficha.habilidades, forcaPers);
+                            const danoInfo = calcularDanoArma(arma.dano, forcaPers, statusCombate.potenciaNivel);
+                            const faltaForca = arma.forcaMinima ? forcaPers < arma.forcaMinima : false;
                             return (
                               <tr key={arma.id} className="hover:bg-[#1a1115]">
                                 <td className="py-2 px-2 font-semibold">
-                                  <InlineField
-                                    value={arma.nome}
-                                    onChange={(v) => handleEditarArma(arma.id, 'nome', v)}
-                                    readonly={!podeEditar}
-                                    placeholder="Nome da Arma"
-                                  />
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <InlineField
+                                        value={arma.nome}
+                                        onChange={(v) => handleEditarArma(arma.id, 'nome', v)}
+                                        readonly={!podeEditar}
+                                        placeholder="Nome da Arma"
+                                      />
+                                      {faltaForca && (
+                                        <span
+                                          className="text-[9px] font-mono font-bold text-red-300 bg-red-950/80 border border-red-700/80 px-1.5 py-0.2 rounded-xs"
+                                          title={`Força insuficiente (possui ${forcaPers}, exige ${arma.forcaMinima}). +${ataqueInfo.penalidadeForca} na Dificuldade de ataque.`}
+                                        >
+                                          ⚠️ Pesada (For &lt; {arma.forcaMinima})
+                                        </span>
+                                      )}
+                                      {arma.forcaMinima && !faltaForca && (
+                                        <span className="text-[9px] text-[#706456]" title={`Requer Força ${arma.forcaMinima}`}>
+                                          (For Mín: {arma.forcaMinima})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </td>
                                 <td className="py-2 px-2 text-center">
-                                  <span className="font-mono font-bold text-amber-300">
-                                    Dif {arma.dificuldade || '6'}
+                                  <span
+                                    className={`font-mono font-bold ${faltaForca ? 'text-red-400' : 'text-amber-300'}`}
+                                    title={faltaForca ? `Dificuldade base ${arma.dificuldade || 6} + ${ataqueInfo.penalidadeForca} por Força insuficiente` : undefined}
+                                  >
+                                    Dif {ataqueInfo.dificuldade}
                                   </span>
+                                  {faltaForca && (
+                                    <span className="text-[9px] text-red-400 block font-mono">
+                                      (+{ataqueInfo.penalidadeForca} peso)
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="py-2 px-2 text-center">
                                   <div className="inline-flex flex-col items-center">
@@ -3470,9 +3575,13 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         </thead>
                         <tbody className="divide-y divide-[#241318]">
                           {ficha.armaduras.map((arm) => {
+                            const forcaPers = ficha.atributos.forca || 1;
                             const isEquipada = (arm as any).equipada !== false;
                             const classeNum = extrairClasseArmadura(arm.classe);
                             const penNum = extrairPenalidadeArmadura(arm.penalidade);
+                            const faltaForcaArm = arm.forcaMinima ? forcaPers < arm.forcaMinima : false;
+                            const penExtraForca = faltaForcaArm ? (arm.forcaMinima! - forcaPers) : 0;
+                            const penTotal = penNum - penExtraForca;
                             return (
                               <tr key={arm.id} className={`hover:bg-[#1a1115] ${!isEquipada ? 'opacity-60' : ''}`}>
                                 <td className="py-2 px-2 text-center">
@@ -3491,12 +3600,29 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                   </button>
                                 </td>
                                 <td className="py-2 px-2 font-semibold">
-                                  <InlineField
-                                    value={arm.nome}
-                                    onChange={(v) => handleEditarArmadura(arm.id, 'nome', v)}
-                                    readonly={!podeEditar}
-                                    placeholder="Cota de Malha"
-                                  />
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <InlineField
+                                        value={arm.nome}
+                                        onChange={(v) => handleEditarArmadura(arm.id, 'nome', v)}
+                                        readonly={!podeEditar}
+                                        placeholder="Cota de Malha"
+                                      />
+                                      {faltaForcaArm && isEquipada && (
+                                        <span
+                                          className="text-[9px] font-mono font-bold text-red-300 bg-red-950/80 border border-red-700/80 px-1.5 py-0.2 rounded-xs"
+                                          title={`Força insuficiente (possui ${forcaPers}, exige ${arm.forcaMinima}). Sobrecarga de peso impõe -${penExtraForca} na Destreza.`}
+                                        >
+                                          ⚠️ Sobrecarga (For &lt; {arm.forcaMinima})
+                                        </span>
+                                      )}
+                                      {arm.forcaMinima && !faltaForcaArm && (
+                                        <span className="text-[9px] text-[#706456]" title={`Requer Força ${arm.forcaMinima}`}>
+                                          (For Mín: {arm.forcaMinima})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </td>
                                 <td className="py-2 px-2 text-center">
                                   <span className="font-mono font-bold text-green-400 bg-green-950/50 border border-green-800/80 px-2 py-0.5 rounded-xs">
@@ -3505,12 +3631,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                 </td>
                                 <td className="py-2 px-2 text-center">
                                   <span className={`font-mono font-bold px-2 py-0.5 rounded-xs border ${
-                                    penNum < 0
+                                    penTotal < 0
                                       ? 'text-amber-300 bg-amber-950/50 border-amber-800/80'
                                       : 'text-[#8e8273] bg-[#1a1114] border-[#3b181b]'
                                   }`}>
-                                    {penNum < 0 ? `${penNum} Destreza & Ações Físicas` : 'Sem penalidade (0)'}
+                                    {penTotal < 0 ? `${penTotal} Destreza & Ações Físicas` : 'Sem penalidade (0)'}
                                   </span>
+                                  {faltaForcaArm && isEquipada && (
+                                    <span className="text-[9px] text-red-400 block font-mono mt-0.5">
+                                      ({penNum} armadura - {penExtraForca} sobrecarga)
+                                    </span>
+                                  )}
                                 </td>
                                 {podeEditar && (
                                   <td className="py-2 px-2 text-right">
@@ -5030,12 +5161,19 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 const bateBusca = !termo || arma.nome.toLowerCase().includes(termo) || (arma.descricao || '').toLowerCase().includes(termo);
                 return bateCat && bateBusca;
               }).map((arma, idx) => {
+                const forcaPers = ficha.atributos.forca || 1;
+                const recursosPers =
+                  ficha.antecedentes.find((a) => a.nome.toLowerCase().includes('recurso'))?.nivel || 0;
+                const temForca = forcaPers >= (arma.forcaMinima || 1);
+                const temRecursos = recursosPers >= (arma.recursosMinimo || 0);
+
                 const ataqueCalc = calcularParadaAtaqueArma(
-                  { id: 'temp', nome: arma.nome, dificuldade: arma.dificuldade, dano: arma.dano, ocultacao: arma.ocultacao, alcance: arma.alcance },
+                  { id: 'temp', nome: arma.nome, dificuldade: arma.dificuldade, dano: arma.dano, ocultacao: arma.ocultacao, alcance: arma.alcance, forcaMinima: arma.forcaMinima },
                   statusCombate.destrezaEfetiva,
-                  ficha.habilidades
+                  ficha.habilidades,
+                  forcaPers
                 );
-                const danoCalc = calcularDanoArma(arma.dano, ficha.atributos.forca, statusCombate.potenciaNivel);
+                const danoCalc = calcularDanoArma(arma.dano, forcaPers, statusCombate.potenciaNivel);
 
                 return (
                   <div
@@ -5050,6 +5188,26 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-2 py-0.5 rounded border border-[#522228]">
                           {arma.categoria === 'branca' ? 'Armas Brancas' : arma.categoria === 'distancia' ? 'Projétil / Arquearia' : 'Briga / Sobrenatural'}
                         </span>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                            temForca
+                              ? 'text-emerald-300 bg-emerald-950/60 border-emerald-800/70'
+                              : 'text-red-300 bg-red-950/80 border-red-700/80 font-bold'
+                          }`}
+                          title={temForca ? `Atende ao requisito de Força (${arma.forcaMinima || 1})` : `Força insuficiente! Requer ${arma.forcaMinima}, possui ${forcaPers}. Dificuldade penalizada em +${arma.forcaMinima! - forcaPers}.`}
+                        >
+                          Força Mín: {arma.forcaMinima || 1} {temForca ? '✓' : `(Pers: ${forcaPers})`}
+                        </span>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                            temRecursos
+                              ? 'text-amber-300 bg-amber-950/60 border-amber-800/70'
+                              : 'text-red-300 bg-red-950/80 border-red-700/80 font-bold'
+                          }`}
+                          title={temRecursos ? `Atende aos Recursos necessários (${arma.recursosMinimo || 0})` : `Recursos insuficientes! Requer Recursos ${arma.recursosMinimo}, personagem possui ${recursosPers}.`}
+                        >
+                          Recursos: {'•'.repeat(arma.recursosMinimo || 0) || '0'} {temRecursos ? '✓' : `(Requer ${arma.recursosMinimo})`}
+                        </span>
                         <span className="text-[10px] text-[#8e8273]">
                           Alcance: <strong className="text-[#ded6cb]">{arma.alcance}</strong> • Ocultação: <strong className="text-[#ded6cb]">{arma.ocultacao}</strong>
                         </span>
@@ -5063,7 +5221,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       {/* Dificuldade */}
                       <div className="text-center bg-[#10090c] px-2.5 py-1 rounded border border-[#2d1217]">
                         <span className="text-[9px] uppercase font-gothic text-[#8e8273] block">Dificuldade</span>
-                        <span className="font-mono font-bold text-amber-300 text-xs">Dif {arma.dificuldade}</span>
+                        <span
+                          className={`font-mono font-bold text-xs ${!temForca ? 'text-red-400' : 'text-amber-300'}`}
+                          title={!temForca ? `Dificuldade aumentada de ${arma.dificuldade} para ${ataqueCalc.dificuldade} (+${ataqueCalc.penalidadeForca} por Força insuficiente)` : undefined}
+                        >
+                          Dif {ataqueCalc.dificuldade}
+                        </span>
                       </div>
 
                       {/* Parada de Ataque Calculada */}
@@ -5082,7 +5245,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <button
                         type="button"
                         onClick={() => handleAdicionarArmaDoCatalogo(arma)}
-                        className="px-3.5 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md flex items-center gap-1 transition-colors"
+                        className={`px-3.5 py-1.5 text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md flex items-center gap-1 transition-colors ${
+                          !temRecursos && usuarioAtual.role !== 'mestre' && ficha.tipo !== 'npc'
+                            ? 'bg-[#4a1c22] hover:bg-[#6b252e] text-[#d4999f]'
+                            : 'bg-[#8b0000] hover:bg-[#a30d12]'
+                        }`}
+                        title={!temRecursos && usuarioAtual.role !== 'mestre' && ficha.tipo !== 'npc' ? `Requer Recursos ${arma.recursosMinimo}` : 'Adicionar arma à ficha'}
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Adicionar</span>
@@ -5153,8 +5321,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 const termo = buscaCatalogoArmaduras.toLowerCase().trim();
                 return !termo || arm.nome.toLowerCase().includes(termo) || (arm.descricao || '').toLowerCase().includes(termo);
               }).map((arm, idx) => {
+                const forcaPers = ficha.atributos.forca || 1;
+                const recursosPers =
+                  ficha.antecedentes.find((a) => a.nome.toLowerCase().includes('recurso'))?.nivel || 0;
+                const temForca = forcaPers >= (arm.forcaMinima || 1);
+                const temRecursos = recursosPers >= (arm.recursosMinimo || 0);
+
                 const classeNum = extrairClasseArmadura(arm.classe);
                 const penNum = extrairPenalidadeArmadura(arm.penalidade);
+                const penExtraForca = !temForca ? (arm.forcaMinima || 1) - forcaPers : 0;
+                const penFinal = penNum - penExtraForca;
 
                 return (
                   <div
@@ -5165,6 +5341,26 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-gothic font-bold text-white text-sm">
                           {arm.nome}
+                        </span>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                            temForca
+                              ? 'text-emerald-300 bg-emerald-950/60 border-emerald-800/70'
+                              : 'text-red-300 bg-red-950/80 border-red-700/80 font-bold'
+                          }`}
+                          title={temForca ? `Atende à Força mínima (${arm.forcaMinima || 1})` : `Força insuficiente! Requer ${arm.forcaMinima}, possui ${forcaPers}. Sobrecarga impõe -${penExtraForca} na Destreza.`}
+                        >
+                          Força Mín: {arm.forcaMinima || 1} {temForca ? '✓' : `(Pers: ${forcaPers})`}
+                        </span>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                            temRecursos
+                              ? 'text-amber-300 bg-amber-950/60 border-amber-800/70'
+                              : 'text-red-300 bg-red-950/80 border-red-700/80 font-bold'
+                          }`}
+                          title={temRecursos ? `Atende aos Recursos necessários (${arm.recursosMinimo || 0})` : `Recursos insuficientes! Requer Recursos ${arm.recursosMinimo}, personagem possui ${recursosPers}.`}
+                        >
+                          Recursos: {'•'.repeat(arm.recursosMinimo || 0) || '0'} {temRecursos ? '✓' : `(Requer ${arm.recursosMinimo})`}
                         </span>
                       </div>
                       {arm.descricao && (
@@ -5182,16 +5378,26 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       {/* Penalidade */}
                       <div className="text-center bg-[#10090c] px-3 py-1 rounded border border-[#2d1217]">
                         <span className="text-[9px] uppercase font-gothic text-[#8e8273] block">Penalidade</span>
-                        <span className={`font-mono font-bold text-xs ${penNum < 0 ? 'text-amber-300' : 'text-[#8e8273]'}`}>
-                          {penNum < 0 ? `${penNum} Destreza` : 'Sem penalidade'}
+                        <span className={`font-mono font-bold text-xs ${penFinal < 0 ? 'text-amber-300' : 'text-[#8e8273]'}`}>
+                          {penFinal < 0 ? `${penFinal} Destreza` : 'Sem penalidade'}
                         </span>
+                        {!temForca && (
+                          <span className="text-[9px] text-red-400 block font-mono mt-0.5" title={`Penalidade base de ${penNum} + sobrecarga de -${penExtraForca}`}>
+                            ({penNum} base - {penExtraForca} peso)
+                          </span>
+                        )}
                       </div>
 
                       {/* Botão Adicionar */}
                       <button
                         type="button"
                         onClick={() => handleAdicionarArmaduraDoCatalogo(arm)}
-                        className="px-3.5 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md flex items-center gap-1 transition-colors"
+                        className={`px-3.5 py-1.5 text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md flex items-center gap-1 transition-colors ${
+                          !temRecursos && usuarioAtual.role !== 'mestre' && ficha.tipo !== 'npc'
+                            ? 'bg-[#4a1c22] hover:bg-[#6b252e] text-[#d4999f]'
+                            : 'bg-[#8b0000] hover:bg-[#a30d12]'
+                        }`}
+                        title={!temRecursos && usuarioAtual.role !== 'mestre' && ficha.tipo !== 'npc' ? `Requer Recursos ${arm.recursosMinimo}` : 'Adicionar armadura à ficha'}
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Adicionar</span>
