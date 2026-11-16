@@ -150,10 +150,7 @@ export interface DetalhesAtalho {
 export function calcularDetalhesAtalho(p: Personagem, atalho: AtalhoParadaDado): DetalhesAtalho {
   const statusCombate = calcularStatusCombate(p);
   const penalidadeArmadura = statusCombate.totalPenalidadeArmadura; // ex: -1, -2, ou 0
-  const classeArmadura = statusCombate.totalClasseArmadura; // ex: 3, 4, ou 0
   const rapidezNivel = statusCombate.rapidezNivel;
-  const fortitudeNivel = statusCombate.fortitudeNivel;
-  const potenciaNivel = statusCombate.potenciaNivel;
 
   const getValorBase = (traco: string | undefined): number => {
     if (!traco || traco === 'nenhum') return 0;
