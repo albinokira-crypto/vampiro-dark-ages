@@ -154,8 +154,8 @@ export function App() {
         )}
       </main>
 
-      {/* Modal de Configuração de Pontuação do Mestre */}
-      {modalConfigMestreAberto && (
+      {/* Modal de Configurações da Crônica e Equipamentos (Exclusivo do Mestre) */}
+      {modalConfigMestreAberto && usuarioAtual.role === 'mestre' && (
         <PainelConfigMestre onFechar={() => setModalConfigMestreAberto(false)} />
       )}
     </div>

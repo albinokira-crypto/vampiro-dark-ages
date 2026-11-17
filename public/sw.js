@@ -1,5 +1,5 @@
-// Vampiro: A Idade das Trevas — Service Worker v1100
-const CACHE_NAME = 'vampiro-dark-ages-v1100';
+﻿// Vampiro: A Idade das Trevas â€” Service Worker v1101
+const CACHE_NAME = 'vampiro-dark-ages-v1101';
 
 const STATIC_ASSETS = [
   '/favicon.png',
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
   if (!url.protocol.startsWith('http')) return;
   if (request.method !== 'GET') return;
 
-  // API, version.json, sw.js e manifest sempre vão direto à rede (nunca cacheados)
+  // API, version.json, sw.js e manifest sempre vÃ£o direto Ã  rede (nunca cacheados)
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname === '/version.json' ||
@@ -55,7 +55,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First para HTML, JS e CSS: garante versão mais recente instantaneamente quando online
+  // Network-First para HTML, JS e CSS: garante versÃ£o mais recente instantaneamente quando online
   event.respondWith(
     fetch(request)
       .then((networkResponse) => {
@@ -68,3 +68,4 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(request))
   );
 });
+

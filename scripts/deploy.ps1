@@ -1,4 +1,4 @@
-﻿param (
+param (
     [string]$Mensagem = "chore: atualizacao automatica vampiro-dark-ages",
     [switch]$SemBump = $false
 )

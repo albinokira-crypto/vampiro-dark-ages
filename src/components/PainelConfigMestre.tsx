@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import type { ConfiguracaoMesa, AtalhoParadaDado } from '../types';
+import type {
+  ConfiguracaoMesa,
+  AtalhoParadaDado,
+  CatalogoArmaItem,
+  CatalogoArmaduraItem,
+} from '../types';
 import { storageService, CONFIGURACAO_MESA_PADRAO } from '../services/storage';
+import { ARMAS_CATALOGO_1E, ARMADURAS_CATALOGO_1E } from '../data/combate1E';
 import {
   Settings,
   Save,
@@ -12,6 +18,9 @@ import {
   Plus,
   Trash2,
   Swords,
+  Shield,
+  Pencil,
+  Search,
 } from 'lucide-react';
 import {
   MAPA_TRACOS,
@@ -24,18 +33,223 @@ interface PainelConfigMestreProps {
   onFechar: () => void;
 }
 
+const ARMA_VAZIA: CatalogoArmaItem = {
+  nome: '',
+  categoria: 'branca',
+  dificuldade: '6',
+  dano: 'For+2',
+  ocultacao: 'Bainha',
+  alcance: 'Corpo a corpo',
+  forcaMinima: 1,
+  recursosMinimo: 1,
+  descricao: '',
+};
+
+const ARMADURA_VAZIA: CatalogoArmaduraItem = {
+  nome: '',
+  classe: '2',
+  penalidade: '-1',
+  forcaMinima: 2,
+  recursosMinimo: 2,
+  penalidadePercepcao: 0,
+  descricao: '',
+};
+
 export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar }) => {
+  const [abaAtiva, setAbaAtiva] = useState<'regras' | 'armas' | 'armaduras'>('regras');
   const [config, setConfig] = useState<ConfiguracaoMesa>(() =>
     storageService.getConfiguracaoMesa()
   );
   const [salvo, setSalvo] = useState(false);
+  const [mensagemEquipamento, setMensagemEquipamento] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+
+  // Estados de gestão de Armas
+  const [buscaArma, setBuscaArma] = useState('');
+  const [editandoArmaIdx, setEditandoArmaIdx] = useState<number | null>(null);
+  const [criandoNovaArma, setCriandoNovaArma] = useState(false);
+  const [formArma, setFormArma] = useState<CatalogoArmaItem>({ ...ARMA_VAZIA });
+
+  // Estados de gestão de Armaduras
+  const [buscaArmadura, setBuscaArmadura] = useState('');
+  const [editandoArmaduraIdx, setEditandoArmaduraIdx] = useState<number | null>(null);
+  const [criandoNovaArmadura, setCriandoNovaArmadura] = useState(false);
+  const [formArmadura, setFormArmadura] = useState<CatalogoArmaduraItem>({ ...ARMADURA_VAZIA });
 
   useEffect(() => {
     storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
       if (remoto) setConfig(remoto);
     });
   }, []);
+
+  const notificarEquipamentoSalvo = (msg: string) => {
+    setMensagemEquipamento(msg);
+    setTimeout(() => setMensagemEquipamento(null), 3000);
+  };
+
+  const persistirConfig = async (novaConfig: ConfiguracaoMesa, msgSucesso?: string) => {
+    setConfig(novaConfig);
+    await storageService.salvarConfiguracaoMesa(novaConfig);
+    if (msgSucesso) {
+      notificarEquipamentoSalvo(msgSucesso);
+    }
+  };
+
+  const armasAtuais: CatalogoArmaItem[] =
+    Array.isArray(config.catalogoArmas) && config.catalogoArmas.length > 0
+      ? config.catalogoArmas
+      : ARMAS_CATALOGO_1E;
+
+  const armadurasAtuais: CatalogoArmaduraItem[] =
+    Array.isArray(config.catalogoArmaduras) && config.catalogoArmaduras.length > 0
+      ? config.catalogoArmaduras
+      : ARMADURAS_CATALOGO_1E;
+
+  // CRUD Armas do Sistema
+  const handleIniciarNovaArma = () => {
+    setEditandoArmaIdx(null);
+    setFormArma({ ...ARMA_VAZIA });
+    setCriandoNovaArma(true);
+  };
+
+  const handleIniciarEdicaoArma = (idx: number) => {
+    setCriandoNovaArma(false);
+    setEditandoArmaIdx(idx);
+    setFormArma({ ...armasAtuais[idx] });
+  };
+
+  const handleSalvarArma = async () => {
+    if (!formArma.nome.trim()) {
+      alert('Informe o nome da arma.');
+      return;
+    }
+    const itemLimpo: CatalogoArmaItem = {
+      ...formArma,
+      nome: formArma.nome.trim(),
+      dificuldade: String(formArma.dificuldade || '6').trim(),
+      dano: String(formArma.dano || 'For').trim(),
+      ocultacao: String(formArma.ocultacao || '-').trim(),
+      alcance: String(formArma.alcance || 'Corpo a corpo').trim(),
+      forcaMinima: Math.max(0, Number(formArma.forcaMinima) || 0),
+      recursosMinimo: Math.max(0, Number(formArma.recursosMinimo) || 0),
+      descricao: (formArma.descricao || '').trim(),
+    };
+
+    const novaLista = [...armasAtuais];
+    if (editandoArmaIdx !== null) {
+      novaLista[editandoArmaIdx] = itemLimpo;
+    } else {
+      novaLista.push(itemLimpo);
+    }
+
+    await persistirConfig(
+      { ...config, catalogoArmas: novaLista },
+      editandoArmaIdx !== null
+        ? `✓ Arma "${itemLimpo.nome}" atualizada no sistema!`
+        : `✓ Nova arma "${itemLimpo.nome}" cadastrada no sistema!`
+    );
+    setEditandoArmaIdx(null);
+    setCriandoNovaArma(false);
+    setFormArma({ ...ARMA_VAZIA });
+  };
+
+  const handleExcluirArma = async (idx: number) => {
+    const alvo = armasAtuais[idx];
+    if (!confirm(`Deseja remover a arma "${alvo.nome}" do catálogo do sistema?`)) return;
+    const novaLista = armasAtuais.filter((_, i) => i !== idx);
+    await persistirConfig(
+      { ...config, catalogoArmas: novaLista },
+      `Arma "${alvo.nome}" removida do catálogo.`
+    );
+    if (editandoArmaIdx === idx) {
+      setEditandoArmaIdx(null);
+    }
+  };
+
+  const handleRestaurarArmasPadrao = async () => {
+    if (!confirm('Restaurar o catálogo de armas para os itens oficiais padrão da 1ª Edição?')) return;
+    await persistirConfig(
+      { ...config, catalogoArmas: [...ARMAS_CATALOGO_1E] },
+      '✓ Catálogo de armas restaurado para o padrão oficial.'
+    );
+    setEditandoArmaIdx(null);
+    setCriandoNovaArma(false);
+  };
+
+  // CRUD Armaduras do Sistema
+  const handleIniciarNovaArmadura = () => {
+    setEditandoArmaduraIdx(null);
+    setFormArmadura({ ...ARMADURA_VAZIA });
+    setCriandoNovaArmadura(true);
+  };
+
+  const handleIniciarEdicaoArmadura = (idx: number) => {
+    setCriandoNovaArmadura(false);
+    setEditandoArmaduraIdx(idx);
+    setFormArmadura({
+      ...armadurasAtuais[idx],
+      penalidadePercepcao: armadurasAtuais[idx].penalidadePercepcao ?? 0,
+    });
+  };
+
+  const handleSalvarArmadura = async () => {
+    if (!formArmadura.nome.trim()) {
+      alert('Informe o nome da armadura.');
+      return;
+    }
+    const penPercNum = Number(formArmadura.penalidadePercepcao) || 0;
+    const penPercFinal = penPercNum > 0 ? -penPercNum : penPercNum;
+    const itemLimpo: CatalogoArmaduraItem = {
+      ...formArmadura,
+      nome: formArmadura.nome.trim(),
+      classe: String(formArmadura.classe || '0').trim(),
+      penalidade: String(formArmadura.penalidade || '0').trim(),
+      forcaMinima: Math.max(0, Number(formArmadura.forcaMinima) || 0),
+      recursosMinimo: Math.max(0, Number(formArmadura.recursosMinimo) || 0),
+      penalidadePercepcao: penPercFinal,
+      descricao: (formArmadura.descricao || '').trim(),
+    };
+
+    const novaLista = [...armadurasAtuais];
+    if (editandoArmaduraIdx !== null) {
+      novaLista[editandoArmaduraIdx] = itemLimpo;
+    } else {
+      novaLista.push(itemLimpo);
+    }
+
+    await persistirConfig(
+      { ...config, catalogoArmaduras: novaLista },
+      editandoArmaduraIdx !== null
+        ? `✓ Armadura "${itemLimpo.nome}" atualizada no sistema!`
+        : `✓ Nova armadura "${itemLimpo.nome}" cadastrada no sistema!`
+    );
+    setEditandoArmaduraIdx(null);
+    setCriandoNovaArmadura(false);
+    setFormArmadura({ ...ARMADURA_VAZIA });
+  };
+
+  const handleExcluirArmadura = async (idx: number) => {
+    const alvo = armadurasAtuais[idx];
+    if (!confirm(`Deseja remover a armadura "${alvo.nome}" do catálogo do sistema?`)) return;
+    const novaLista = armadurasAtuais.filter((_, i) => i !== idx);
+    await persistirConfig(
+      { ...config, catalogoArmaduras: novaLista },
+      `Armadura "${alvo.nome}" removida do catálogo.`
+    );
+    if (editandoArmaduraIdx === idx) {
+      setEditandoArmaduraIdx(null);
+    }
+  };
+
+  const handleRestaurarArmadurasPadrao = async () => {
+    if (!confirm('Restaurar o catálogo de armaduras para os itens oficiais padrão da 1ª Edição?')) return;
+    await persistirConfig(
+      { ...config, catalogoArmaduras: [...ARMADURAS_CATALOGO_1E] },
+      '✓ Catálogo de armaduras restaurado para o padrão oficial.'
+    );
+    setEditandoArmaduraIdx(null);
+    setCriandoNovaArmadura(false);
+  };
 
   // Estados locais para cadastrar novo atalho no card
   const [novoNome, setNovoNome] = useState('');
@@ -116,13 +330,17 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
   const atalhosAtuais = config.atalhosCard && config.atalhosCard.length > 0 ? config.atalhosCard : ATALHOS_CARD_PADRAO;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-[#100b0e] border border-[#522228] rounded-sm shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto space-y-6 text-[#ded6cb]">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div
+        className={`w-full ${
+          abaAtiva === 'regras' ? 'max-w-2xl' : 'max-w-4xl'
+        } bg-[#100b0e] border border-[#522228] rounded-sm shadow-2xl p-5 sm:p-6 relative max-h-[92vh] overflow-y-auto space-y-5 text-[#ded6cb] transition-all`}
+      >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b border-[#3b181b] pb-3">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-[#d4af37]" />
-            <h2 className="text-xl font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
+            <h2 className="text-lg sm:text-xl font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
               Configurações da Crônica (Mestre)
             </h2>
           </div>
@@ -135,6 +353,56 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
           </button>
         </div>
 
+        {/* Abas de Navegação Exclusivas do Mestre */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#2d1217] pb-3">
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('regras')}
+            className={`px-3 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors flex items-center gap-1.5 ${
+              abaAtiva === 'regras'
+                ? 'bg-[#8b0000] text-white border-[#b31419] shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                : 'bg-[#181115] text-[#a89f91] border-[#3b181b] hover:text-white'
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span>Pontuação &amp; Atalhos</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('armas')}
+            className={`px-3 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors flex items-center gap-1.5 ${
+              abaAtiva === 'armas'
+                ? 'bg-[#8b0000] text-white border-[#b31419] shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                : 'bg-[#181115] text-[#a89f91] border-[#3b181b] hover:text-white'
+            }`}
+          >
+            <Swords className="w-3.5 h-3.5 text-amber-300" />
+            <span>Armas ({armasAtuais.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('armaduras')}
+            className={`px-3 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors flex items-center gap-1.5 ${
+              abaAtiva === 'armaduras'
+                ? 'bg-[#8b0000] text-white border-[#b31419] shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                : 'bg-[#181115] text-[#a89f91] border-[#3b181b] hover:text-white'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5 text-sky-300" />
+            <span>Armaduras ({armadurasAtuais.length})</span>
+          </button>
+        </div>
+
+        {mensagemEquipamento && (
+          <div className="p-2.5 bg-emerald-950/80 border border-emerald-700/80 text-emerald-200 text-xs rounded-xs text-center font-semibold">
+            {mensagemEquipamento}
+          </div>
+        )}
+
+        {abaAtiva === 'regras' && (
+          <>
         {/* Bloco de Compartilhamento de Convite para Jogadores */}
         <div className="bg-[#1b1014] border border-[#8b0000] p-4 rounded-xs space-y-2">
           <div className="flex items-center justify-between">
@@ -634,6 +902,552 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
             </button>
           </div>
         </form>
+          </>
+        )}
+
+        {/* ================================================================= */}
+        {/* ABA: ARMAS DO SISTEMA (EDITAR & CADASTRAR - EXCLUSIVO MESTRE) */}
+        {/* ================================================================= */}
+        {abaAtiva === 'armas' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={buscaArma}
+                  onChange={(e) => setBuscaArma(e.target.value)}
+                  placeholder="Buscar arma cadastrada..."
+                  className="w-full bg-[#181115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleIniciarNovaArma}
+                  className="px-3.5 py-2 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Cadastrar Nova Arma</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRestaurarArmasPadrao}
+                  title="Restaurar armas oficiais padrão"
+                  className="px-2.5 py-2 bg-[#1e1317] hover:bg-[#2e1c22] border border-[#522228] text-xs text-[#a89f91] hover:text-white rounded-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Padrão</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Formulário de Cadastro / Edição de Arma */}
+            {(criandoNovaArma || editandoArmaIdx !== null) && (
+              <div className="bg-[#180f14] border-2 border-[#8b0000] p-4 rounded-sm space-y-3 shadow-xl">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
+                  <span className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                    {editandoArmaIdx !== null
+                      ? `Editando Arma: ${armasAtuais[editandoArmaIdx]?.nome}`
+                      : 'Cadastrar Nova Arma no Sistema'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCriandoNovaArma(false);
+                      setEditandoArmaIdx(null);
+                    }}
+                    className="text-[#8e8273] hover:text-white cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Nome da Arma *
+                    </label>
+                    <input
+                      type="text"
+                      value={formArma.nome}
+                      onChange={(e) => setFormArma({ ...formArma, nome: e.target.value })}
+                      placeholder="Ex: Espada Bastarda"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Categoria
+                    </label>
+                    <select
+                      value={formArma.categoria}
+                      onChange={(e) =>
+                        setFormArma({
+                          ...formArma,
+                          categoria: e.target.value as CatalogoArmaItem['categoria'],
+                        })
+                      }
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                    >
+                      <option value="branca">Armas Brancas</option>
+                      <option value="distancia">Projéteis / Distância</option>
+                      <option value="briga">Briga / Sobrenatural</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Dificuldade
+                    </label>
+                    <input
+                      type="text"
+                      value={formArma.dificuldade}
+                      onChange={(e) => setFormArma({ ...formArma, dificuldade: e.target.value })}
+                      placeholder="Ex: 6"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Dano (ex: For+3 ou 5)
+                    </label>
+                    <input
+                      type="text"
+                      value={formArma.dano}
+                      onChange={(e) => setFormArma({ ...formArma, dano: e.target.value })}
+                      placeholder="Ex: For+3"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Força Mínima
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={formArma.forcaMinima}
+                      onChange={(e) =>
+                        setFormArma({ ...formArma, forcaMinima: Number(e.target.value) })
+                      }
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Recursos Mínimo
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={formArma.recursosMinimo}
+                      onChange={(e) =>
+                        setFormArma({ ...formArma, recursosMinimo: Number(e.target.value) })
+                      }
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Alcance
+                    </label>
+                    <input
+                      type="text"
+                      value={formArma.alcance}
+                      onChange={(e) => setFormArma({ ...formArma, alcance: e.target.value })}
+                      placeholder="Corpo a corpo"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Ocultação
+                    </label>
+                    <input
+                      type="text"
+                      value={formArma.ocultacao}
+                      onChange={(e) => setFormArma({ ...formArma, ocultacao: e.target.value })}
+                      placeholder="Bainha / Capa"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Descrição / Observações
+                    </label>
+                    <input
+                      type="text"
+                      value={formArma.descricao || ''}
+                      onChange={(e) => setFormArma({ ...formArma, descricao: e.target.value })}
+                      placeholder="Detalhes da arma, notas de regra..."
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#2d1217]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCriandoNovaArma(false);
+                      setEditandoArmaIdx(null);
+                    }}
+                    className="px-3 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] border border-[#3b181b] rounded-xs cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSalvarArma}
+                    className="px-4 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{editandoArmaIdx !== null ? 'Salvar Alterações da Arma' : 'Cadastrar Arma'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de Armas Cadastradas */}
+            <div className="space-y-2">
+              {armasAtuais
+                .map((arma, idx) => ({ arma, idx }))
+                .filter(({ arma }) => {
+                  const t = buscaArma.toLowerCase().trim();
+                  return (
+                    !t ||
+                    arma.nome.toLowerCase().includes(t) ||
+                    (arma.descricao || '').toLowerCase().includes(t)
+                  );
+                })
+                .map(({ arma, idx }) => (
+                  <div
+                    key={`${arma.nome}-${idx}`}
+                    className="bg-[#150e12] border border-[#2d1217] hover:border-[#522228] p-3 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors"
+                  >
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-gothic font-bold text-sm text-white">
+                          {arma.nome}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-1.5 py-0.5 rounded border border-[#522228]">
+                          Dif {arma.dificuldade}
+                        </span>
+                        <span className="text-[10px] font-mono text-red-300 bg-red-950/60 px-1.5 py-0.5 rounded border border-red-800/70">
+                          Dano: {arma.dano}
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/70">
+                          Força Mín: {arma.forcaMinima}
+                        </span>
+                        <span className="text-[10px] font-mono text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/70">
+                          Recursos: {arma.recursosMinimo}
+                        </span>
+                        <span className="text-[10px] text-[#8e8273]">
+                          Alcance: {arma.alcance} • Ocult: {arma.ocultacao}
+                        </span>
+                      </div>
+                      {arma.descricao && (
+                        <p className="text-[11px] text-[#a89f91] italic truncate">{arma.descricao}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleIniciarEdicaoArma(idx)}
+                        className="px-2.5 py-1 bg-[#241318] hover:bg-[#381b22] border border-[#522228] text-[#d4af37] text-xs font-semibold rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExcluirArma(idx)}
+                        className="p-1.5 bg-[#1b1014] hover:bg-red-950 border border-[#3b181b] text-[#8e8273] hover:text-red-400 rounded-xs cursor-pointer transition-colors"
+                        title="Excluir arma do catálogo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* ABA: ARMADURAS DO SISTEMA (EDITAR & CADASTRAR - EXCLUSIVO MESTRE) */}
+        {/* ================================================================= */}
+        {abaAtiva === 'armaduras' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={buscaArmadura}
+                  onChange={(e) => setBuscaArmadura(e.target.value)}
+                  placeholder="Buscar armadura ou elmo cadastrado..."
+                  className="w-full bg-[#181115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleIniciarNovaArmadura}
+                  className="px-3.5 py-2 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Cadastrar Nova Armadura</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRestaurarArmadurasPadrao}
+                  title="Restaurar armaduras oficiais padrão"
+                  className="px-2.5 py-2 bg-[#1e1317] hover:bg-[#2e1c22] border border-[#522228] text-xs text-[#a89f91] hover:text-white rounded-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Padrão</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Formulário de Cadastro / Edição de Armadura */}
+            {(criandoNovaArmadura || editandoArmaduraIdx !== null) && (
+              <div className="bg-[#180f14] border-2 border-[#8b0000] p-4 rounded-sm space-y-3 shadow-xl">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
+                  <span className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                    {editandoArmaduraIdx !== null
+                      ? `Editando Armadura: ${armadurasAtuais[editandoArmaduraIdx]?.nome}`
+                      : 'Cadastrar Nova Armadura / Elmo no Sistema'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCriandoNovaArmadura(false);
+                      setEditandoArmaduraIdx(null);
+                    }}
+                    className="text-[#8e8273] hover:text-white cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Nome da Armadura / Proteção *
+                    </label>
+                    <input
+                      type="text"
+                      value={formArmadura.nome}
+                      onChange={(e) => setFormArmadura({ ...formArmadura, nome: e.target.value })}
+                      placeholder="Ex: Cota de Malha Medieval"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Classe / Absorção (dados)
+                    </label>
+                    <input
+                      type="text"
+                      value={formArmadura.classe}
+                      onChange={(e) => setFormArmadura({ ...formArmadura, classe: e.target.value })}
+                      placeholder="Ex: 3"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Penalidade na Destreza (ex: 0, -1, -2)
+                    </label>
+                    <input
+                      type="text"
+                      value={formArmadura.penalidade}
+                      onChange={(e) =>
+                        setFormArmadura({ ...formArmadura, penalidade: e.target.value })
+                      }
+                      placeholder="Ex: -1"
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Penalidade na Percepção (ex: 0, -1, -2)
+                    </label>
+                    <input
+                      type="number"
+                      min={-5}
+                      max={0}
+                      value={formArmadura.penalidadePercepcao ?? 0}
+                      onChange={(e) =>
+                        setFormArmadura({
+                          ...formArmadura,
+                          penalidadePercepcao: Number(e.target.value),
+                        })
+                      }
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Força Mínima
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={formArmadura.forcaMinima}
+                      onChange={(e) =>
+                        setFormArmadura({ ...formArmadura, forcaMinima: Number(e.target.value) })
+                      }
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Recursos Mínimo
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={formArmadura.recursosMinimo}
+                      onChange={(e) =>
+                        setFormArmadura({
+                          ...formArmadura,
+                          recursosMinimo: Number(e.target.value),
+                        })
+                      }
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white font-mono rounded-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <label className="block text-[10px] text-[#a89f91] mb-1 font-semibold uppercase">
+                      Descrição / Observações
+                    </label>
+                    <input
+                      type="text"
+                      value={formArmadura.descricao || ''}
+                      onChange={(e) =>
+                        setFormArmadura({ ...formArmadura, descricao: e.target.value })
+                      }
+                      placeholder="Detalhes da armadura, peso, cobertura..."
+                      className="w-full bg-[#100a0d] border border-[#3b181b] focus:border-[#d4af37] px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#2d1217]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCriandoNovaArmadura(false);
+                      setEditandoArmaduraIdx(null);
+                    }}
+                    className="px-3 py-1.5 text-xs text-[#a89f91] hover:text-white bg-[#1a1114] border border-[#3b181b] rounded-xs cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSalvarArmadura}
+                    className="px-4 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>
+                      {editandoArmaduraIdx !== null
+                        ? 'Salvar Alterações da Armadura'
+                        : 'Cadastrar Armadura'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de Armaduras Cadastradas */}
+            <div className="space-y-2">
+              {armadurasAtuais
+                .map((arm, idx) => ({ arm, idx }))
+                .filter(({ arm }) => {
+                  const t = buscaArmadura.toLowerCase().trim();
+                  return (
+                    !t ||
+                    arm.nome.toLowerCase().includes(t) ||
+                    (arm.descricao || '').toLowerCase().includes(t)
+                  );
+                })
+                .map(({ arm, idx }) => (
+                  <div
+                    key={`${arm.nome}-${idx}`}
+                    className="bg-[#150e12] border border-[#2d1217] hover:border-[#522228] p-3 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors"
+                  >
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-gothic font-bold text-sm text-white">
+                          {arm.nome}
+                        </span>
+                        <span className="text-[10px] font-mono text-green-300 bg-green-950/60 px-1.5 py-0.5 rounded border border-green-800/70">
+                          Absorção: +{arm.classe}
+                        </span>
+                        <span className="text-[10px] font-mono text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/70">
+                          Destreza: {arm.penalidade}
+                        </span>
+                        <span className="text-[10px] font-mono text-purple-300 bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-800/70">
+                          Percepção: {arm.penalidadePercepcao || 0}
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/70">
+                          Força Mín: {arm.forcaMinima}
+                        </span>
+                        <span className="text-[10px] font-mono text-sky-300 bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-800/70">
+                          Recursos: {arm.recursosMinimo}
+                        </span>
+                      </div>
+                      {arm.descricao && (
+                        <p className="text-[11px] text-[#a89f91] italic truncate">{arm.descricao}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleIniciarEdicaoArmadura(idx)}
+                        className="px-2.5 py-1 bg-[#241318] hover:bg-[#381b22] border border-[#522228] text-[#d4af37] text-xs font-semibold rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExcluirArmadura(idx)}
+                        className="p-1.5 bg-[#1b1014] hover:bg-red-950 border border-[#3b181b] text-[#8e8273] hover:text-red-400 rounded-xs cursor-pointer transition-colors"
+                        title="Excluir armadura do catálogo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

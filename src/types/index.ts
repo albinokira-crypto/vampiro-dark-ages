@@ -45,6 +45,28 @@ export interface DadosElisio {
   hierarquia: CargoElisio[];
 }
 
+export interface CatalogoArmaItem {
+  nome: string;
+  categoria: 'branca' | 'briga' | 'distancia';
+  dificuldade: string;
+  dano: string;
+  ocultacao: string;
+  alcance: string;
+  forcaMinima: number;
+  recursosMinimo: number;
+  descricao?: string;
+}
+
+export interface CatalogoArmaduraItem {
+  nome: string;
+  classe: string;
+  penalidade: string;
+  forcaMinima: number;
+  recursosMinimo: number;
+  penalidadePercepcao?: number;
+  descricao?: string;
+}
+
 export interface ConfiguracaoMesa {
   pontosAtributos: {
     primario: number; // 7
@@ -63,6 +85,8 @@ export interface ConfiguracaoMesa {
   maxPontosDefeitos?: number; // 7 padrão oficial de regras canônicas
   atalhosCard?: AtalhoParadaDado[];
   elisio?: DadosElisio;
+  catalogoArmas?: CatalogoArmaItem[];
+  catalogoArmaduras?: CatalogoArmaduraItem[];
 }
 
 export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';

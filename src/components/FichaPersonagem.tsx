@@ -112,6 +112,24 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     });
   }, []);
 
+  useEffect(() => {
+    if (modalCatalogoArmasAberto || modalCatalogoArmadurasAberto) {
+      storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
+        if (remoto) setConfigMesa(remoto);
+      });
+    }
+  }, [modalCatalogoArmasAberto, modalCatalogoArmadurasAberto]);
+
+  const catalogoArmasAtivo =
+    Array.isArray(configMesa.catalogoArmas) && configMesa.catalogoArmas.length > 0
+      ? configMesa.catalogoArmas
+      : ARMAS_CATALOGO_1E;
+
+  const catalogoArmadurasAtivo =
+    Array.isArray(configMesa.catalogoArmaduras) && configMesa.catalogoArmaduras.length > 0
+      ? configMesa.catalogoArmaduras
+      : ARMADURAS_CATALOGO_1E;
+
   // Estados dos Modais de Disciplina e Antecedente (1ª Edição)
   const [modalAddDisciplinaAberto, setModalAddDisciplinaAberto] = useState(false);
   const [discSelecionada, setDiscSelecionada] = useState<string>('');
@@ -5227,7 +5245,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
             {/* Lista de Armas */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-              {ARMAS_CATALOGO_1E.filter((arma) => {
+              {catalogoArmasAtivo.filter((arma) => {
                 const bateCat = filtroCategoriaArmas === 'todas' || arma.categoria === filtroCategoriaArmas;
                 const termo = buscaCatalogoArmas.toLowerCase().trim();
                 const bateBusca = !termo || arma.nome.toLowerCase().includes(termo) || (arma.descricao || '').toLowerCase().includes(termo);
@@ -5389,7 +5407,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
             {/* Lista de Armaduras */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-              {ARMADURAS_CATALOGO_1E.filter((arm) => {
+              {catalogoArmadurasAtivo.filter((arm) => {
                 const termo = buscaCatalogoArmaduras.toLowerCase().trim();
                 return !termo || arm.nome.toLowerCase().includes(termo) || (arm.descricao || '').toLowerCase().includes(termo);
               }).map((arm, idx) => {

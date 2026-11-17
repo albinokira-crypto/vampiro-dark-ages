@@ -7,9 +7,12 @@ import type {
   LogAlteracao,
   QualidadeDefeitoItem,
   DadosElisio,
+  CatalogoArmaItem,
+  CatalogoArmaduraItem,
 } from '../types';
 import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
 import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
+import { ARMAS_CATALOGO_1E, ARMADURAS_CATALOGO_1E } from '../data/combate1E';
 
 const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
 const STORAGE_KEY_USERS = 'vampiro_dark_ages_users_v1';
@@ -48,6 +51,8 @@ export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   maxPontosDefeitos: 7,
   atalhosCard: ATALHOS_CARD_PADRAO,
   elisio: DADOS_ELISIO_PADRAO,
+  catalogoArmas: ARMAS_CATALOGO_1E,
+  catalogoArmaduras: ARMADURAS_CATALOGO_1E,
 };
 
 export const NIVEIS_VITALIDADE_PADRAO: NivelVitalidade[] = [
@@ -465,6 +470,12 @@ export const storageService = {
       if (!parsed.elisio) {
         parsed.elisio = DADOS_ELISIO_PADRAO;
       }
+      if (!Array.isArray(parsed.catalogoArmas) || parsed.catalogoArmas.length === 0) {
+        parsed.catalogoArmas = ARMAS_CATALOGO_1E;
+      }
+      if (!Array.isArray(parsed.catalogoArmaduras) || parsed.catalogoArmaduras.length === 0) {
+        parsed.catalogoArmaduras = ARMADURAS_CATALOGO_1E;
+      }
       return { ...CONFIGURACAO_MESA_PADRAO, ...parsed };
     } catch {
       return CONFIGURACAO_MESA_PADRAO;
@@ -489,6 +500,12 @@ export const storageService = {
           const mesclado = { ...CONFIGURACAO_MESA_PADRAO, ...config };
           if (!mesclado.elisio) {
             mesclado.elisio = DADOS_ELISIO_PADRAO;
+          }
+          if (!Array.isArray(mesclado.catalogoArmas) || mesclado.catalogoArmas.length === 0) {
+            mesclado.catalogoArmas = ARMAS_CATALOGO_1E;
+          }
+          if (!Array.isArray(mesclado.catalogoArmaduras) || mesclado.catalogoArmaduras.length === 0) {
+            mesclado.catalogoArmaduras = ARMADURAS_CATALOGO_1E;
           }
           if (mesclado.pontosDisciplinas === 3) {
             mesclado.pontosDisciplinas = 4;
@@ -538,6 +555,30 @@ export const storageService = {
   async salvarDadosElisio(dados: DadosElisio): Promise<void> {
     const config = this.getConfiguracaoMesa();
     config.elisio = dados;
+    await this.salvarConfiguracaoMesa(config);
+  },
+
+  getCatalogoArmas(): CatalogoArmaItem[] {
+    const config = this.getConfiguracaoMesa();
+    return Array.isArray(config.catalogoArmas) && config.catalogoArmas.length > 0
+      ? config.catalogoArmas
+      : ARMAS_CATALOGO_1E;
+  },
+
+  getCatalogoArmaduras(): CatalogoArmaduraItem[] {
+    const config = this.getConfiguracaoMesa();
+    return Array.isArray(config.catalogoArmaduras) && config.catalogoArmaduras.length > 0
+      ? config.catalogoArmaduras
+      : ARMADURAS_CATALOGO_1E;
+  },
+
+  async salvarCatalogoEquipamentos(
+    armas: CatalogoArmaItem[],
+    armaduras: CatalogoArmaduraItem[]
+  ): Promise<void> {
+    const config = this.getConfiguracaoMesa();
+    config.catalogoArmas = armas;
+    config.catalogoArmaduras = armaduras;
     await this.salvarConfiguracaoMesa(config);
   },
 

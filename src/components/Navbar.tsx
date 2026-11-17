@@ -165,12 +165,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {/* Configuração de Pontos (Mestre) */}
+          {/* Configurações da Crônica e Equipamentos (Exclusivo Mestre) */}
           {usuarioAtual.role === 'mestre' && onAbrirConfigMestre && (
             <button
               type="button"
               onClick={onAbrirConfigMestre}
-              title="Configurar pontuação inicial da crônica"
+              title="Configurações da crônica, pontuação inicial, armas e armaduras"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#251016] hover:bg-[#3d1820] border border-[#8b0000] text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37] rounded-xs cursor-pointer transition-all shadow-[0_0_10px_rgba(212,175,55,0.2)]"
             >
               <Settings className="w-3.5 h-3.5 text-[#d4af37]" />
