@@ -473,7 +473,13 @@ export const storageService = {
 
   async carregarConfiguracaoMesaRemota(): Promise<ConfiguracaoMesa> {
     try {
-      const res = await fetch('/api/config');
+      const res = await fetch(`/api/config?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       if (res.ok) {
         const config = await res.json();
         if (config) {
@@ -860,7 +866,13 @@ export const storageService = {
 
   async sincronizarPersonagensRemotos(user: User): Promise<Personagem[]> {
     try {
-      const res = await fetch(`/api/personagens?usuarioId=${user.id}&role=${user.role}`);
+      const res = await fetch(`/api/personagens?usuarioId=${user.id}&role=${user.role}&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       if (res.ok) {
         const remotos: Personagem[] = await res.json();
         if (Array.isArray(remotos)) {

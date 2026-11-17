@@ -93,6 +93,20 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
     cargoNome: string;
   } | null>(null);
 
+  // Re-sincronizar imediatamente ao abrir o modal da hierarquia
+  useEffect(() => {
+    if (modalHierarquiaAberto) {
+      storageService.carregarConfiguracaoMesaRemota().then((remota) => {
+        if (remota?.elisio) {
+          setDadosElisio(remota.elisio);
+          if (onConfigChange) {
+            onConfigChange(remota);
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [modalHierarquiaAberto]);
+
   // Upload de Imagem do Elísio
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comprimindoImagem, setComprimindoImagem] = useState(false);
@@ -240,9 +254,9 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
           geracao: live.geracao || '12ª Geração',
           tipo: live.tipo,
           jogador: live.jogador,
-          historia: live.biografia?.historia || '',
-          preludio: live.biografia?.preludio,
-          objetivos: live.biografia?.objetivos,
+          historia: live.biografia?.historia || (live as any).historia || live.criacao?.historia || '',
+          preludio: live.biografia?.preludio || live.criacao?.preludio,
+          objetivos: live.biografia?.objetivos || live.criacao?.objetivos,
           conceito: live.conceito,
           natureza: live.natureza,
           comportamento: live.comportamento,

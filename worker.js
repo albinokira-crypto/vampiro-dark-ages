@@ -6,8 +6,42 @@ function jsonResponse(data, status = 200) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
     },
   });
+}
+
+async function enriquecerHierarquiaElisio(db, cfg) {
+  if (cfg && cfg.elisio && Array.isArray(cfg.elisio.hierarquia)) {
+    for (const cargo of cfg.elisio.hierarquia) {
+      if (cargo.personagemId) {
+        try {
+          const charRow = await db.prepare(
+            'SELECT id, nome, cla, geracao, foto, dados FROM personagens WHERE id = ?'
+          ).bind(cargo.personagemId).first();
+          if (charRow) {
+            let pDados = {};
+            try { pDados = JSON.parse(charRow.dados); } catch {}
+            cargo.ocupanteNome = charRow.nome;
+            cargo.ocupanteFoto = charRow.foto || '';
+            cargo.ocupanteCla = charRow.cla || 'Cainita';
+            cargo.ocupanteGeracao = charRow.geracao || '12ª Geração';
+            cargo.ocupanteTipo = pDados.tipo || 'npc';
+            cargo.ocupanteJogador = pDados.jogador || '';
+            cargo.ocupanteHistoria = pDados.biografia?.historia || pDados.criacao?.historia || pDados.historia || '';
+            cargo.ocupantePreludio = pDados.biografia?.preludio || pDados.criacao?.preludio || '';
+            cargo.ocupanteObjetivos = pDados.biografia?.objetivos || pDados.criacao?.objetivos || '';
+            cargo.ocupanteConceito = pDados.conceito || '';
+            cargo.ocupanteNatureza = pDados.natureza || '';
+            cargo.ocupanteComportamento = pDados.comportamento || '';
+            cargo.ocupanteSenhor = pDados.senhor || '';
+          }
+        } catch {}
+      }
+    }
+  }
+  return cfg;
 }
 
 export default {
@@ -276,13 +310,22 @@ export default {
           if (request.method === 'GET') {
             const configRow = await db.prepare('SELECT dados FROM configuracao_mesa WHERE id = "padrao"').first();
             if (configRow && configRow.dados) {
-              return jsonResponse(JSON.parse(configRow.dados));
+              const cfg = JSON.parse(configRow.dados);
+              const precisavaEnriquecer = cfg?.elisio?.hierarquia?.some(c => c.personagemId && !c.ocupanteNome);
+              await enriquecerHierarquiaElisio(db, cfg);
+              if (precisavaEnriquecer) {
+                try {
+                  await db.prepare('UPDATE configuracao_mesa SET dados = ?, atualizadoEm = datetime("now") WHERE id = "padrao"').bind(JSON.stringify(cfg)).run();
+                } catch {}
+              }
+              return jsonResponse(cfg);
             }
             return jsonResponse(null);
           }
 
           if (request.method === 'POST') {
             const body = await request.json();
+            await enriquecerHierarquiaElisio(db, body);
             const dadosStr = JSON.stringify(body);
             await db.prepare(
               'INSERT INTO configuracao_mesa (id, dados, atualizadoEm) VALUES ("padrao", ?, datetime("now")) ON CONFLICT(id) DO UPDATE SET dados = excluded.dados, atualizadoEm = excluded.atualizadoEm'
