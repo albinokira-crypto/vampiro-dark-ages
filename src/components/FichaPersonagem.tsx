@@ -103,8 +103,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [modalCatalogoArmasAberto, setModalCatalogoArmasAberto] = useState(false);
   const [modalCatalogoArmadurasAberto, setModalCatalogoArmadurasAberto] = useState(false);
   const [buscaCatalogoArmas, setBuscaCatalogoArmas] = useState('');
-  const [filtroCategoriaArmas, setFiltroCategoriaArmas] = useState<'todas' | 'branca' | 'distancia' | 'briga'>('todas');
+  const [filtroCategoriaArmas, setFiltroCategoriaArmas] = useState<
+    'todas' | 'branca' | 'distancia' | 'escudo' | 'briga' | 'magica'
+  >('todas');
   const [buscaCatalogoArmaduras, setBuscaCatalogoArmaduras] = useState('');
+  const [somenteArmadurasMagicas, setSomenteArmadurasMagicas] = useState(false);
 
   useEffect(() => {
     storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
@@ -1250,12 +1253,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     const nova: Arma = {
       id: 'arma_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
       nome: modelo.nome,
+      categoria: modelo.categoria,
       dificuldade: modelo.dificuldade,
       dano: modelo.dano,
       ocultacao: modelo.ocultacao,
       alcance: modelo.alcance,
       forcaMinima: modelo.forcaMinima,
       recursosMinimo: modelo.recursosMinimo,
+      magica: modelo.magica,
+      danoAgravado: modelo.danoAgravado,
+      bonusMagico: modelo.bonusMagico,
+      poderMagico: modelo.poderMagico,
     };
     updateFicha((prev) => ({
       ...prev,
@@ -1355,6 +1363,10 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       forcaMinima: modelo.forcaMinima,
       recursosMinimo: modelo.recursosMinimo,
       penalidadePercepcao: modelo.penalidadePercepcao || 0,
+      magica: modelo.magica,
+      absorveAgravado: modelo.absorveAgravado,
+      bonusMagico: modelo.bonusMagico,
+      poderMagico: modelo.poderMagico,
     };
     updateFicha((prev) => ({
       ...prev,
@@ -3520,6 +3532,26 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                         readonly={!podeEditar}
                                         placeholder="Nome da Arma"
                                       />
+                                      {arma.categoria === 'escudo' && (
+                                        <span className="text-[9px] font-mono font-bold text-sky-300 bg-sky-950/70 border border-sky-700/80 px-1.5 py-0.2 rounded-xs">
+                                          🛡️ Escudo
+                                        </span>
+                                      )}
+                                      {arma.magica && (
+                                        <span className="text-[9px] font-mono font-bold text-purple-200 bg-purple-950/80 border border-purple-500/80 px-1.5 py-0.2 rounded-xs">
+                                          ✨ Mágica
+                                        </span>
+                                      )}
+                                      {arma.danoAgravado && (
+                                        <span className="text-[9px] font-mono font-bold text-amber-200 bg-amber-950/80 border border-amber-500/80 px-1.5 py-0.2 rounded-xs">
+                                          🔥 Agravado
+                                        </span>
+                                      )}
+                                      {arma.bonusMagico && (
+                                        <span className="text-[9px] font-mono text-fuchsia-300 bg-fuchsia-950/60 border border-fuchsia-700/70 px-1.5 py-0.2 rounded-xs">
+                                          {arma.bonusMagico}
+                                        </span>
+                                      )}
                                       {faltaForca && (
                                         <span
                                           className="text-[9px] font-mono font-bold text-red-300 bg-red-950/80 border border-red-700/80 px-1.5 py-0.2 rounded-xs"
@@ -3534,6 +3566,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                         </span>
                                       )}
                                     </div>
+                                    {arma.poderMagico && (
+                                      <span className="text-[10px] text-purple-300 italic font-serif">
+                                        ✨ {arma.poderMagico}
+                                      </span>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="py-2 px-2 text-center">
@@ -3693,6 +3730,21 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                         readonly={!podeEditar}
                                         placeholder="Cota de Malha"
                                       />
+                                      {arm.magica && (
+                                        <span className="text-[9px] font-mono font-bold text-purple-200 bg-purple-950/80 border border-purple-500/80 px-1.5 py-0.2 rounded-xs">
+                                          ✨ Mágica
+                                        </span>
+                                      )}
+                                      {arm.absorveAgravado && (
+                                        <span className="text-[9px] font-mono font-bold text-amber-200 bg-amber-950/80 border border-amber-500/80 px-1.5 py-0.2 rounded-xs">
+                                          🛡️ Absorve Agravado
+                                        </span>
+                                      )}
+                                      {arm.bonusMagico && (
+                                        <span className="text-[9px] font-mono text-fuchsia-300 bg-fuchsia-950/60 border border-fuchsia-700/70 px-1.5 py-0.2 rounded-xs">
+                                          {arm.bonusMagico}
+                                        </span>
+                                      )}
                                       {faltaForcaArm && isEquipada && (
                                         <span
                                           className="text-[9px] font-mono font-bold text-red-300 bg-red-950/80 border border-red-700/80 px-1.5 py-0.2 rounded-xs"
@@ -3707,6 +3759,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                         </span>
                                       )}
                                     </div>
+                                    {arm.poderMagico && (
+                                      <span className="text-[10px] text-purple-300 italic font-serif">
+                                        ✨ {arm.poderMagico}
+                                      </span>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="py-2 px-2 text-center">
@@ -5218,13 +5275,15 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 />
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {(
                   [
-                    { id: 'todas', label: 'Todas as Armas' },
+                    { id: 'todas', label: 'Todas' },
                     { id: 'branca', label: 'Armas Brancas' },
-                    { id: 'distancia', label: 'Projéteis / Distância' },
-                    { id: 'briga', label: 'Naturais / Briga' },
+                    { id: 'distancia', label: 'Longo Alcance' },
+                    { id: 'escudo', label: '🛡️ Escudos' },
+                    { id: 'briga', label: 'Briga' },
+                    { id: 'magica', label: '✨ Mágicas' },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -5233,7 +5292,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     onClick={() => setFiltroCategoriaArmas(tab.id)}
                     className={`px-3 py-1 text-xs font-gothic uppercase tracking-wide rounded-xs cursor-pointer border transition-colors ${
                       filtroCategoriaArmas === tab.id
-                        ? 'bg-[#8b0000] text-white border-[#b31419]'
+                        ? tab.id === 'magica'
+                          ? 'bg-purple-800 text-white border-purple-400'
+                          : 'bg-[#8b0000] text-white border-[#b31419]'
                         : 'bg-[#1b1116] text-[#8e8273] border-[#3b181b] hover:text-[#ded6cb]'
                     }`}
                   >
@@ -5246,9 +5307,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             {/* Lista de Armas */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
               {catalogoArmasAtivo.filter((arma) => {
-                const bateCat = filtroCategoriaArmas === 'todas' || arma.categoria === filtroCategoriaArmas;
+                const bateCat =
+                  filtroCategoriaArmas === 'todas' ||
+                  (filtroCategoriaArmas === 'magica'
+                    ? Boolean(arma.magica)
+                    : arma.categoria === filtroCategoriaArmas);
                 const termo = buscaCatalogoArmas.toLowerCase().trim();
-                const bateBusca = !termo || arma.nome.toLowerCase().includes(termo) || (arma.descricao || '').toLowerCase().includes(termo);
+                const bateBusca =
+                  !termo ||
+                  arma.nome.toLowerCase().includes(termo) ||
+                  (arma.descricao || '').toLowerCase().includes(termo) ||
+                  (arma.poderMagico || '').toLowerCase().includes(termo);
                 return bateCat && bateBusca;
               }).map((arma, idx) => {
                 const forcaPers = ficha.atributos.forca || 1;
@@ -5268,7 +5337,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 return (
                   <div
                     key={idx}
-                    className="bg-[#160f13] hover:bg-[#1f141a] border border-[#2d1217] hover:border-[#522228] p-3 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors"
+                    className={`p-3 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors border ${
+                      arma.magica
+                        ? 'bg-[#180f20] hover:bg-[#21132c] border-purple-700/70 hover:border-purple-400'
+                        : 'bg-[#160f13] hover:bg-[#1f141a] border-[#2d1217] hover:border-[#522228]'
+                    }`}
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -5276,8 +5349,29 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           {arma.nome}
                         </span>
                         <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-2 py-0.5 rounded border border-[#522228]">
-                          {arma.categoria === 'branca' ? 'Armas Brancas' : arma.categoria === 'distancia' ? 'Projétil / Arquearia' : 'Briga / Sobrenatural'}
+                          {arma.categoria === 'branca'
+                            ? 'Armas Brancas'
+                            : arma.categoria === 'distancia'
+                            ? 'Longo Alcance'
+                            : arma.categoria === 'escudo'
+                            ? '🛡️ Escudo'
+                            : 'Briga / Sobrenatural'}
                         </span>
+                        {arma.magica && (
+                          <span className="text-[10px] font-mono font-bold text-purple-200 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-500/80">
+                            ✨ Mágica
+                          </span>
+                        )}
+                        {arma.danoAgravado && (
+                          <span className="text-[10px] font-mono font-bold text-amber-200 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/80">
+                            🔥 Agravado
+                          </span>
+                        )}
+                        {arma.bonusMagico && (
+                          <span className="text-[10px] font-mono text-fuchsia-300 bg-fuchsia-950/60 px-2 py-0.5 rounded border border-fuchsia-700/70">
+                            {arma.bonusMagico}
+                          </span>
+                        )}
                         <span
                           className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
                             temForca
@@ -5302,6 +5396,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           Alcance: <strong className="text-[#ded6cb]">{arma.alcance}</strong> • Ocultação: <strong className="text-[#ded6cb]">{arma.ocultacao}</strong>
                         </span>
                       </div>
+                      {arma.poderMagico && (
+                        <p className="text-[11px] text-purple-300 font-serif">
+                          ✨ Poder Mágico: {arma.poderMagico}
+                        </p>
+                      )}
                       {arma.descricao && (
                         <p className="text-[11px] text-[#a89f91] italic">{arma.descricao}</p>
                       )}
@@ -5391,25 +5490,42 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               </button>
             </div>
 
-            {/* Busca */}
-            <div className="p-4 bg-[#140c10] border-b border-[#2d1217]">
-              <div className="relative">
+            {/* Busca e Filtro Mágicas */}
+            <div className="p-4 bg-[#140c10] border-b border-[#2d1217] flex flex-wrap items-center gap-2.5">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={buscaCatalogoArmaduras}
                   onChange={(e) => setBuscaCatalogoArmaduras(e.target.value)}
-                  placeholder="Buscar armadura por nome ou tipo..."
+                  placeholder="Buscar armadura por nome, poder mágico ou tipo..."
                   className="w-full bg-[#1b1116] border border-[#3b181b] focus:border-[#ef4444] text-xs text-[#ded6cb] pl-9 pr-3 py-1.5 rounded-xs focus:outline-hidden"
                 />
               </div>
+              <button
+                type="button"
+                onClick={() => setSomenteArmadurasMagicas((v) => !v)}
+                className={`px-3 py-1.5 text-xs font-gothic uppercase tracking-wide rounded-xs cursor-pointer border transition-colors ${
+                  somenteArmadurasMagicas
+                    ? 'bg-purple-800 text-white border-purple-400'
+                    : 'bg-[#1b1116] text-[#a89f91] border-[#3b181b] hover:text-white'
+                }`}
+              >
+                ✨ Somente Mágicas
+              </button>
             </div>
 
             {/* Lista de Armaduras */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
               {catalogoArmadurasAtivo.filter((arm) => {
+                if (somenteArmadurasMagicas && !arm.magica) return false;
                 const termo = buscaCatalogoArmaduras.toLowerCase().trim();
-                return !termo || arm.nome.toLowerCase().includes(termo) || (arm.descricao || '').toLowerCase().includes(termo);
+                return (
+                  !termo ||
+                  arm.nome.toLowerCase().includes(termo) ||
+                  (arm.descricao || '').toLowerCase().includes(termo) ||
+                  (arm.poderMagico || '').toLowerCase().includes(termo)
+                );
               }).map((arm, idx) => {
                 const forcaPers = ficha.atributos.forca || 1;
                 const recursosPers =
@@ -5425,13 +5541,32 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 return (
                   <div
                     key={idx}
-                    className="bg-[#160f13] hover:bg-[#1f141a] border border-[#2d1217] hover:border-[#522228] p-3.5 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                    className={`p-3.5 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors border ${
+                      arm.magica
+                        ? 'bg-[#180f20] hover:bg-[#21132c] border-purple-700/70 hover:border-purple-400'
+                        : 'bg-[#160f13] hover:bg-[#1f141a] border-[#2d1217] hover:border-[#522228]'
+                    }`}
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-gothic font-bold text-white text-sm">
                           {arm.nome}
                         </span>
+                        {arm.magica && (
+                          <span className="text-[10px] font-mono font-bold text-purple-200 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-500/80">
+                            ✨ Mágica
+                          </span>
+                        )}
+                        {arm.absorveAgravado && (
+                          <span className="text-[10px] font-mono font-bold text-amber-200 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/80">
+                            🛡️ Absorve Agravado
+                          </span>
+                        )}
+                        {arm.bonusMagico && (
+                          <span className="text-[10px] font-mono text-fuchsia-300 bg-fuchsia-950/60 px-2 py-0.5 rounded border border-fuchsia-700/70">
+                            {arm.bonusMagico}
+                          </span>
+                        )}
                         <span
                           className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
                             temForca
@@ -5461,6 +5596,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           </span>
                         )}
                       </div>
+                      {arm.poderMagico && (
+                        <p className="text-[11px] text-purple-300 font-serif">
+                          ✨ Poder Mágico: {arm.poderMagico}
+                        </p>
+                      )}
                       {arm.descricao && (
                         <p className="text-[11px] text-[#a89f91]">{arm.descricao}</p>
                       )}

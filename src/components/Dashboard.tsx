@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Castle,
   ScrollText,
+  Wand2,
 } from 'lucide-react';
 import { FotoPersonagem } from './FotoPersonagem';
 import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
@@ -19,6 +20,7 @@ import { PainelJogadoresMestre } from './PainelJogadoresMestre';
 import { PainelElisio } from './PainelElisio';
 import { PainelTestes } from './PainelTestes';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
+import { ModalGeradorNpc } from './ModalGeradorNpc';
 import {
   calcularDetalhesAtalho,
   ATALHOS_CARD_PADRAO,
@@ -53,6 +55,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     storageService.getConfiguracaoMesa()
   );
   const [personagemConfigurandoAtalhos, setPersonagemConfigurandoAtalhos] = useState<Personagem | null>(null);
+  const [modalGeradorNpcAberto, setModalGeradorNpcAberto] = useState(false);
 
   const handleSalvarAtalhosPersonagem = async (novosAtalhos: AtalhoParadaDado[] | undefined) => {
     if (!personagemConfigurandoAtalhos) return;
@@ -227,14 +230,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Botões de Ação para Criar Fichas (Convidar e Configurar Pontos já estão no Navbar) */}
         <div className="flex flex-wrap items-center gap-2">
           {usuarioAtual.role === 'mestre' && (
-            <button
-              type="button"
-              onClick={() => onCriarNovo('npc')}
-              className="px-3 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border border-[#78350f] bg-[#451a03] hover:bg-[#78350f] text-amber-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-md touch-manipulation"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Novo NPC</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onCriarNovo('npc')}
+                className="px-3 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border border-[#78350f] bg-[#451a03] hover:bg-[#78350f] text-amber-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-md touch-manipulation"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Novo NPC</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalGeradorNpcAberto(true)}
+                className="px-3 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border border-purple-700 bg-purple-950/90 hover:bg-purple-900 text-purple-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(168,85,247,0.35)] touch-manipulation"
+                title="Gerar NPC completo automaticamente por Geração, Clã e Arquétipo (Exclusivo Mestre)"
+              >
+                <Wand2 className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>Gerar NPC</span>
+              </button>
+            </>
           )}
 
           <button
@@ -692,6 +707,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
           configMesa={config}
           onSalvar={handleSalvarAtalhosPersonagem}
           onFechar={() => setPersonagemConfigurandoAtalhos(null)}
+        />
+      )}
+
+      {/* Modal Gerador Inteligente de NPCs (Exclusivo Mestre) */}
+      {modalGeradorNpcAberto && usuarioAtual.role === 'mestre' && (
+        <ModalGeradorNpc
+          usuarioAtual={usuarioAtual}
+          onFechar={() => setModalGeradorNpcAberto(false)}
+          onNpcCriado={(npc) => {
+            setPersonagens((prev) => [npc, ...prev]);
+            setModalGeradorNpcAberto(false);
+            onAbrirFicha(npc.id);
+          }}
         />
       )}
     </div>

@@ -47,7 +47,7 @@ export interface DadosElisio {
 
 export interface CatalogoArmaItem {
   nome: string;
-  categoria: 'branca' | 'briga' | 'distancia';
+  categoria: 'branca' | 'briga' | 'distancia' | 'escudo';
   dificuldade: string;
   dano: string;
   ocultacao: string;
@@ -55,6 +55,10 @@ export interface CatalogoArmaItem {
   forcaMinima: number;
   recursosMinimo: number;
   descricao?: string;
+  magica?: boolean;
+  danoAgravado?: boolean;
+  bonusMagico?: string;
+  poderMagico?: string;
 }
 
 export interface CatalogoArmaduraItem {
@@ -65,6 +69,10 @@ export interface CatalogoArmaduraItem {
   recursosMinimo: number;
   penalidadePercepcao?: number;
   descricao?: string;
+  magica?: boolean;
+  absorveAgravado?: boolean;
+  bonusMagico?: string;
+  poderMagico?: string;
 }
 
 export interface TabelaTeste {
@@ -161,12 +169,17 @@ export interface QualidadeDefeitoItem {
 export interface Arma {
   id: string;
   nome: string;
+  categoria?: 'branca' | 'briga' | 'distancia' | 'escudo';
   dificuldade: string;
   dano: string;
   ocultacao: string;
   alcance: string;
   forcaMinima?: number;
   recursosMinimo?: number;
+  magica?: boolean;
+  danoAgravado?: boolean;
+  bonusMagico?: string;
+  poderMagico?: string;
 }
 
 export interface Armadura {
@@ -178,6 +191,10 @@ export interface Armadura {
   forcaMinima?: number;
   recursosMinimo?: number;
   penalidadePercepcao?: number; // Penalidade em testes de Percepção/Prontidão devido a elmo ou viseira
+  magica?: boolean;
+  absorveAgravado?: boolean;
+  bonusMagico?: string;
+  poderMagico?: string;
 }
 
 export interface LacoDeSangue {

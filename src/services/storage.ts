@@ -497,6 +497,9 @@ export const storageService = {
       } else {
         if (!Array.isArray(parsed.catalogoArmas) || parsed.catalogoArmas.length === 0) {
           parsed.catalogoArmas = ARMAS_CATALOGO_1E;
+        } else if (!parsed.catalogoArmas.some((a: CatalogoArmaItem) => a.categoria === 'escudo')) {
+          const escudosPadrao = ARMAS_CATALOGO_1E.filter((a) => a.categoria === 'escudo');
+          parsed.catalogoArmas = [...parsed.catalogoArmas, ...escudosPadrao];
         }
         if (!Array.isArray(parsed.catalogoArmaduras) || parsed.catalogoArmaduras.length === 0) {
           parsed.catalogoArmaduras = ARMADURAS_CATALOGO_1E;
@@ -537,6 +540,10 @@ export const storageService = {
           } else {
             if (!Array.isArray(mesclado.catalogoArmas) || mesclado.catalogoArmas.length === 0) {
               mesclado.catalogoArmas = ARMAS_CATALOGO_1E;
+            } else if (!mesclado.catalogoArmas.some((a: CatalogoArmaItem) => a.categoria === 'escudo')) {
+              const escudosPadrao = ARMAS_CATALOGO_1E.filter((a) => a.categoria === 'escudo');
+              mesclado.catalogoArmas = [...mesclado.catalogoArmas, ...escudosPadrao];
+              precisaSincronizarMigracao = true;
             }
             if (!Array.isArray(mesclado.catalogoArmaduras) || mesclado.catalogoArmaduras.length === 0) {
               mesclado.catalogoArmaduras = ARMADURAS_CATALOGO_1E;

@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "v1.10.2",
-    "versionCode":  1102,
-    "updatedAt":  "2026-11-17T19:34:07.425Z",
-    "changelog":  "feat: catalogo oficial armas/armaduras 1E do livro, aba Testes editavel pelo mestre e nivel Soldados de Elite na hierarquia"
+    "version":  "v1.10.3",
+    "versionCode":  1103,
+    "updatedAt":  "2026-11-17T20:11:33.736Z",
+    "changelog":  "feat: gerador inteligente de NPCs por geracao (mestre), armas/armaduras magicas e escudos oficiais 1E"
 }

@@ -21,6 +21,7 @@ import {
   Shield,
   Pencil,
   Search,
+  Sparkles,
 } from 'lucide-react';
 import {
   MAPA_TRACOS,
@@ -37,12 +38,16 @@ const ARMA_VAZIA: CatalogoArmaItem = {
   nome: '',
   categoria: 'branca',
   dificuldade: '6',
-  dano: 'For+2',
-  ocultacao: 'Bainha',
+  dano: 'Força + 2',
+  ocultacao: 'M',
   alcance: 'Corpo a corpo',
   forcaMinima: 1,
   recursosMinimo: 1,
   descricao: '',
+  magica: false,
+  danoAgravado: false,
+  bonusMagico: '',
+  poderMagico: '',
 };
 
 const ARMADURA_VAZIA: CatalogoArmaduraItem = {
@@ -53,6 +58,10 @@ const ARMADURA_VAZIA: CatalogoArmaduraItem = {
   recursosMinimo: 2,
   penalidadePercepcao: 0,
   descricao: '',
+  magica: false,
+  absorveAgravado: false,
+  bonusMagico: '',
+  poderMagico: '',
 };
 
 export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar }) => {
@@ -133,6 +142,10 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
       forcaMinima: Math.max(0, Number(formArma.forcaMinima) || 0),
       recursosMinimo: Math.max(0, Number(formArma.recursosMinimo) || 0),
       descricao: (formArma.descricao || '').trim(),
+      magica: Boolean(formArma.magica),
+      danoAgravado: formArma.magica ? Boolean(formArma.danoAgravado) : false,
+      bonusMagico: formArma.magica ? (formArma.bonusMagico || '').trim() : '',
+      poderMagico: formArma.magica ? (formArma.poderMagico || '').trim() : '',
     };
 
     const novaLista = [...armasAtuais];
@@ -208,6 +221,10 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
       recursosMinimo: Math.max(0, Number(formArmadura.recursosMinimo) || 0),
       penalidadePercepcao: penPercFinal,
       descricao: (formArmadura.descricao || '').trim(),
+      magica: Boolean(formArmadura.magica),
+      absorveAgravado: formArmadura.magica ? Boolean(formArmadura.absorveAgravado) : false,
+      bonusMagico: formArmadura.magica ? (formArmadura.bonusMagico || '').trim() : '',
+      poderMagico: formArmadura.magica ? (formArmadura.poderMagico || '').trim() : '',
     };
 
     const novaLista = [...armadurasAtuais];
@@ -993,6 +1010,7 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                     >
                       <option value="branca">Armas Brancas</option>
                       <option value="distancia">Projéteis / Distância</option>
+                      <option value="escudo">Escudos</option>
                       <option value="briga">Briga / Sobrenatural</option>
                     </select>
                   </div>
@@ -1095,6 +1113,70 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                   </div>
                 </div>
 
+                {/* Opção de Arma / Escudo Mágico (Encantado) */}
+                <div className="bg-[#160c1d] border border-purple-900/70 rounded-xs p-3 space-y-2.5">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formArma.magica)}
+                      onChange={(e) => setFormArma({ ...formArma, magica: e.target.checked })}
+                      className="accent-purple-500 w-4 h-4 cursor-pointer"
+                    />
+                    <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                    <span className="text-xs font-gothic font-bold uppercase tracking-wider text-purple-200">
+                      Item Mágico / Artefato Encantado
+                    </span>
+                  </label>
+
+                  {formArma.magica && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                      <div className="flex items-center">
+                        <label className="inline-flex items-center gap-2 cursor-pointer text-xs text-amber-200">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(formArma.danoAgravado)}
+                            onChange={(e) =>
+                              setFormArma({ ...formArma, danoAgravado: e.target.checked })
+                            }
+                            className="accent-amber-500 w-4 h-4 cursor-pointer"
+                          />
+                          <span>Causa Dano Agravado</span>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-purple-300 mb-1 font-semibold uppercase">
+                          Bônus Mágico (ex: +1 dado, +2 dano)
+                        </label>
+                        <input
+                          type="text"
+                          value={formArma.bonusMagico || ''}
+                          onChange={(e) =>
+                            setFormArma({ ...formArma, bonusMagico: e.target.value })
+                          }
+                          placeholder="Ex: +1 dado de ataque"
+                          className="w-full bg-[#100816] border border-purple-800/80 focus:border-purple-400 px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-3">
+                        <label className="block text-[10px] text-purple-300 mb-1 font-semibold uppercase">
+                          Poder Mágico / Ritual / Maldição
+                        </label>
+                        <input
+                          type="text"
+                          value={formArma.poderMagico || ''}
+                          onChange={(e) =>
+                            setFormArma({ ...formArma, poderMagico: e.target.value })
+                          }
+                          placeholder="Ex: Lâmina forjada em ritual Tremere que incendeia o sangue do alvo..."
+                          className="w-full bg-[#100816] border border-purple-800/80 focus:border-purple-400 px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#2d1217]">
                   <button
                     type="button"
@@ -1133,13 +1215,37 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                 .map(({ arma, idx }) => (
                   <div
                     key={`${arma.nome}-${idx}`}
-                    className="bg-[#150e12] border border-[#2d1217] hover:border-[#522228] p-3 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors"
+                    className={`p-3 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors border ${
+                      arma.magica
+                        ? 'bg-[#170e1d] border-purple-700/70 hover:border-purple-500'
+                        : 'bg-[#150e12] border-[#2d1217] hover:border-[#522228]'
+                    }`}
                   >
                     <div className="space-y-1 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-gothic font-bold text-sm text-white">
                           {arma.nome}
                         </span>
+                        {arma.categoria === 'escudo' && (
+                          <span className="text-[10px] font-mono text-sky-300 bg-sky-950/70 px-1.5 py-0.5 rounded border border-sky-700/80">
+                            🛡️ Escudo
+                          </span>
+                        )}
+                        {arma.magica && (
+                          <span className="text-[10px] font-mono font-bold text-purple-200 bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-500/80">
+                            ✨ Mágica
+                          </span>
+                        )}
+                        {arma.danoAgravado && (
+                          <span className="text-[10px] font-mono font-bold text-amber-200 bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/80">
+                            🔥 Agravado
+                          </span>
+                        )}
+                        {arma.bonusMagico && (
+                          <span className="text-[10px] font-mono text-fuchsia-300 bg-fuchsia-950/60 px-1.5 py-0.5 rounded border border-fuchsia-700/70">
+                            {arma.bonusMagico}
+                          </span>
+                        )}
                         <span className="text-[10px] font-mono text-[#d4af37] bg-[#221015] px-1.5 py-0.5 rounded border border-[#522228]">
                           Dif {arma.dificuldade}
                         </span>
@@ -1156,6 +1262,11 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                           Alcance: {arma.alcance} • Ocult: {arma.ocultacao}
                         </span>
                       </div>
+                      {arma.poderMagico && (
+                        <p className="text-[11px] text-purple-300 font-serif">
+                          ✨ Poder Mágico: {arma.poderMagico}
+                        </p>
+                      )}
                       {arma.descricao && (
                         <p className="text-[11px] text-[#a89f91] italic truncate">{arma.descricao}</p>
                       )}
@@ -1355,6 +1466,75 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                   </div>
                 </div>
 
+                {/* Opção de Armadura Mágica (Encantada) */}
+                <div className="bg-[#160c1d] border border-purple-900/70 rounded-xs p-3 space-y-2.5">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formArmadura.magica)}
+                      onChange={(e) =>
+                        setFormArmadura({ ...formArmadura, magica: e.target.checked })
+                      }
+                      className="accent-purple-500 w-4 h-4 cursor-pointer"
+                    />
+                    <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                    <span className="text-xs font-gothic font-bold uppercase tracking-wider text-purple-200">
+                      Armadura Mágica / Artefato Encantado
+                    </span>
+                  </label>
+
+                  {formArmadura.magica && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                      <div className="flex items-center">
+                        <label className="inline-flex items-center gap-2 cursor-pointer text-xs text-amber-200">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(formArmadura.absorveAgravado)}
+                            onChange={(e) =>
+                              setFormArmadura({
+                                ...formArmadura,
+                                absorveAgravado: e.target.checked,
+                              })
+                            }
+                            className="accent-amber-500 w-4 h-4 cursor-pointer"
+                          />
+                          <span>Absorve Agravado / Fogo</span>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-purple-300 mb-1 font-semibold uppercase">
+                          Bônus Mágico (ex: +1 absorção, leveza)
+                        </label>
+                        <input
+                          type="text"
+                          value={formArmadura.bonusMagico || ''}
+                          onChange={(e) =>
+                            setFormArmadura({ ...formArmadura, bonusMagico: e.target.value })
+                          }
+                          placeholder="Ex: +2 dados absorção"
+                          className="w-full bg-[#100816] border border-purple-800/80 focus:border-purple-400 px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-3">
+                        <label className="block text-[10px] text-purple-300 mb-1 font-semibold uppercase">
+                          Poder Mágico / Proteção Especial / Maldição
+                        </label>
+                        <input
+                          type="text"
+                          value={formArmadura.poderMagico || ''}
+                          onChange={(e) =>
+                            setFormArmadura({ ...formArmadura, poderMagico: e.target.value })
+                          }
+                          placeholder="Ex: Runas de proteção contra fogo e garras lupinas..."
+                          className="w-full bg-[#100816] border border-purple-800/80 focus:border-purple-400 px-2.5 py-1.5 text-xs text-white rounded-xs focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#2d1217]">
                   <button
                     type="button"
@@ -1397,13 +1577,32 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                 .map(({ arm, idx }) => (
                   <div
                     key={`${arm.nome}-${idx}`}
-                    className="bg-[#150e12] border border-[#2d1217] hover:border-[#522228] p-3 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors"
+                    className={`p-3 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors border ${
+                      arm.magica
+                        ? 'bg-[#170e1d] border-purple-700/70 hover:border-purple-500'
+                        : 'bg-[#150e12] border-[#2d1217] hover:border-[#522228]'
+                    }`}
                   >
                     <div className="space-y-1 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-gothic font-bold text-sm text-white">
                           {arm.nome}
                         </span>
+                        {arm.magica && (
+                          <span className="text-[10px] font-mono font-bold text-purple-200 bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-500/80">
+                            ✨ Mágica
+                          </span>
+                        )}
+                        {arm.absorveAgravado && (
+                          <span className="text-[10px] font-mono font-bold text-amber-200 bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/80">
+                            🛡️ Absorve Agravado
+                          </span>
+                        )}
+                        {arm.bonusMagico && (
+                          <span className="text-[10px] font-mono text-fuchsia-300 bg-fuchsia-950/60 px-1.5 py-0.5 rounded border border-fuchsia-700/70">
+                            {arm.bonusMagico}
+                          </span>
+                        )}
                         <span className="text-[10px] font-mono text-green-300 bg-green-950/60 px-1.5 py-0.5 rounded border border-green-800/70">
                           Absorção: +{arm.classe}
                         </span>
@@ -1420,6 +1619,11 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                           Recursos: {arm.recursosMinimo}
                         </span>
                       </div>
+                      {arm.poderMagico && (
+                        <p className="text-[11px] text-purple-300 font-serif">
+                          ✨ Poder Mágico: {arm.poderMagico}
+                        </p>
+                      )}
                       {arm.descricao && (
                         <p className="text-[11px] text-[#a89f91] italic truncate">{arm.descricao}</p>
                       )}

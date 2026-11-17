@@ -7,7 +7,7 @@ import type { Arma, Personagem } from '../types';
 
 export interface ModeloArma1E {
   nome: string;
-  categoria: 'branca' | 'briga' | 'distancia';
+  categoria: 'branca' | 'briga' | 'distancia' | 'escudo';
   dificuldade: string;
   dano: string;
   ocultacao: string;
@@ -15,6 +15,10 @@ export interface ModeloArma1E {
   forcaMinima: number; // Requisito mínimo de Força para empunhar sem penalidade
   recursosMinimo: number; // Nível mínimo no Antecedente Recursos para possuir/comprar
   descricao?: string;
+  magica?: boolean;
+  danoAgravado?: boolean;
+  bonusMagico?: string;
+  poderMagico?: string;
 }
 
 export interface ModeloArmadura1E {
@@ -25,6 +29,10 @@ export interface ModeloArmadura1E {
   recursosMinimo: number; // Nível mínimo no Antecedente Recursos
   penalidadePercepcao?: number; // Penalidade em Percepção (visão e audição obstruídas por elmo/placas)
   descricao?: string;
+  magica?: boolean;
+  absorveAgravado?: boolean;
+  bonusMagico?: string;
+  poderMagico?: string;
 }
 
 // Catálogo Canônico de Armas da 1ª Edição (Vampiro: A Idade das Trevas — Livro Básico Devir)
@@ -277,6 +285,34 @@ export const ARMAS_CATALOGO_1E: ModeloArma1E[] = [
     forcaMinima: 2,
     recursosMinimo: 1,
     descricao: 'CDT: N/D. Dificuldade +1. Arremesso até 12 m. Ocultabilidade T.',
+  },
+
+  // =========================================================================
+  // ESCUDOS MEDIEVAIS (Tabela Oficial do Livro — Pág. 193)
+  // =========================================================================
+  {
+    nome: 'Escudo de Infantaria',
+    categoria: 'escudo',
+    dificuldade: '6',
+    dano: 'Força',
+    ocultacao: 'N',
+    alcance: 'Corpo a corpo',
+    forcaMinima: 1,
+    recursosMinimo: 1,
+    descricao:
+      'Redondo ou triangular (30 a 90 cm). Aumenta em +1 a dificuldade de ataques inimigos com Armas Brancas (não protege contra ataques pelas costas).',
+  },
+  {
+    nome: 'Escudo de Cavalaria',
+    categoria: 'escudo',
+    dificuldade: '6',
+    dano: 'Força + 1',
+    ocultacao: 'N',
+    alcance: 'Corpo a corpo',
+    forcaMinima: 2,
+    recursosMinimo: 2,
+    descricao:
+      'Longo e fino em formato de pipa. A pé aumenta em +2 a dificuldade de ataques inimigos com Armas Brancas; montado aumenta em +3 contra ataques vindos do lado esquerdo (não protege pelas costas).',
   },
 ];
 
