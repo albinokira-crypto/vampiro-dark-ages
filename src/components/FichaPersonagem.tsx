@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type {
   Personagem,
   User,
@@ -339,6 +339,56 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       storageService.salvarPersonagem(norm);
     }
   }, [personagem.id]);
+
+  // Ref para acompanhar estado de alterações não salvas sem reiniciar o polling
+  const hasChangesRef = useRef(hasChanges);
+  hasChangesRef.current = hasChanges;
+
+  // Sincronização em tempo real com Cloudflare D1 ao abrir, ao focar e periodicamente (recebe comandos do Mestre como XP e Reabrir Criação)
+  useEffect(() => {
+    let ativo = true;
+
+    const checarAtualizacaoRemota = async () => {
+      if (hasChangesRef.current) return;
+      const remoto = await storageService.carregarPersonagemRemoto(personagem.id, usuarioAtual);
+      if (!ativo || !remoto) return;
+
+      setFicha((atual) => {
+        const remotoTs = remoto.updatedAt ? new Date(remoto.updatedAt).getTime() : 0;
+        const atualTs = atual.updatedAt ? new Date(atual.updatedAt).getTime() : 0;
+        const mudouXP = (remoto.xp?.atual || 0) !== (atual.xp?.atual || 0);
+        const mudouStatusCriacao =
+          remoto.criacao?.status !== atual.criacao?.status ||
+          remoto.criacao?.etapa !== atual.criacao?.etapa;
+
+        if (remotoTs > atualTs || mudouXP || mudouStatusCriacao) {
+          if (mudouXP || mudouStatusCriacao) {
+            setSucessoXP('🔄 Ficha sincronizada automaticamente com as alterações do Narrador!');
+            setTimeout(() => setSucessoXP(null), 4000);
+          }
+          return remoto;
+        }
+        return atual;
+      });
+    };
+
+    checarAtualizacaoRemota();
+
+    const intervalo = setInterval(checarAtualizacaoRemota, 10000);
+    const onFocus = () => checarAtualizacaoRemota();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') checarAtualizacaoRemota();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [personagem.id, usuarioAtual.id, usuarioAtual.role]);
 
   // Listener para atalho de teclado Ctrl+S
   useEffect(() => {
@@ -1590,17 +1640,23 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
     const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const logXP = `+ ${qtd} XP concedidos às ${hora}`;
+    const novoSaldo = (ficha.xp?.atual || 0) + qtd;
 
-    updateFicha((prev) => ({
-      ...prev,
+    const atualizada: Personagem = {
+      ...ficha,
       xp: {
-        ...prev.xp,
-        atual: (prev.xp?.atual || 0) + qtd,
-        historico: logXP + (prev.xp?.historico ? '\n' + prev.xp.historico : ''),
+        ...ficha.xp,
+        atual: novoSaldo,
+        historico: logXP + (ficha.xp?.historico ? '\n' + ficha.xp.historico : ''),
       },
-    }));
+      updatedAt: new Date().toISOString(),
+    };
 
-    setSucessoXP(`✓ +${qtd} XP concedidos com sucesso! Novo saldo: ${(ficha.xp?.atual || 0) + qtd} XP.`);
+    setFicha(atualizada);
+    onSalvar(atualizada);
+    setHasChanges(false);
+
+    setSucessoXP(`✓ +${qtd} XP concedidos e sincronizados com sucesso! Novo saldo: ${novoSaldo} XP.`);
     setTimeout(() => setSucessoXP(null), 4000);
 
     storageService.registrarLogAlteracao({
@@ -1609,7 +1665,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       jogadorNome: ficha.jogador || usuarioAtual.nome,
       tipo: 'xp',
       descricao: `XP Concedido pelo Mestre: +${qtd} XP`,
-      detalhes: `Novo saldo: ${(ficha.xp?.atual || 0) + qtd} XP`,
+      detalhes: `Novo saldo: ${novoSaldo} XP`,
     });
   };
 

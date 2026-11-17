@@ -943,6 +943,39 @@ export const storageService = {
     return normalizarPersonagem(p);
   },
 
+  async carregarPersonagemRemoto(id: string, user: User): Promise<Personagem | null> {
+    try {
+      const res = await fetch(
+        `/api/personagens/${id}?usuarioId=${user.id}&role=${user.role}&_t=${Date.now()}`,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        }
+      );
+      if (res.ok) {
+        const remoto: Personagem = await res.json();
+        if (remoto && remoto.id) {
+          const norm = normalizarPersonagem(remoto);
+          const todos = this.getPersonagens();
+          const idx = todos.findIndex((item) => item.id === norm.id);
+          if (idx >= 0) {
+            todos[idx] = norm;
+          } else {
+            todos.unshift(norm);
+          }
+          localStorage.setItem(STORAGE_KEY_PERSONAGENS, JSON.stringify(todos));
+          return norm;
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
+    return null;
+  },
+
   async salvarPersonagem(personagem: Personagem): Promise<void> {
     const todos = this.getPersonagens();
     const idx = todos.findIndex((p) => p.id === personagem.id);

@@ -65,20 +65,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setPersonagemConfigurandoAtalhos(null);
   };
 
-  const sincronizar = async () => {
-    setSincronizando(true);
+  const sincronizar = async (silencioso = false) => {
+    if (!silencioso) setSincronizando(true);
     try {
       const remotos = await storageService.sincronizarPersonagensRemotos(usuarioAtual);
       setPersonagens(remotos);
       const confRemota = await storageService.carregarConfiguracaoMesaRemota();
       setConfig(confRemota);
     } finally {
-      setSincronizando(false);
+      if (!silencioso) setSincronizando(false);
     }
   };
 
   useEffect(() => {
     sincronizar();
+
+    const intervalo = setInterval(() => sincronizar(true), 15000);
+    const onFocus = () => sincronizar(true);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') sincronizar(true);
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(intervalo);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [usuarioAtual.id, usuarioAtual.role]);
 
   const handleExcluir = async (e: React.MouseEvent, id: string, nome: string) => {
@@ -193,7 +207,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </h2>
             <button
               type="button"
-              onClick={sincronizar}
+              onClick={() => sincronizar(false)}
               disabled={sincronizando}
               title="Sincronizar com Cloudflare D1"
               className="p-1.5 bg-[#181115] hover:bg-[#251419] border border-[#3b181b] text-[#d4af37] rounded-xs cursor-pointer transition-transform active:rotate-180"

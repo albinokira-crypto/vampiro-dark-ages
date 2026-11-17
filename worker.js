@@ -367,9 +367,9 @@ export default {
           } else {
             // Jogador: Tem visão dos seus personagens e de outros jogadores, mas NUNCA NPCs ou fichas criadas pelo Mestre
             if (mestreId) {
-              stmt = db.prepare('SELECT dados FROM personagens WHERE tipo != "npc" AND usuarioId != ? ORDER BY atualizadoEm DESC').bind(mestreId);
+              stmt = db.prepare('SELECT dados FROM personagens WHERE usuarioId != ? ORDER BY atualizadoEm DESC').bind(mestreId);
             } else {
-              stmt = db.prepare('SELECT dados FROM personagens WHERE tipo != "npc" ORDER BY atualizadoEm DESC');
+              stmt = db.prepare('SELECT dados FROM personagens ORDER BY atualizadoEm DESC');
             }
           }
 
@@ -392,6 +392,42 @@ export default {
           });
 
           return jsonResponse(personagens);
+        }
+
+        // 8.1. PERSONAGEM ÚNICO (BUSCAR ATUALIZADO EM TEMPO REAL)
+        if (url.pathname.startsWith('/api/personagens/') && request.method === 'GET') {
+          const id = url.pathname.replace('/api/personagens/', '');
+          const usuarioId = url.searchParams.get('usuarioId');
+          const role = url.searchParams.get('role');
+
+          let isMestreAutenticado = false;
+          if (role === 'mestre' && usuarioId) {
+            const mestreRow = await db.prepare(
+              "SELECT id FROM usuarios WHERE id = ? AND role = 'mestre'"
+            ).bind(usuarioId).first();
+            if (mestreRow) isMestreAutenticado = true;
+          }
+
+          let mestreId = null;
+          const mestreRow = await db.prepare("SELECT id FROM usuarios WHERE role = 'mestre'").first();
+          if (mestreRow) mestreId = mestreRow.id;
+
+          const row = await db.prepare('SELECT dados FROM personagens WHERE id = ?').bind(id).first();
+          if (!row || !row.dados) {
+            return jsonResponse({ erro: 'Personagem não encontrado.' }, 404);
+          }
+
+          let p = null;
+          try { p = JSON.parse(row.dados); } catch {}
+          if (!p) return jsonResponse({ erro: 'Dados inválidos.' }, 500);
+
+          if (!isMestreAutenticado) {
+            if (p.tipo === 'npc' || (mestreId && p.usuarioId === mestreId)) {
+              return jsonResponse({ erro: 'Acesso restrito.' }, 403);
+            }
+          }
+
+          return jsonResponse(p);
         }
 
         // 9. PERSONAGEM (SALVAR / ATUALIZAR)
@@ -495,15 +531,33 @@ export default {
       }
     }
 
-    // Servir arquivos estáticos (Vite SPA)
+    // Servir arquivos estáticos (Vite SPA) com proteção anti-cache para arquivos de entrada/versão
+    const noCachePaths = new Set(['/', '/index.html', '/version.json', '/sw.js', '/manifest.json']);
+    const isNoCacheAsset = noCachePaths.has(url.pathname) || !url.pathname.includes('.');
+
+    const applyCacheHeaders = (res) => {
+      if (!isNoCacheAsset) return res;
+      const newHeaders = new Headers(res.headers);
+      newHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      newHeaders.set('Pragma', 'no-cache');
+      newHeaders.set('Expires', '0');
+      return new Response(res.body, {
+        status: res.status,
+        statusText: res.statusText,
+        headers: newHeaders,
+      });
+    };
+
     try {
       let response = await env.ASSETS.fetch(request);
       if (response.status === 404 && !url.pathname.includes('.')) {
-        return await env.ASSETS.fetch(new URL('/index.html', request.url));
+        const indexRes = await env.ASSETS.fetch(new URL('/index.html', request.url));
+        return applyCacheHeaders(indexRes);
       }
-      return response;
+      return applyCacheHeaders(response);
     } catch {
-      return await env.ASSETS.fetch(new URL('/index.html', request.url));
+      const fallbackRes = await env.ASSETS.fetch(new URL('/index.html', request.url));
+      return applyCacheHeaders(fallbackRes);
     }
   },
 };

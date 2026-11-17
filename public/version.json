@@ -1,0 +1,6 @@
+{
+  "version": "v1.10.0",
+  "versionCode": 1100,
+  "updatedAt": "2026-11-17T18:30:00.000Z",
+  "changelog": "Correção de sincronização Mestre-Jogador (XP e Modo Edição) e sistema de auto-atualização instantânea."
+}

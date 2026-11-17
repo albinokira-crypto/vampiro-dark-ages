@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Personagem, User } from './types';
 import { storageService } from './services/storage';
+import {
+  verificarAtualizacaoVersao,
+  forcarAtualizacaoCompleta,
+  podeRecarregarAutomaticamente,
+} from './services/autoUpdate';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
 import { FichaPersonagem } from './components/FichaPersonagem';
@@ -15,9 +20,47 @@ export function App() {
   );
   const [personagemAtivoId, setPersonagemAtivoId] = useState<string | null>(null);
   const [modalConfigMestreAberto, setModalConfigMestreAberto] = useState(false);
+  const [novaVersaoDisponivel, setNovaVersaoDisponivel] = useState<string | null>(null);
+
+  const personagemAtivoIdRef = useRef<string | null>(personagemAtivoId);
+  personagemAtivoIdRef.current = personagemAtivoId;
 
   useEffect(() => {
     storageService.carregarConfiguracaoMesaRemota();
+  }, []);
+
+  // Sistema de Auto-Atualização Instantânea (padrão version.json + limpeza de cache)
+  useEffect(() => {
+    let ativo = true;
+
+    const checarVersao = async () => {
+      const info = await verificarAtualizacaoVersao();
+      if (!ativo || !info.temAtualizacao || !info.versaoServidor) return;
+
+      setNovaVersaoDisponivel(info.versaoServidor);
+
+      // Se não estiver editando uma ficha, atualiza automaticamente sem interromper trabalho
+      if (!personagemAtivoIdRef.current && podeRecarregarAutomaticamente()) {
+        await forcarAtualizacaoCompleta();
+      }
+    };
+
+    const timerInicial = setTimeout(checarVersao, 3000);
+    const intervalo = setInterval(checarVersao, 60000);
+    const onFocus = () => checarVersao();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') checarVersao();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      ativo = false;
+      clearTimeout(timerInicial);
+      clearInterval(intervalo);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   const handleTrocarUsuario = (novoUsuario: User) => {
@@ -89,6 +132,7 @@ export function App() {
         onAbrirConfigMestre={() => setModalConfigMestreAberto(true)}
         onLogout={handleLogout}
         emFicha={!!personagemAtivoId}
+        novaVersaoDisponivel={novaVersaoDisponivel}
       />
 
       <main className="flex-1">

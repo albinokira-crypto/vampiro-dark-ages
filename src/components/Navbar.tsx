@@ -8,8 +8,11 @@ import {
   Upload,
   LogOut,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 import { InstaladorPWA } from './InstaladorPWA';
+import { APP_VERSION } from '../config/version';
+import { forcarAtualizacaoCompleta } from '../services/autoUpdate';
 import logoDarkAges from '../assets/vampire-dark-ages-logo.png';
 
 interface NavbarProps {
@@ -19,6 +22,7 @@ interface NavbarProps {
   onAbrirConfigMestre?: () => void;
   onLogout?: () => void;
   emFicha?: boolean;
+  novaVersaoDisponivel?: string | null;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -28,10 +32,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onAbrirConfigMestre,
   onLogout,
   emFicha = false,
+  novaVersaoDisponivel = null,
 }) => {
   const [menuAberto, setMenuAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [atualizandoApp, setAtualizandoApp] = useState(false);
   const usuarios = storageService.getUsuarios();
+
+  const handleForcarAtualizacao = async () => {
+    setAtualizandoApp(true);
+    await forcarAtualizacaoCompleta();
+  };
 
   const handleCopiarConvite = async () => {
     const url = `${window.location.origin}${window.location.pathname}?convite=dark-ages`;
@@ -111,6 +122,26 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Ações e Perfil do Usuário */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Badge de Versão e Auto-Atualização Instantânea */}
+          <button
+            type="button"
+            onClick={handleForcarAtualizacao}
+            disabled={atualizandoApp}
+            title={
+              novaVersaoDisponivel
+                ? `Nova versão ${novaVersaoDisponivel} disponível! Toque para atualizar agora.`
+                : `Versão ${APP_VERSION}. Toque para limpar cache e forçar atualização.`
+            }
+            className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono font-bold rounded-xs border cursor-pointer transition-all ${
+              novaVersaoDisponivel
+                ? 'bg-[#d4af37] text-black border-[#f5d76e] animate-pulse shadow-[0_0_12px_rgba(212,175,55,0.6)]'
+                : 'bg-[#160f13] hover:bg-[#251419] text-[#a89f91] hover:text-[#d4af37] border-[#3b181b]'
+            }`}
+          >
+            <RefreshCw className={`w-3 h-3 ${atualizandoApp ? 'animate-spin' : ''}`} />
+            <span>{novaVersaoDisponivel ? `Atualizar ${novaVersaoDisponivel}` : APP_VERSION}</span>
+          </button>
+
           {/* Botão de Instalar Atalho PWA */}
           <InstaladorPWA />
 
