@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "v1.10.1",
-    "versionCode":  1101,
-    "updatedAt":  "2026-11-17T19:00:08.624Z",
-    "changelog":  "feat: edicao e cadastro de armas e armaduras do sistema no menu de configuracao exclusivo do mestre"
+    "version":  "v1.10.2",
+    "versionCode":  1102,
+    "updatedAt":  "2026-11-17T19:34:07.425Z",
+    "changelog":  "feat: catalogo oficial armas/armaduras 1E do livro, aba Testes editavel pelo mestre e nivel Soldados de Elite na hierarquia"
 }

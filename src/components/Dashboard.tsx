@@ -11,11 +11,13 @@ import {
   Zap,
   SlidersHorizontal,
   Castle,
+  ScrollText,
 } from 'lucide-react';
 import { FotoPersonagem } from './FotoPersonagem';
 import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
 import { PainelJogadoresMestre } from './PainelJogadoresMestre';
 import { PainelElisio } from './PainelElisio';
+import { PainelTestes } from './PainelTestes';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import {
   calcularDetalhesAtalho,
@@ -42,7 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     usuarioAtual.role === 'mestre' ? 'npcs' : 'meus'
   );
   const [abaMestre, setAbaMestre] = useState<'fichas' | 'auditoria' | 'jogadores'>('fichas');
-  const [abaPrincipal, setAbaPrincipal] = useState<'fichas' | 'elisio'>('fichas');
+  const [abaPrincipal, setAbaPrincipal] = useState<'fichas' | 'elisio' | 'testes'>('fichas');
   const [sincronizando, setSincronizando] = useState(false);
   const [personagens, setPersonagens] = useState<Personagem[]>(() =>
     storageService.getPersonagensDoUsuario(usuarioAtual)
@@ -257,6 +259,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Castle className={`w-4 h-4 ${abaPrincipal === 'elisio' ? 'text-black' : 'text-[#ef4444]'}`} />
             <span>Elísio</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaPrincipal(abaPrincipal === 'testes' ? 'fichas' : 'testes')}
+            className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md touch-manipulation border ${
+              abaPrincipal === 'testes'
+                ? 'bg-[#d4af37] text-black border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                : 'bg-[#241318] hover:bg-[#341820] text-[#d4af37] border-[#522228] hover:border-[#8b0000]'
+            }`}
+            title="Consultar Tabelas de Testes, Combate, Frenesi e Sistemas"
+          >
+            <ScrollText className={`w-4 h-4 ${abaPrincipal === 'testes' ? 'text-black' : 'text-[#ef4444]'}`} />
+            <span>Testes</span>
+          </button>
         </div>
       </div>
 
@@ -268,6 +284,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onConfigChange={setConfig}
           onVoltar={() => setAbaPrincipal('fichas')}
           onAbrirFicha={onAbrirFicha}
+        />
+      ) : abaPrincipal === 'testes' ? (
+        <PainelTestes
+          usuarioAtual={usuarioAtual}
+          config={config}
+          onConfigChange={setConfig}
+          onVoltar={() => setAbaPrincipal('fichas')}
         />
       ) : (
         <>

@@ -9,10 +9,12 @@ import type {
   DadosElisio,
   CatalogoArmaItem,
   CatalogoArmaduraItem,
+  TabelaTeste,
 } from '../types';
 import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
 import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
 import { ARMAS_CATALOGO_1E, ARMADURAS_CATALOGO_1E } from '../data/combate1E';
+import { TABELAS_TESTES_PADRAO_1E } from '../data/tabelasTestes1E';
 
 const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
 const STORAGE_KEY_USERS = 'vampiro_dark_ages_users_v1';
@@ -30,8 +32,26 @@ export const DADOS_ELISIO_PADRAO: DadosElisio = {
     { id: 'cargo_nobre_1', cargo: 'Nobre / Primigênie', categoria: 'nobres' },
     { id: 'cargo_nobre_2', cargo: 'Nobre / Primigênie', categoria: 'nobres' },
     { id: 'cargo_harpia_1', cargo: 'Primeira Hárpia', categoria: 'harpias' },
+    { id: 'cargo_soldado_1', cargo: 'Soldado de Elite', categoria: 'soldados_elite' },
   ],
 };
+
+function normalizarDadosElisio(elisio?: DadosElisio): DadosElisio {
+  if (!elisio || !Array.isArray(elisio.hierarquia)) {
+    return DADOS_ELISIO_PADRAO;
+  }
+  const temSoldados = elisio.hierarquia.some((c) => c.categoria === 'soldados_elite');
+  if (!temSoldados) {
+    return {
+      ...elisio,
+      hierarquia: [
+        ...elisio.hierarquia,
+        { id: 'cargo_soldado_1', cargo: 'Soldado de Elite', categoria: 'soldados_elite' },
+      ],
+    };
+  }
+  return elisio;
+}
 
 export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   pontosAtributos: {
@@ -53,6 +73,8 @@ export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   elisio: DADOS_ELISIO_PADRAO,
   catalogoArmas: ARMAS_CATALOGO_1E,
   catalogoArmaduras: ARMADURAS_CATALOGO_1E,
+  catalogoLivro1eVersao: 2,
+  tabelasTestes: TABELAS_TESTES_PADRAO_1E,
 };
 
 export const NIVEIS_VITALIDADE_PADRAO: NivelVitalidade[] = [
@@ -467,14 +489,21 @@ export const storageService = {
       if (parsed.pontosDisciplinas === 3) {
         parsed.pontosDisciplinas = 4;
       }
-      if (!parsed.elisio) {
-        parsed.elisio = DADOS_ELISIO_PADRAO;
-      }
-      if (!Array.isArray(parsed.catalogoArmas) || parsed.catalogoArmas.length === 0) {
+      parsed.elisio = normalizarDadosElisio(parsed.elisio);
+      if (parsed.catalogoLivro1eVersao !== 2) {
         parsed.catalogoArmas = ARMAS_CATALOGO_1E;
-      }
-      if (!Array.isArray(parsed.catalogoArmaduras) || parsed.catalogoArmaduras.length === 0) {
         parsed.catalogoArmaduras = ARMADURAS_CATALOGO_1E;
+        parsed.catalogoLivro1eVersao = 2;
+      } else {
+        if (!Array.isArray(parsed.catalogoArmas) || parsed.catalogoArmas.length === 0) {
+          parsed.catalogoArmas = ARMAS_CATALOGO_1E;
+        }
+        if (!Array.isArray(parsed.catalogoArmaduras) || parsed.catalogoArmaduras.length === 0) {
+          parsed.catalogoArmaduras = ARMADURAS_CATALOGO_1E;
+        }
+      }
+      if (!Array.isArray(parsed.tabelasTestes) || parsed.tabelasTestes.length === 0) {
+        parsed.tabelasTestes = TABELAS_TESTES_PADRAO_1E;
       }
       return { ...CONFIGURACAO_MESA_PADRAO, ...parsed };
     } catch {
@@ -498,14 +527,26 @@ export const storageService = {
             config.pontosDisciplinas = 4;
           }
           const mesclado = { ...CONFIGURACAO_MESA_PADRAO, ...config };
-          if (!mesclado.elisio) {
-            mesclado.elisio = DADOS_ELISIO_PADRAO;
-          }
-          if (!Array.isArray(mesclado.catalogoArmas) || mesclado.catalogoArmas.length === 0) {
+          mesclado.elisio = normalizarDadosElisio(mesclado.elisio);
+          let precisaSincronizarMigracao = false;
+          if (mesclado.catalogoLivro1eVersao !== 2) {
             mesclado.catalogoArmas = ARMAS_CATALOGO_1E;
-          }
-          if (!Array.isArray(mesclado.catalogoArmaduras) || mesclado.catalogoArmaduras.length === 0) {
             mesclado.catalogoArmaduras = ARMADURAS_CATALOGO_1E;
+            mesclado.catalogoLivro1eVersao = 2;
+            precisaSincronizarMigracao = true;
+          } else {
+            if (!Array.isArray(mesclado.catalogoArmas) || mesclado.catalogoArmas.length === 0) {
+              mesclado.catalogoArmas = ARMAS_CATALOGO_1E;
+            }
+            if (!Array.isArray(mesclado.catalogoArmaduras) || mesclado.catalogoArmaduras.length === 0) {
+              mesclado.catalogoArmaduras = ARMADURAS_CATALOGO_1E;
+            }
+          }
+          if (!Array.isArray(mesclado.tabelasTestes) || mesclado.tabelasTestes.length === 0) {
+            mesclado.tabelasTestes = TABELAS_TESTES_PADRAO_1E;
+          }
+          if (precisaSincronizarMigracao) {
+            this.salvarConfiguracaoMesa(mesclado).catch(() => {});
           }
           if (mesclado.pontosDisciplinas === 3) {
             mesclado.pontosDisciplinas = 4;
@@ -579,6 +620,19 @@ export const storageService = {
     const config = this.getConfiguracaoMesa();
     config.catalogoArmas = armas;
     config.catalogoArmaduras = armaduras;
+    await this.salvarConfiguracaoMesa(config);
+  },
+
+  getTabelasTestes(): TabelaTeste[] {
+    const config = this.getConfiguracaoMesa();
+    return Array.isArray(config.tabelasTestes) && config.tabelasTestes.length > 0
+      ? config.tabelasTestes
+      : TABELAS_TESTES_PADRAO_1E;
+  },
+
+  async salvarTabelasTestes(tabelas: TabelaTeste[]): Promise<void> {
+    const config = this.getConfiguracaoMesa();
+    config.tabelasTestes = tabelas;
     await this.salvarConfiguracaoMesa(config);
   },
 

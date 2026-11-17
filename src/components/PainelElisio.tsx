@@ -16,6 +16,7 @@ import {
   Castle,
   ExternalLink,
   Gavel,
+  Swords,
 } from 'lucide-react';
 import { comprimirImagem } from '../utils/imageCompressor';
 import { storageService, DADOS_ELISIO_PADRAO } from '../services/storage';
@@ -302,6 +303,8 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
         return <Users className="w-4 h-4 text-sky-300" />;
       case 'harpias':
         return <Feather className="w-4 h-4 text-emerald-300" />;
+      case 'soldados_elite':
+        return <Swords className="w-4 h-4 text-rose-400" />;
       default:
         return <Castle className="w-4 h-4 text-[#d4af37]" />;
     }
@@ -313,6 +316,7 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
   const senescalAlgoz = dadosElisio.hierarquia.filter((c) => c.categoria === 'senescal_algoz');
   const nobres = dadosElisio.hierarquia.filter((c) => c.categoria === 'nobres');
   const harpias = dadosElisio.hierarquia.filter((c) => c.categoria === 'harpias');
+  const soldadosElite = dadosElisio.hierarquia.filter((c) => c.categoria === 'soldados_elite');
   const custom = dadosElisio.hierarquia.filter((c) => c.categoria === 'custom');
 
   // Renderizador de Card Individual de Cargo
@@ -702,6 +706,32 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
                     <div className="flex items-start justify-center gap-4 flex-nowrap">
                       {harpias.map((c) => renderCardCargo(c, isMestre))}
                     </div>
+                    <LinhaVertical />
+                  </div>
+                )}
+
+                {/* Nível 6: Soldados de Elite (TODOS LADO A LADO) */}
+                {(soldadosElite.length > 0 || isMestre) && (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center justify-between gap-4 mb-1.5">
+                      <div className="bg-[#241318] border border-[#522228] px-4 py-0.5 rounded-full text-[9px] font-gothic font-bold uppercase tracking-widest text-rose-300 shadow-md">
+                        6. Soldados de Elite
+                      </div>
+                      {isMestre && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdicionarCargo('soldados_elite', 'Soldado de Elite')}
+                          className="px-2 py-0.5 text-[10px] bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3 h-3" /> Adicionar Soldado
+                        </button>
+                      )}
+                    </div>
+                    {soldadosElite.length > 0 && (
+                      <div className="flex items-start justify-center gap-4 flex-nowrap">
+                        {soldadosElite.map((c) => renderCardCargo(c, isMestre))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -942,6 +972,32 @@ export const PainelElisio: React.FC<PainelElisioProps> = ({
                     <div className="flex items-start justify-center gap-5 flex-nowrap">
                       {harpias.map((c) => renderCardCargo(c, isMestre))}
                     </div>
+                    <LinhaVertical />
+                  </div>
+                )}
+
+                {/* Nível 6: Soldados de Elite (TODOS LADO A LADO) */}
+                {(soldadosElite.length > 0 || isMestre) && (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="bg-[#241318] border border-[#522228] px-4 py-0.5 rounded-full text-[10px] font-gothic font-bold uppercase tracking-widest text-rose-300 shadow-md">
+                        6. Soldados de Elite
+                      </span>
+                      {isMestre && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdicionarCargo('soldados_elite', 'Soldado de Elite')}
+                          className="px-2.5 py-0.5 text-[10px] bg-[#1f1217] hover:bg-[#2e141c] text-[#d4af37] border border-[#3b181b] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3 h-3" /> Adicionar Soldado
+                        </button>
+                      )}
+                    </div>
+                    {soldadosElite.length > 0 && (
+                      <div className="flex items-start justify-center gap-5 flex-nowrap">
+                        {soldadosElite.map((c) => renderCardCargo(c, isMestre))}
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -132,11 +132,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ? `Nova versão ${novaVersaoDisponivel} disponível! Toque para atualizar agora.`
                 : `Versão ${APP_VERSION}. Toque para limpar cache e forçar atualização.`
             }
-            className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono font-bold rounded-xs border cursor-pointer transition-all ${
-              novaVersaoDisponivel
+            className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono font-bold rounded-xs border cursor-pointer transition-all ${novaVersaoDisponivel
                 ? 'bg-[#d4af37] text-black border-[#f5d76e] animate-pulse shadow-[0_0_12px_rgba(212,175,55,0.6)]'
                 : 'bg-[#160f13] hover:bg-[#251419] text-[#a89f91] hover:text-[#d4af37] border-[#3b181b]'
-            }`}
+              }`}
           >
             <RefreshCw className={`w-3 h-3 ${atualizandoApp ? 'animate-spin' : ''}`} />
             <span>{novaVersaoDisponivel ? `Atualizar ${novaVersaoDisponivel}` : APP_VERSION}</span>
@@ -208,9 +207,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2 px-3 py-1 bg-[#181115] hover:bg-[#251419] border border-[#3b181b] rounded-xs text-xs cursor-pointer transition-colors"
             >
               <span
-                className={`w-2 h-2 rounded-full ${
-                  usuarioAtual.role === 'mestre' ? 'bg-[#d4af37]' : 'bg-[#ef4444]'
-                }`}
+                className={`w-2 h-2 rounded-full ${usuarioAtual.role === 'mestre' ? 'bg-[#d4af37]' : 'bg-[#ef4444]'
+                  }`}
               />
               <span className="font-semibold text-white max-w-[120px] truncate">
                 {usuarioAtual.nome}
@@ -243,11 +241,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                         onTrocarUsuario(u);
                         setMenuAberto(false);
                       }}
-                      className={`w-full text-left px-2 py-1.5 text-xs rounded-xs flex items-center justify-between cursor-pointer transition-colors ${
-                        u.id === usuarioAtual.id
+                      className={`w-full text-left px-2 py-1.5 text-xs rounded-xs flex items-center justify-between cursor-pointer transition-colors ${u.id === usuarioAtual.id
                           ? 'bg-[#8b0000] text-white font-bold'
                           : 'text-[#ded6cb] hover:bg-[#251419]'
-                      }`}
+                        }`}
                     >
                       <span className="truncate">{u.nome}</span>
                       <span className="text-[10px] opacity-75">

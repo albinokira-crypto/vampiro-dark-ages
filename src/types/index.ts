@@ -21,7 +21,7 @@ export interface AtalhoParadaDado {
 export interface CargoElisio {
   id: string;
   cargo: string;
-  categoria: 'principe' | 'xerife' | 'senescal_algoz' | 'nobres' | 'harpias' | 'custom';
+  categoria: 'principe' | 'xerife' | 'senescal_algoz' | 'nobres' | 'harpias' | 'soldados_elite' | 'custom';
   personagemId?: string;
   tituloPersonalizado?: string;
   ocupanteNome?: string;
@@ -67,6 +67,17 @@ export interface CatalogoArmaduraItem {
   descricao?: string;
 }
 
+export interface TabelaTeste {
+  id: string;
+  titulo: string;
+  subtitulo?: string;
+  categoria: 'experiencia' | 'besta' | 'combate' | 'fisico' | 'sobrevivencia' | 'outros';
+  descricao?: string;
+  colunas: string[];
+  linhas: string[][];
+  notaRodape?: string;
+}
+
 export interface ConfiguracaoMesa {
   pontosAtributos: {
     primario: number; // 7
@@ -87,6 +98,8 @@ export interface ConfiguracaoMesa {
   elisio?: DadosElisio;
   catalogoArmas?: CatalogoArmaItem[];
   catalogoArmaduras?: CatalogoArmaduraItem[];
+  catalogoLivro1eVersao?: number;
+  tabelasTestes?: TabelaTeste[];
 }
 
 export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';
