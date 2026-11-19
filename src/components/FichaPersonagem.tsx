@@ -49,9 +49,12 @@ import {
   SlidersHorizontal,
   Pencil,
   Search,
+  FileText,
 } from 'lucide-react';
 import { QUALIDADES_DEFEITOS_1E, type ModeloQualidadeDefeito } from '../data/qualidadesDefeitos1E';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
+import { ModalExtratoGastosMestre } from './ModalExtratoGastosMestre';
+import { obterValoresIniciaisTraços } from '../data/calculosPontosBonus';
 import {
   calcularStatusCombate,
   calcularDanoArma,
@@ -889,7 +892,11 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
   // Configuração da Mesa e Regras de Prioridades
   const dadosCriacao = ficha.criacao;
+  const isMestre = usuarioAtual.role === 'mestre';
   const isEmCriacao = !isNpc && ficha.criacao?.status === 'em_criacao';
+  const deveDestacarBonus = isMestre || isEmCriacao;
+  const valoresIniciais = useMemo(() => obterValoresIniciaisTraços(ficha, configMesa), [ficha, configMesa]);
+  const [modalExtratoAberto, setModalExtratoAberto] = useState<boolean>(false);
 
   const listaQD = ficha.qualidadesDefeitos || [];
   const qualidadesEscolhidas = listaQD.filter((q) => q.tipo === 'qualidade');
@@ -1163,21 +1170,39 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
   // Helper visual para exibir o contador de pontos ao lado de cada seção
   const renderBadgePontos = (gastos: number, max: number, prioridadeNome?: string) => {
-    const atingiu = gastos === max;
-    const excedeu = gastos > max;
+    // Se a ficha não está em criação e o usuário não é o mestre, não polui a tela com contadores
+    if (!isEmCriacao && !isMestre) return null;
+
+    const pontosIniciais = Math.min(gastos, max);
+    const pontosBonus = Math.max(0, gastos - max);
+    const atingiuInicial = pontosIniciais === max;
+    const excedeuEmIniciais = ficha.criacao?.etapa === 'iniciais' && gastos > max;
+
+    if (excedeuEmIniciais) {
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[11px] font-sans font-bold bg-red-950 text-red-300 border border-red-600 animate-pulse"
+          title={`Limite da etapa inicial excedido (${gastos}/${max}). Avance para a etapa de Bônus para comprar pontos adicionais.`}
+        >
+          <span>{gastos} / {max} pts (Excedeu Iniciais)</span>
+        </span>
+      );
+    }
+
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[11px] font-sans font-bold tracking-wide transition-all ${
-          atingiu
-            ? 'bg-green-950/80 text-green-400 border border-green-700/80 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
-            : excedeu
-            ? 'bg-red-950 text-red-300 border border-red-600 animate-pulse'
-            : 'bg-[#251015] text-[#d4af37] border border-[#5a1e26]'
-        }`}
-        title={prioridadeNome ? `Prioridade: ${prioridadeNome} (${max} pontos)` : undefined}
+        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-xs text-[11px] font-sans font-bold bg-[#1e1215] border border-[#3d181e] text-[#ded6cb] transition-all"
+        title={prioridadeNome ? `Cota Inicial: ${prioridadeNome} (${max} pontos)` : undefined}
       >
-        <span>{gastos} / {max} pts</span>
-        {atingiu && <CheckCircle className="w-3 h-3 text-green-400 shrink-0" />}
+        <span className={atingiuInicial ? 'text-green-400' : 'text-[#d4af37]'}>
+          {pontosIniciais}/{max} Iniciais
+        </span>
+        {atingiuInicial && <CheckCircle className="w-3 h-3 text-green-400 shrink-0" />}
+        {pontosBonus > 0 && (
+          <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-950/80 text-amber-300 border border-amber-600 font-mono font-bold">
+            +{pontosBonus} Bônus
+          </span>
+        )}
       </span>
     );
   };
@@ -1943,6 +1968,17 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     {modoEdicaoLivre ? 'Edição Livre' : 'Modo XP'}
                   </button>
                 )}
+                {usuarioAtual.role === 'mestre' && (
+                  <button
+                    type="button"
+                    onClick={() => setModalExtratoAberto(true)}
+                    title="Ver extrato completo de pontos iniciais e bônus gastos (Exclusivo Mestre)"
+                    className="ml-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase transition-colors cursor-pointer border bg-[#201217] hover:bg-[#331722] text-[#d4af37] border-amber-600/70 flex items-center gap-1 shadow-xs"
+                  >
+                    <FileText className="w-3 h-3 text-[#d4af37]" />
+                    <span>Extrato</span>
+                  </button>
+                )}
               </div>
 
               {/* Opção Exclusiva do Mestre: Reabilitar / Travar Modo de Criação */}
@@ -2255,6 +2291,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Força</span>
                       <Bolinhas
                         valor={ficha.atributos.forca}
+                        valorInicial={valoresIniciais.getAtributo('forca')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('forca', v)}
@@ -2275,6 +2313,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       </div>
                       <Bolinhas
                         valor={ficha.atributos.destreza}
+                        valorInicial={valoresIniciais.getAtributo('destreza')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('destreza', v)}
@@ -2295,6 +2335,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       </div>
                       <Bolinhas
                         valor={ficha.atributos.vigor}
+                        valorInicial={valoresIniciais.getAtributo('vigor')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('vigor', v)}
@@ -2315,6 +2357,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Carisma</span>
                       <Bolinhas
                         valor={ficha.atributos.carisma}
+                        valorInicial={valoresIniciais.getAtributo('carisma')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('carisma', v)}
@@ -2325,6 +2369,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Manipulação</span>
                       <Bolinhas
                         valor={ficha.atributos.manipulacao}
+                        valorInicial={valoresIniciais.getAtributo('manipulacao')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('manipulacao', v)}
@@ -2335,6 +2381,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Aparência</span>
                       <Bolinhas
                         valor={ficha.atributos.aparencia}
+                        valorInicial={valoresIniciais.getAtributo('aparencia')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={0}
                         onChange={(v) => handleAtributoChange('aparencia', v)}
@@ -2365,6 +2413,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       </div>
                       <Bolinhas
                         valor={ficha.atributos.percepcao}
+                        valorInicial={valoresIniciais.getAtributo('percepcao')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('percepcao', v)}
@@ -2375,6 +2425,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Inteligência</span>
                       <Bolinhas
                         valor={ficha.atributos.inteligencia}
+                        valorInicial={valoresIniciais.getAtributo('inteligencia')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('inteligencia', v)}
@@ -2385,6 +2437,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-sm font-semibold">Raciocínio</span>
                       <Bolinhas
                         valor={ficha.atributos.raciocinio}
+                        valorInicial={valoresIniciais.getAtributo('raciocinio')}
+                        destacarBonus={deveDestacarBonus}
                         max={maxBolinhasTraço}
                         min={1}
                         onChange={(v) => handleAtributoChange('raciocinio', v)}
@@ -2439,6 +2493,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
                           valor={ficha.habilidades[chave] ?? 0}
+                          valorInicial={valoresIniciais.getHabilidade(chave)}
+                          destacarBonus={deveDestacarBonus}
                           max={maxBolinhasTraço}
                           min={0}
                           tamanho="sm"
@@ -2475,6 +2531,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
                           valor={ficha.habilidades[chave] ?? 0}
+                          valorInicial={valoresIniciais.getHabilidade(chave)}
+                          destacarBonus={deveDestacarBonus}
                           max={maxBolinhasTraço}
                           min={0}
                           tamanho="sm"
@@ -2511,6 +2569,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <span className="text-[#ded6cb]">{label}</span>
                         <Bolinhas
                           valor={ficha.habilidades[chave] ?? 0}
+                          valorInicial={valoresIniciais.getHabilidade(chave)}
+                          destacarBonus={deveDestacarBonus}
                           max={maxBolinhasTraço}
                           min={0}
                           tamanho="sm"
@@ -2601,6 +2661,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <Bolinhas
                                   valor={disc.nivel}
+                                  valorInicial={valoresIniciais.getDisciplina(disc.id || disc.nome)}
+                                  destacarBonus={deveDestacarBonus}
                                   max={maxBolinhasTraço}
                                   min={0}
                                   tamanho="sm"
@@ -2673,6 +2735,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <Bolinhas
                                   valor={ant.nivel}
+                                  valorInicial={valoresIniciais.getAntecedente(ant.id || ant.nome)}
+                                  destacarBonus={deveDestacarBonus}
                                   max={ehGeracao ? (isNpc ? 9 : 5) : maxBolinhasTraço}
                                   min={1}
                                   tamanho="sm"
@@ -2728,6 +2792,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         </select>
                         <Bolinhas
                           valor={ficha.virtudes.consciencia}
+                          valorInicial={valoresIniciais.getVirtude('consciencia')}
+                          destacarBonus={deveDestacarBonus}
                           max={5}
                           min={1}
                           onChange={(v) => handleVirtudeChange('consciencia', v)}
@@ -2758,6 +2824,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         </select>
                         <Bolinhas
                           valor={ficha.virtudes.autocontrole}
+                          valorInicial={valoresIniciais.getVirtude('autocontrole')}
+                          destacarBonus={deveDestacarBonus}
                           max={5}
                           min={1}
                           onChange={(v) => handleVirtudeChange('autocontrole', v)}
@@ -2771,6 +2839,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <span className="text-xs font-semibold text-[#ded6cb]">Coragem</span>
                       <Bolinhas
                         valor={ficha.virtudes.coragem}
+                        valorInicial={valoresIniciais.getVirtude('coragem')}
+                        destacarBonus={deveDestacarBonus}
                         max={5}
                         min={1}
                         onChange={(v) => handleVirtudeChange('coragem', v)}
@@ -3111,6 +3181,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <div className="pt-2 sm:pt-4">
                         <Bolinhas
                           valor={ficha.caminhoNivel}
+                          valorInicial={valoresIniciais.getCaminho()}
+                          destacarBonus={deveDestacarBonus}
                           max={10}
                           min={1}
                           cor="ouro"
@@ -3134,6 +3206,8 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       </div>
                       <Bolinhas
                         valor={ficha.forcaDeVontade}
+                        valorInicial={valoresIniciais.getForcaDeVontade()}
+                        destacarBonus={deveDestacarBonus}
                         max={10}
                         min={1}
                         cor="ouro"
@@ -5658,6 +5732,22 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Extrato de Gastos (Exclusivo Mestre) */}
+      {modalExtratoAberto && (
+        <ModalExtratoGastosMestre
+          ficha={ficha}
+          config={configMesa}
+          onFechar={() => setModalExtratoAberto(false)}
+          onReabrirCriacao={isMestre ? (id) => {
+            const atualizado = storageService.reabrirModoCriacao(id);
+            if (atualizado) {
+              setFicha(atualizado);
+              onSalvar(atualizado);
+            }
+          } : undefined}
+        />
       )}
     </div>
   );

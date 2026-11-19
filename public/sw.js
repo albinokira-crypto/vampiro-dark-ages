@@ -1,5 +1,5 @@
-﻿// Vampiro: A Idade das Trevas â€” Service Worker v1103
-const CACHE_NAME = 'vampiro-dark-ages-v1103';
+﻿// Vampiro: A Idade das Trevas â€” Service Worker v1105
+const CACHE_NAME = 'vampiro-dark-ages-v1105';
 
 const STATIC_ASSETS = [
   '/favicon.png',
@@ -68,6 +68,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(request))
   );
 });
+
 
 
 

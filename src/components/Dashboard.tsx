@@ -13,6 +13,7 @@ import {
   Castle,
   ScrollText,
   Wand2,
+  FileText,
 } from 'lucide-react';
 import { FotoPersonagem } from './FotoPersonagem';
 import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
@@ -21,6 +22,7 @@ import { PainelElisio } from './PainelElisio';
 import { PainelTestes } from './PainelTestes';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import { ModalGeradorNpc } from './ModalGeradorNpc';
+import { ModalExtratoGastosMestre } from './ModalExtratoGastosMestre';
 import {
   calcularDetalhesAtalho,
   ATALHOS_CARD_PADRAO,
@@ -56,6 +58,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
   const [personagemConfigurandoAtalhos, setPersonagemConfigurandoAtalhos] = useState<Personagem | null>(null);
   const [modalGeradorNpcAberto, setModalGeradorNpcAberto] = useState(false);
+  const [personagemExtrato, setPersonagemExtrato] = useState<Personagem | null>(null);
 
   const handleSalvarAtalhosPersonagem = async (novosAtalhos: AtalhoParadaDado[] | undefined) => {
     if (!personagemConfigurandoAtalhos) return;
@@ -505,14 +508,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   Em Criação
                                 </span>
                                 {usuarioAtual.role === 'mestre' && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => handleTravarCriacao(e, p.id, p.nome)}
-                                    title="Travar criação e colocar em modo jogo"
-                                    className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#182e1d] hover:bg-[#23472b] text-green-300 border border-green-600 cursor-pointer transition-colors"
-                                  >
-                                    Travar
-                                  </button>
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPersonagemExtrato(p);
+                                      }}
+                                      title="Ver extrato completo de pontos iniciais e bônus gastos"
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#1f1728] hover:bg-[#2d203b] text-purple-300 border border-purple-600 cursor-pointer transition-colors flex items-center gap-1"
+                                    >
+                                      <FileText className="w-2.5 h-2.5 text-purple-300" />
+                                      <span>Extrato</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleTravarCriacao(e, p.id, p.nome)}
+                                      title="Travar criação e colocar em modo jogo"
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#182e1d] hover:bg-[#23472b] text-green-300 border border-green-600 cursor-pointer transition-colors"
+                                    >
+                                      Travar
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             ) : (
@@ -521,14 +538,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   Pronto
                                 </span>
                                 {usuarioAtual.role === 'mestre' && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => handleReabrirCriacao(e, p.id, p.nome)}
-                                    title="Reabrir modo de criação para o jogador poder redistribuir pontos"
-                                    className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#331c12] hover:bg-[#4d2919] text-amber-300 border border-amber-600 cursor-pointer transition-colors"
-                                  >
-                                    Reabrir Criação
-                                  </button>
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPersonagemExtrato(p);
+                                      }}
+                                      title="Ver extrato completo de pontos iniciais e bônus gastos"
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#1f1728] hover:bg-[#2d203b] text-purple-300 border border-purple-600 cursor-pointer transition-colors flex items-center gap-1"
+                                    >
+                                      <FileText className="w-2.5 h-2.5 text-purple-300" />
+                                      <span>Extrato</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleReabrirCriacao(e, p.id, p.nome)}
+                                      title="Reabrir modo de criação para o jogador poder redistribuir pontos"
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#331c12] hover:bg-[#4d2919] text-amber-300 border border-amber-600 cursor-pointer transition-colors"
+                                    >
+                                      Reabrir Criação
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             )}
@@ -719,6 +750,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             setPersonagens((prev) => [npc, ...prev]);
             setModalGeradorNpcAberto(false);
             onAbrirFicha(npc.id);
+          }}
+        />
+      )}
+
+      {/* Modal Extrato de Gastos (Exclusivo Mestre) */}
+      {personagemExtrato && (
+        <ModalExtratoGastosMestre
+          ficha={personagemExtrato}
+          config={config}
+          onFechar={() => setPersonagemExtrato(null)}
+          onReabrirCriacao={(id) => {
+            const atualizado = storageService.reabrirModoCriacao(id);
+            if (atualizado) {
+              setPersonagens((prev) => prev.map((item) => (item.id === id ? atualizado : item)));
+            }
           }}
         />
       )}

@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "v1.10.3",
-    "versionCode":  1103,
-    "updatedAt":  "2026-11-17T20:11:33.736Z",
-    "changelog":  "feat: gerador inteligente de NPCs por geracao (mestre), armas/armaduras magicas e escudos oficiais 1E"
+    "version":  "v1.10.5",
+    "versionCode":  1105,
+    "updatedAt":  "2026-11-19T21:13:03.366Z",
+    "changelog":  "fix: calculo correto de disciplinas de cla e pontos bonus (18 pts lucien), novo HUD 2 linhas, separacao visual e extrato de gastos mestre"
 }

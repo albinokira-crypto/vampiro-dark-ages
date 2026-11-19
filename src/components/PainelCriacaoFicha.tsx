@@ -182,7 +182,6 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   const pontosDefeitosGanhos = gastosBonus.defeitosGanhos;
   const pontosQualidadesGastos = gastosBonus.qualidades;
   const totalBonusDisponivel = gastosBonus.totalBonusDisponivel;
-  const totalGastoTraços = gastosBonus.totalGastoTraços;
   const saldoBonusRestante = gastosBonus.saldoRestante;
 
   // Alternar entre Iniciais e Bônus
@@ -198,7 +197,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     const novaVontade = Math.max(ficha.forcaDeVontade || 0, vontadeCalc);
 
     let novoSnapshot = criacao.snapshotIniciais;
-    if (novaEtapa === 'bonus' && !novoSnapshot) {
+    if (novaEtapa === 'bonus') {
       novoSnapshot = {
         atributos: { ...ficha.atributos },
         habilidades: { ...ficha.habilidades },
@@ -542,75 +541,63 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
               </div>
             </div>
           ) : (
-            /* HUD DA ETAPA DE PONTOS BÔNUS (Estrutura Compacta em 2 Linhas: 3 Colunas Cada) */
-            <div className="bg-[#181014] p-1.5 sm:p-2 rounded-xs border border-[#8b0000] space-y-1 sm:space-y-1.5">
-              {/* Linha 1: Saldo Restante ; Base ; Gastos em Traços */}
+            /* HUD DA ETAPA DE PONTOS BÔNUS (2 Linhas Diretas) */
+            <div className="bg-[#181014] p-2 rounded-xs border border-[#8b0000] space-y-1.5">
+              {/* Linha 1: Pontos Bônus ; Pontos Bônus Gastos ; Saldo Restante */}
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 items-center text-xs">
+                {/* Pontos Bônus (Total Disponível) */}
+                <div className="flex items-center justify-between bg-[#140e11] border border-[#3b181b] px-2 py-1 rounded-xs min-w-0">
+                  <span className="text-[9px] sm:text-[11px] uppercase font-bold text-[#a89f91] truncate mr-1">
+                    Pontos Bônus:
+                  </span>
+                  <strong className="font-mono text-xs sm:text-sm text-[#ded6cb] shrink-0">
+                    {totalBonusDisponivel} pts
+                  </strong>
+                </div>
+
+                {/* Pontos Bônus Gastos */}
+                <div className="flex items-center justify-between bg-[#1f1014] border border-[#522228] px-2 py-1 rounded-xs min-w-0">
+                  <span className="text-[9px] sm:text-[11px] uppercase font-bold text-[#a89f91] truncate mr-1">
+                    Bônus Gastos:
+                  </span>
+                  <strong className="font-mono text-xs sm:text-sm text-red-400 shrink-0">
+                    -{gastosBonus.totalGastoGeral} pts
+                  </strong>
+                </div>
+
                 {/* Saldo Restante */}
-                <div className="flex items-center justify-between bg-[#251016] border border-[#ef4444] px-1.5 sm:px-2 py-1 rounded-xs min-w-0">
+                <div className="flex items-center justify-between bg-[#251016] border border-[#ef4444] px-2 py-1 rounded-xs min-w-0 shadow-[0_0_8px_rgba(239,68,68,0.25)]">
                   <span className="text-[9px] sm:text-[11px] uppercase font-bold text-[#a89f91] truncate mr-1">
                     Saldo:
                   </span>
-                  <span
+                  <strong
                     className={`font-black font-mono text-xs sm:text-sm shrink-0 ${
                       saldoBonusRestante >= 0 ? 'text-[#d4af37]' : 'text-red-400 animate-pulse'
                     }`}
                   >
                     {saldoBonusRestante} pts
-                  </span>
-                </div>
-
-                {/* Base */}
-                <div className="flex items-center justify-between bg-[#140e11] border border-[#3b181b] px-1.5 sm:px-2 py-1 rounded-xs min-w-0">
-                  <span className="text-[9px] sm:text-[11px] text-[#a89f91] font-semibold truncate mr-1">
-                    Base:
-                  </span>
-                  <strong className="font-mono text-xs sm:text-sm text-[#ded6cb] shrink-0">
-                    {config.pontosBonus} pts
-                  </strong>
-                </div>
-
-                {/* Gastos em Traços (Automático e Reativo) */}
-                <div
-                  className="flex items-center justify-between bg-[#140e11] border border-[#522228] px-1.5 sm:px-2 py-1 rounded-xs min-w-0"
-                  title={`Traços Gastos: Força de Vontade: ${gastosBonus.forcaDeVontade} | Trilha: ${gastosBonus.caminho} | Atributos: ${gastosBonus.atributos} | Habilidades: ${gastosBonus.habilidades} | Disciplinas: ${gastosBonus.disciplinas} | Antecedentes: ${gastosBonus.antecedentes} | Virtudes: ${gastosBonus.virtudes}`}
-                >
-                  <span className="text-[9px] sm:text-[11px] text-[#a89f91] font-semibold truncate mr-1">
-                    Traços:
-                  </span>
-                  <strong className="font-mono text-xs sm:text-sm text-[#fca5a5] shrink-0">
-                    -{totalGastoTraços} pts
                   </strong>
                 </div>
               </div>
 
-              {/* Linha 2: Defeitos ; Qualidades ; Características */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 items-center text-xs">
+              {/* Linha 2: Qualidades ; Defeitos */}
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 items-center text-xs">
+                {/* Qualidades */}
+                <div className="flex items-center justify-between px-2 py-1 bg-amber-950/30 border border-amber-800/80 rounded-xs text-amber-300 text-[10px] sm:text-[11px] font-mono min-w-0">
+                  <span className="truncate mr-1 font-sans font-semibold">Qualidades:</span>
+                  <strong className="shrink-0">-{pontosQualidadesGastos} pts</strong>
+                </div>
+
                 {/* Defeitos */}
                 <div
-                  className={`flex items-center justify-between px-1.5 sm:px-2 py-1 rounded-xs border text-[10px] sm:text-[11px] font-mono min-w-0 ${
+                  className={`flex items-center justify-between px-2 py-1 rounded-xs border text-[10px] sm:text-[11px] font-mono min-w-0 ${
                     pontosDefeitosGanhos > maxDefeitos
                       ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
-                      : 'bg-green-950/40 border-green-800 text-green-300'
+                      : 'bg-green-950/30 border-green-800/80 text-green-300'
                   }`}
                 >
-                  <span className="truncate mr-1">Defeitos:</span>
-                  <strong className="shrink-0">+{pontosDefeitosGanhos}/{maxDefeitos}</strong>
-                </div>
-
-                {/* Qualidades */}
-                <div className="flex items-center justify-between px-1.5 sm:px-2 py-1 bg-amber-950/40 border border-amber-800 rounded-xs text-amber-300 text-[10px] sm:text-[11px] font-mono min-w-0">
-                  <span className="truncate mr-1">Qualidades:</span>
-                  <strong className="shrink-0">-{pontosQualidadesGastos}</strong>
-                </div>
-
-                {/* Características */}
-                <div
-                  className="flex items-center justify-between px-1.5 sm:px-2 py-1 bg-[#251419] border border-[#522228] rounded-xs text-[#fca5a5] text-[10px] sm:text-[11px] font-mono min-w-0"
-                  title={`Força de Vontade: ${gastosBonus.forcaDeVontade} | Trilha: ${gastosBonus.caminho}`}
-                >
-                  <span className="truncate mr-1">Caract.:</span>
-                  <strong className="shrink-0">-{totalGastoTraços}</strong>
+                  <span className="truncate mr-1 font-sans font-semibold">Defeitos:</span>
+                  <strong className="shrink-0">+{pontosDefeitosGanhos}/{maxDefeitos} pts</strong>
                 </div>
               </div>
             </div>

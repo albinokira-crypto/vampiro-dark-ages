@@ -2,6 +2,8 @@ import React from 'react';
 
 interface BolinhasProps {
   valor: number;
+  valorInicial?: number; // Cota base da criação inicial
+  destacarBonus?: boolean; // Se true, bolinhas além de valorInicial recebem destaque visual de ponto bônus
   max?: number; // 8 para Atributos e Habilidades, 10 para Força de Vontade/Caminho
   min?: number; // 0 ou 1
   onChange?: (novoValor: number) => void;
@@ -12,6 +14,8 @@ interface BolinhasProps {
 
 export const Bolinhas: React.FC<BolinhasProps> = ({
   valor,
+  valorInicial,
+  destacarBonus = false,
   max = 8,
   min = 0,
   onChange,
@@ -47,20 +51,36 @@ export const Bolinhas: React.FC<BolinhasProps> = ({
     <div className="inline-flex items-center gap-1 sm:gap-1.5 select-none touch-manipulation" role="group">
       {pontos.map((ponto) => {
         const preenchido = ponto <= valor;
+        const ehBonus =
+          preenchido &&
+          destacarBonus &&
+          valorInicial !== undefined &&
+          ponto > valorInicial;
+
+        const estiloPreenchido = ehBonus
+          ? 'bg-gradient-to-tr from-[#b45309] via-[#f59e0b] to-[#fef08a] border-[#fef08a] shadow-[0_0_10px_rgba(251,191,36,0.9)] ring-1 ring-[#fef08a]/80'
+          : corPreenchida;
+
+        const tituloPonto = ehBonus
+          ? `Nível ${ponto} de ${max} (✦ Ponto Bônus)`
+          : preenchido && destacarBonus && valorInicial !== undefined
+          ? `Nível ${ponto} de ${max} (● Ponto Inicial)`
+          : `Nível ${ponto} de ${max}`;
+
         return (
           <button
             key={ponto}
             type="button"
             disabled={readonly}
             onClick={() => handleClick(ponto)}
-            title={`Nível ${ponto} de ${max}`}
+            title={tituloPonto}
             className={`
               ${tamanhoCls} rounded-full transition-all duration-150 relative
               border focus:outline-none touch-manipulation
               before:absolute before:-inset-1 before:content-['']
               ${
                 preenchido
-                  ? corPreenchida
+                  ? estiloPreenchido
                   : 'bg-[#181517] border-[#3d3337] hover:border-[#6b5860]'
               }
               ${
@@ -69,8 +89,14 @@ export const Bolinhas: React.FC<BolinhasProps> = ({
                   : 'cursor-pointer hover:scale-120 active:scale-90'
               }
             `}
-            aria-label={`Ponto ${ponto} de ${max}`}
-          />
+            aria-label={tituloPonto}
+          >
+            {ehBonus && (
+              <span className="absolute inset-0 flex items-center justify-center text-[7px] text-[#2b1103] font-black select-none pointer-events-none">
+                ✦
+              </span>
+            )}
+          </button>
         );
       })}
     </div>
