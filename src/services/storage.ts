@@ -632,9 +632,15 @@ export const storageService = {
 
   getTabelasTestes(): TabelaTeste[] {
     const config = this.getConfiguracaoMesa();
-    return Array.isArray(config.tabelasTestes) && config.tabelasTestes.length > 0
-      ? config.tabelasTestes
-      : TABELAS_TESTES_PADRAO_1E;
+    const salvas =
+      Array.isArray(config.tabelasTestes) && config.tabelasTestes.length > 0
+        ? config.tabelasTestes
+        : TABELAS_TESTES_PADRAO_1E;
+
+    // Garante que tabelas canônicas recém-adicionadas entrem automaticamente se não existirem
+    const idsExistentes = new Set(salvas.map((t) => t.id));
+    const faltantes = TABELAS_TESTES_PADRAO_1E.filter((p) => !idsExistentes.has(p.id));
+    return faltantes.length > 0 ? [...salvas, ...faltantes] : salvas;
   },
 
   async salvarTabelasTestes(tabelas: TabelaTeste[]): Promise<void> {

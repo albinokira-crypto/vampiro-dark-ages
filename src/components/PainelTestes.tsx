@@ -89,7 +89,9 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
       .then((remota) => {
         if (ativo && remota) {
           if (Array.isArray(remota.tabelasTestes) && remota.tabelasTestes.length > 0) {
-            setTabelas(remota.tabelasTestes);
+            const idsExistentes = new Set(remota.tabelasTestes.map((t) => t.id));
+            const faltantes = TABELAS_TESTES_PADRAO_1E.filter((p) => !idsExistentes.has(p.id));
+            setTabelas(faltantes.length > 0 ? [...remota.tabelasTestes, ...faltantes] : remota.tabelasTestes);
           }
           if (onConfigChange) onConfigChange(remota);
         }

@@ -237,16 +237,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           }
           break;
         case 'vontade':
-          // Próximo nível custa o nível atual
-          total += n;
+          // Força de Vontade: Nível atual x 2 (1ª Edição 1996 - Livro Básico)
+          total += n * 2;
           break;
         case 'caminho':
-          // Nível atual x 2
+          // Caminho: Nível atual x 2
           total += n * 2;
           break;
         case 'virtude':
-          // Virtude: Nível atual x 2 (1ª Edição 1996)
-          total += n * 2;
+          // Virtude: Nível atual x 3 (1ª Edição 1996 - Livro Básico)
+          total += n * 3;
           break;
       }
     }

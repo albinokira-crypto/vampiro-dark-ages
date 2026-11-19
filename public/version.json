@@ -1,6 +1,6 @@
-﻿{
-    "version":  "v1.10.5",
-    "versionCode":  1105,
-    "updatedAt":  "2026-11-19T21:13:03.366Z",
-    "changelog":  "fix: calculo correto de disciplinas de cla e pontos bonus (18 pts lucien), novo HUD 2 linhas, separacao visual e extrato de gastos mestre"
+{
+    "version":  "v1.10.6",
+    "versionCode":  1106,
+    "updatedAt":  "2026-11-19T21:45:00.000Z",
+    "changelog":  "feat: extrato mestre com historico de XP das sessoes, tabelas 1E completas (armas, armaduras, cavalos) e correcao de custos canonicos de XP"
 }

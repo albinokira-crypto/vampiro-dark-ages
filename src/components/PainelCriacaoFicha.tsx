@@ -571,9 +571,8 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
                     Saldo:
                   </span>
                   <strong
-                    className={`font-black font-mono text-xs sm:text-sm shrink-0 ${
-                      saldoBonusRestante >= 0 ? 'text-[#d4af37]' : 'text-red-400 animate-pulse'
-                    }`}
+                    className={`font-black font-mono text-xs sm:text-sm shrink-0 ${saldoBonusRestante >= 0 ? 'text-[#d4af37]' : 'text-red-400 animate-pulse'
+                      }`}
                   >
                     {saldoBonusRestante} pts
                   </strong>
@@ -590,11 +589,10 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
 
                 {/* Defeitos */}
                 <div
-                  className={`flex items-center justify-between px-2 py-1 rounded-xs border text-[10px] sm:text-[11px] font-mono min-w-0 ${
-                    pontosDefeitosGanhos > maxDefeitos
-                      ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
-                      : 'bg-green-950/30 border-green-800/80 text-green-300'
-                  }`}
+                  className={`flex items-center justify-between px-2 py-1 rounded-xs border text-[10px] sm:text-[11px] font-mono min-w-0 ${pontosDefeitosGanhos > maxDefeitos
+                    ? 'bg-red-950 text-red-300 border-red-700 font-bold animate-pulse'
+                    : 'bg-green-950/30 border-green-800/80 text-green-300'
+                    }`}
                 >
                   <span className="truncate mr-1 font-sans font-semibold">Defeitos:</span>
                   <strong className="shrink-0">+{pontosDefeitosGanhos}/{maxDefeitos} pts</strong>

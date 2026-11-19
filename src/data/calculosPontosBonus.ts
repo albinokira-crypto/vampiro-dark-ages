@@ -4,15 +4,15 @@ import { CLAS_DARK_AGES_1E } from './darkAges1e';
 export interface ItemGastoBonus {
   id: string;
   categoria:
-    | 'qualidade'
-    | 'defeito'
-    | 'atributo'
-    | 'habilidade'
-    | 'disciplina'
-    | 'antecedente'
-    | 'virtude'
-    | 'vontade'
-    | 'caminho';
+  | 'qualidade'
+  | 'defeito'
+  | 'atributo'
+  | 'habilidade'
+  | 'disciplina'
+  | 'antecedente'
+  | 'virtude'
+  | 'vontade'
+  | 'caminho';
   nome: string;
   pontos: number;
   detalhe: string;

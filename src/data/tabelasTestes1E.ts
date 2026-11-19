@@ -84,6 +84,89 @@ export const TABELAS_TESTES_PADRAO_1E: TabelaTeste[] = [
     ],
   },
   {
+    id: 'tabela_armaduras',
+    titulo: 'Armaduras Medievais',
+    subtitulo: 'Capítulo Sete: Sistemas (pág. 193)',
+    categoria: 'combate',
+    descricao:
+      'Tipos de armaduras medievais, dados de proteção na absorção de dano, penalidades de Destreza e Percepção e Força mínima necessária.',
+    colunas: ['Armadura', 'Proteção', 'Ajuste de Destreza', 'Ajuste de Percepção', 'Força Mínima'],
+    linhas: [
+      ['Armadura Leve (couro)', '1', '—', '—', '1'],
+      ['Armadura Composta (couro reforçado/anéis)', '2', '-1', '—', '1'],
+      ['Armadura Pesada (cota de malha)', '3', '-1', '-1', '2'],
+      ['Armadura de Cavaleiro (placas sobre malha)', '4', '-2', '-2', '3'],
+    ],
+    notaRodape:
+      'As modificações de Destreza e Percepção se aplicam enquanto o personagem usar a armadura (nenhum Atributo pode ser reduzido a menos de 1). A Força mínima indica o requisito para empunhar sem penalidades adicionais.',
+  },
+  {
+    id: 'tabela_armas_brancas',
+    titulo: 'Armas Brancas',
+    subtitulo: 'Capítulo Sete: Sistemas (pág. 194)',
+    categoria: 'combate',
+    descricao:
+      'Armas de combate corpo a corpo com dificuldade do teste de ataque, fórmula de dano, ocultabilidade e Força mínima exigida.',
+    colunas: ['Arma', 'Dificuldade', 'Dano', 'Ocultabilidade', 'Força Necessária'],
+    linhas: [
+      ['Faca', '5', 'Força + 1', 'B (Bolso)', '1'],
+      ['Adaga', '4', 'Força + 1', 'T (Túnica/Manto Peq.)', '1'],
+      ['Espada de Lâmina Larga', '6', 'Força + 4', 'M (Manto Longo)', '2'],
+      ['Espada de Mão-e-meia', '6', 'Força + 5', 'M (Manto Longo)', '4'],
+      ['Espada Longa', '5', 'Força + 6', 'N (Não ocultável)', '1'],
+      ['Bastão', '4', 'Força + 2', 'N (Não ocultável)', '2'],
+      ['Lança, uma mão (*1)', '7', 'Força + 1', 'N (Não ocultável)', '1'],
+      ['Lança, duas mãos (*1)', '6', 'Força + 3', 'N (Não ocultável)', '2'],
+      ['Lança de justa (*2)', '8', 'Força + 6', 'N (Não ocultável)', '3'],
+      ['Forcado (2 mãos)', '6', 'Força + 1 ou + 3', 'N (Não ocultável)', '3'],
+      ['Machado de Batalha', '7', 'Força + 5', 'N (Não ocultável)', '3'],
+      ['Machado de Mão', '7', 'Força + 6', 'M (Manto Longo)', '1'],
+      ['Acha (*3)', '7', 'Força + 6', 'N (Não ocultável)', '3'],
+      ['Maça', '7', 'Força + 4', 'T (Túnica/Manto Peq.)', '1'],
+      ['Mangual (*4)', '6', 'Força + 4', 'T (Túnica/Manto Peq.)', '1'],
+    ],
+    notaRodape:
+      'Ocultabilidade: B = pode ser escondida num bolso; T = escondida em túnica ou manto pequeno; M = escondida sob manto longo ou casaco; N = impossível esconder. *1: Se usada com duas mãos causa Força+3. *2: Apenas montado em investida. *3: Alabarda pesada. *4: Dificuldade do oponente para bloquear/aparar é +1.',
+  },
+  {
+    id: 'tabela_armas_distancia',
+    titulo: 'Armas de Longo Alcance',
+    subtitulo: 'Capítulo Sete: Sistemas (pág. 194)',
+    categoria: 'combate',
+    descricao:
+      'Armas de projétil e arremesso com dano, cadência de tiro (CdT), ocultabilidade, Força mínima e alcance em metros.',
+    colunas: ['Arma', 'Dificuldade', 'Dano', 'CdT', 'Ocultabilidade', 'Força Necessária', 'Alcance'],
+    linhas: [
+      ['Arco Curto', 'Variável', '2', '1/2', 'T (Túnica/Manto Peq.)', '2', '60 m'],
+      ['Arco Longo', 'Variável', '4', '1/2', 'N (Não ocultável)', '4', '120 m'],
+      ['Besta', 'Variável', '3', '1/4', 'N (Não ocultável)', '2', '90 m'],
+      ['Lança (arremessada)', 'Variável', 'Força + 2', 'N/D', 'N (Não ocultável)', '2', 'N/D'],
+      ['Faca (arremessada)', 'Variável', 'Força', 'N/D', 'B (Bolso)', '2', '10 m'],
+      ['Pedras', 'Variável', 'Força - 1', 'N/D', 'T (Túnica/Manto Peq.)', '2', '10 m'],
+      ['Machadinha', '+1', 'Força + 1', 'N/D', 'T (Túnica/Manto Peq.)', '2', '12 m'],
+    ],
+    notaRodape:
+      'CdT: 1/2 = 1 disparo a cada 2 turnos; 1/4 = requer turnos inteiros para recarregar. Um tiro rápido no mesmo turno pode ser realizado reduzindo a Parada de Dados pela metade.',
+  },
+  {
+    id: 'tabela_cavalos',
+    titulo: 'Cavalos & Combate Montado',
+    subtitulo: 'Capítulo Sete: Sistemas (pág. 195)',
+    categoria: 'combate',
+    descricao:
+      'Regras para montarias medievais e manobras equestres, funcionando no Mundo das Trevas Medieval de forma equivalente a veículos.',
+    colunas: ['Ação / Manobra', 'Teste', 'Dificuldade', 'Dano / Efeito', 'Ações'],
+    linhas: [
+      ['Investida Montada', 'Destreza + Cavalgar', '6', 'Força da Montaria + Dano da Arma', '1'],
+      ['Coice do Cavalo', 'Destreza + Briga', '6', 'Força + 2', '1'],
+      ['Atropelamento / Pisotear', 'Destreza + Cavalgar', '7', 'Força da Montaria', '1'],
+      ['Manobra Evasiva Montada', 'Raciocínio + Cavalgar', '6', 'Absorve sucessos em esquiva', '1'],
+      ['Controlar Cavalo em Pânico', 'Carisma + Cavalgar', '7 ou 8', 'Evita queda ou fuga do animal', '1'],
+    ],
+    notaRodape:
+      'Cavalos em pânico por fogo (Rötschreck animal) ou proximidade com predadores mortos-vivos exigem testes imediatos de Condução ou Cavalgar.',
+  },
+  {
     id: 'tabela_escudos_complicacoes',
     titulo: 'Escudos & Complicações de Combate',
     subtitulo: 'Capítulo Sete: Sistemas (pág. 193–194)',
