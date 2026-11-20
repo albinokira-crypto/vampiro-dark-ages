@@ -21,7 +21,7 @@ import {
   QUALIDADES_DEFEITOS_1E,
   type ModeloQualidadeDefeito,
 } from '../data/qualidadesDefeitos1E';
-import { calcularGastosPontosBonus } from '../data/calculosPontosBonus';
+import { calcularGastosPontosBonus, isDisciplinaDeClan } from '../data/calculosPontosBonus';
 import { ajustarVitalidadeCorpoGrande } from '../services/storage';
 
 interface PainelCriacaoFichaProps {
@@ -145,8 +145,10 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   const maxPericias = getLimiteHabilidade('pericias');
   const maxConhecimentos = getLimiteHabilidade('conhecimentos');
 
-  // Disciplinas, Antecedentes e Virtudes
-  const gastosDisciplinas = ficha.disciplinas.reduce((acc, d) => acc + d.nivel, 0);
+  // Disciplinas de Clã (5 pontos iniciais canônicos), Antecedentes e Virtudes
+  const gastosDisciplinas = ficha.disciplinas
+    .filter((d) => isDisciplinaDeClan(ficha, d.nome))
+    .reduce((acc, d) => acc + d.nivel, 0);
   const gastosAntecedentes = ficha.antecedentes.reduce((acc, a) => acc + a.nivel, 0);
   const gastosVirtudes =
     Math.max(0, ficha.virtudes.consciencia - 1) +
@@ -201,7 +203,11 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
       novoSnapshot = {
         atributos: { ...ficha.atributos },
         habilidades: { ...ficha.habilidades },
-        disciplinas: ficha.disciplinas.map((d) => ({ id: d.id, nome: d.nome, nivel: d.nivel })),
+        disciplinas: ficha.disciplinas.map((d) => ({
+          id: d.id,
+          nome: d.nome,
+          nivel: isDisciplinaDeClan(ficha, d.nome) ? d.nivel : 0,
+        })),
         antecedentes: ficha.antecedentes.map((ant) => ({ id: ant.id, nome: ant.nome, nivel: ant.nivel })),
         virtudes: { ...ficha.virtudes },
         forcaDeVontade: novaVontade,
@@ -519,7 +525,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
               {/* Vantagens */}
               <div className="bg-[#181014] p-1.5 rounded-xs border border-[#2d1217]">
                 <div className="text-[9px] text-[#a89f91] font-bold uppercase truncate">
-                  Disciplinas
+                  Disc. Clã
                 </div>
                 <div className={`font-mono font-bold text-xs ${gastosDisciplinas === config.pontosDisciplinas ? 'text-green-400' : gastosDisciplinas > config.pontosDisciplinas ? 'text-red-500 animate-pulse' : 'text-[#ef4444]'}`}>
                   {gastosDisciplinas} / {config.pontosDisciplinas}

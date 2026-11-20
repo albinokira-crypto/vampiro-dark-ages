@@ -10,6 +10,7 @@ import {
   Zap,
   TrendingUp,
   Clock,
+  CheckCircle,
 } from 'lucide-react';
 
 interface ModalExtratoGastosMestreProps {
@@ -31,6 +32,7 @@ export const ModalExtratoGastosMestre: React.FC<ModalExtratoGastosMestreProps> =
 
   const extrato = calcularGastosPontosBonus(ficha, config);
   const snap = ficha.criacao?.snapshotIniciais;
+  const isEmCriacao = ficha.criacao?.status === 'em_criacao';
 
   // Carregar histórico de logs de XP do banco/servidor
   useEffect(() => {
@@ -185,22 +187,20 @@ export const ModalExtratoGastosMestre: React.FC<ModalExtratoGastosMestreProps> =
           <button
             type="button"
             onClick={() => setAbaAtiva('todos')}
-            className={`px-3 py-1 rounded-xs font-semibold cursor-pointer transition-colors ${
-              abaAtiva === 'todos'
-                ? 'bg-[#8b0000] text-white shadow-xs'
-                : 'bg-[#181014] text-[#a89f91] hover:text-[#ded6cb] border border-[#2d1217]'
-            }`}
+            className={`px-3 py-1 rounded-xs font-semibold cursor-pointer transition-colors ${abaAtiva === 'todos'
+              ? 'bg-[#8b0000] text-white shadow-xs'
+              : 'bg-[#181014] text-[#a89f91] hover:text-[#ded6cb] border border-[#2d1217]'
+              }`}
           >
             Visão Geral (Todos)
           </button>
           <button
             type="button"
             onClick={() => setAbaAtiva('xp')}
-            className={`px-3 py-1 rounded-xs font-semibold cursor-pointer transition-colors flex items-center gap-1 ${
-              abaAtiva === 'xp'
-                ? 'bg-purple-900 text-white shadow-xs'
-                : 'bg-[#181014] text-[#a89f91] hover:text-[#ded6cb] border border-[#2d1217]'
-            }`}
+            className={`px-3 py-1 rounded-xs font-semibold cursor-pointer transition-colors flex items-center gap-1 ${abaAtiva === 'xp'
+              ? 'bg-purple-900 text-white shadow-xs'
+              : 'bg-[#181014] text-[#a89f91] hover:text-[#ded6cb] border border-[#2d1217]'
+              }`}
           >
             <Zap className="w-3.5 h-3.5 text-purple-400" />
             <span>Gastos de XP (Sessões)</span>
@@ -211,11 +211,10 @@ export const ModalExtratoGastosMestre: React.FC<ModalExtratoGastosMestreProps> =
           <button
             type="button"
             onClick={() => setAbaAtiva('criacao')}
-            className={`px-3 py-1 rounded-xs font-semibold cursor-pointer transition-colors flex items-center gap-1 ${
-              abaAtiva === 'criacao'
-                ? 'bg-[#3b1c23] text-amber-300 border border-amber-600/60 shadow-xs'
-                : 'bg-[#181014] text-[#a89f91] hover:text-[#ded6cb] border border-[#2d1217]'
-            }`}
+            className={`px-3 py-1 rounded-xs font-semibold cursor-pointer transition-colors flex items-center gap-1 ${abaAtiva === 'criacao'
+              ? 'bg-[#3b1c23] text-amber-300 border border-amber-600/60 shadow-xs'
+              : 'bg-[#181014] text-[#a89f91] hover:text-[#ded6cb] border border-[#2d1217]'
+              }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Pontos Bônus & Cotas</span>
@@ -284,88 +283,22 @@ export const ModalExtratoGastosMestre: React.FC<ModalExtratoGastosMestreProps> =
                 </div>
               ) : linhasHistoricoFicha.length > 0 ? (
                 <div className="divide-y divide-[#241318]">
-                  {linhasHistoricoFicha.map((linha, idx) => {
-                    const matchXP = linha.match(/-?\s*(\d+)\s*XP/i);
-                    const valorXP = matchXP ? `-${matchXP[1]} XP` : 'Gasto XP';
-                    const descricaoLimpa = linha.replace(/^-\s*\d+\s*XP:\s*/i, '').replace(/^-\s*/, '');
-                    return (
-                      <div key={idx} className="py-2 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase font-mono bg-purple-950 text-purple-300 border border-purple-800 shrink-0">
-                            XP
-                          </span>
-                          <span className="text-[#ded6cb] text-xs">{descricaoLimpa}</span>
-                        </div>
-                        <div className="font-mono font-bold shrink-0 text-xs px-2 py-0.5 rounded-xs bg-red-950/40 border border-red-800 text-red-400">
-                          {valorXP}
-                        </div>
+                  {linhasHistoricoFicha.map((linha, idx) => (
+                    <div key={idx} className="py-1.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase font-mono bg-purple-950 text-purple-300 border border-purple-800 shrink-0">
+                          XP
+                        </span>
+                        <span className="text-[#ded6cb] truncate">{linha}</span>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="py-4 text-center text-[#736a5e] italic">
                   Nenhum gasto de experiência registrado nas sessões até o momento.
                 </div>
               )}
-
-              {/* Guia Rápido dos Custos Oficiais de XP (1ª Edição) */}
-              <div className="mt-3 pt-2.5 border-t border-[#241318]">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-purple-300 mb-1.5 flex items-center gap-1.5">
-                  <BookOpen className="w-3 h-3 text-purple-400" />
-                  <span>Referência Canônica: Custos de XP (1ª Edição 1996)</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px] font-mono">
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Atributo:</span>{' '}
-                    <strong className="text-amber-300">atual x 4</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Hab. Nova:</span>{' '}
-                    <strong className="text-amber-300">3 XP</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Habilidade:</span>{' '}
-                    <strong className="text-amber-300">atual x 2</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Virtude:</span>{' '}
-                    <strong className="text-amber-300">atual x 3</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Caminho:</span>{' '}
-                    <strong className="text-amber-300">atual x 2</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Força Vontade:</span>{' '}
-                    <strong className="text-amber-300">atual x 2</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Disc. do Clã:</span>{' '}
-                    <strong className="text-purple-300">atual x 5</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Outra Disc.:</span>{' '}
-                    <strong className="text-purple-300">atual x 7</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Nova Disc.:</span>{' '}
-                    <strong className="text-purple-300">10 XP</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Trilha Nova:</span>{' '}
-                    <strong className="text-rose-300">7 XP</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Trilha Prim.:</span>{' '}
-                    <strong className="text-rose-300">atual x 4</strong>
-                  </div>
-                  <div className="bg-[#100b0e] p-1.5 rounded-xs border border-[#2b1720]">
-                    <span className="text-[#a89f91]">Trilha Sec.:</span>{' '}
-                    <strong className="text-rose-300">atual x 5</strong>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -395,15 +328,14 @@ export const ModalExtratoGastosMestre: React.FC<ModalExtratoGastosMestreProps> =
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span
-                              className={`px-1 py-0.2 rounded text-[9px] font-bold uppercase font-mono ${
-                                item.categoria === 'defeito'
-                                  ? 'bg-green-950 text-green-300 border border-green-800'
-                                  : item.categoria === 'qualidade'
+                              className={`px-1 py-0.2 rounded text-[9px] font-bold uppercase font-mono ${item.categoria === 'defeito'
+                                ? 'bg-green-950 text-green-300 border border-green-800'
+                                : item.categoria === 'qualidade'
                                   ? 'bg-amber-950 text-amber-300 border border-amber-800'
                                   : item.categoria === 'disciplina'
-                                  ? 'bg-purple-950 text-purple-300 border border-purple-800'
-                                  : 'bg-[#2b1217] text-[#ded6cb] border border-[#522228]'
-                              }`}
+                                    ? 'bg-purple-950 text-purple-300 border border-purple-800'
+                                    : 'bg-[#2b1217] text-[#ded6cb] border border-[#522228]'
+                                }`}
                             >
                               {item.categoria}
                             </span>
@@ -415,11 +347,10 @@ export const ModalExtratoGastosMestre: React.FC<ModalExtratoGastosMestreProps> =
                         </div>
 
                         <div
-                          className={`font-mono font-bold shrink-0 text-xs px-2 py-0.5 rounded-xs ${
-                            isPositivo
-                              ? 'text-green-400 bg-green-950/40 border border-green-800'
-                              : 'text-red-400 bg-red-950/40 border border-red-800'
-                          }`}
+                          className={`font-mono font-bold shrink-0 text-xs px-2 py-0.5 rounded-xs ${isPositivo
+                            ? 'text-green-400 bg-green-950/40 border border-green-800'
+                            : 'text-red-400 bg-red-950/40 border border-red-800'
+                            }`}
                         >
                           {isPositivo ? `+${item.pontos} pts` : `${item.pontos} pts`}
                         </div>

@@ -39,18 +39,21 @@ export interface DetalhesGastosBonus {
  * Retorna se uma disciplina é considerada de clã para o personagem.
  */
 export function isDisciplinaDeClan(ficha: Personagem, nomeOuIdDisciplina: string): boolean {
+  if (!ficha.cla) return false;
   const claEncontrado = CLAS_DARK_AGES_1E.find(
-    (c) => c.nome.toLowerCase() === (ficha.cla || '').toLowerCase()
+    (c) => c.nome.trim().toLowerCase() === (ficha.cla || '').trim().toLowerCase()
   );
   if (!claEncontrado) return false;
 
   const disc = ficha.disciplinas.find(
-    (d) => d.id === nomeOuIdDisciplina || d.nome.toLowerCase() === nomeOuIdDisciplina.toLowerCase()
+    (d) =>
+      d.id === nomeOuIdDisciplina ||
+      d.nome.trim().toLowerCase() === nomeOuIdDisciplina.trim().toLowerCase()
   );
-  const nome = disc ? disc.nome : nomeOuIdDisciplina;
+  const nome = (disc ? disc.nome : nomeOuIdDisciplina).trim().toLowerCase();
 
   return claEncontrado.disciplinas.some(
-    (cd) => cd.toLowerCase() === nome.toLowerCase()
+    (cd) => cd.trim().toLowerCase() === nome
   );
 }
 
@@ -114,24 +117,30 @@ export function obterValoresIniciaisTraços(ficha: Personagem, config?: Configur
     },
     getDisciplina: (idOuNome: string): number => {
       const d = ficha.disciplinas.find(
-        (item) => item.id === idOuNome || item.nome.toLowerCase() === idOuNome.toLowerCase()
+        (item) => item.id === idOuNome || item.nome.trim().toLowerCase() === idOuNome.trim().toLowerCase()
       );
       if (!d) return 0;
-      if (isEmIniciais) return d.nivel;
 
       const isClan = isDisciplinaDeClan(ficha, d.nome);
+      // Disciplinas fora do clã não possuem bolinhas iniciais gratuitas
+      if (!isClan) {
+        return 0;
+      }
+
+      if (isEmIniciais) return d.nivel;
+
       // Se é de clã e o total de clã não ultrapassou os pontos iniciais da mesa, todas as bolinhas são iniciais!
-      if (isClan && totalClan <= maxDisc) {
+      if (totalClan <= maxDisc) {
         return d.nivel;
       }
 
       if (snap?.disciplinas) {
         const item = snap.disciplinas.find(
-          (sd) => sd.id === idOuNome || sd.nome.toLowerCase() === idOuNome.toLowerCase()
+          (sd) => sd.id === idOuNome || sd.nome.trim().toLowerCase() === idOuNome.trim().toLowerCase()
         );
         if (item) return item.nivel;
       }
-      return isClan ? Math.min(d.nivel, maxDisc) : 0;
+      return Math.min(d.nivel, maxDisc);
     },
     getAntecedente: (idOuNome: string): number => {
       const a = ficha.antecedentes.find(
@@ -431,16 +440,20 @@ export function calcularGastosPontosBonus(
     const isClan = isDisciplinaDeClan(ficha, d.nome);
     if (isClan) {
       pontosClanTotal += d.nivel;
-    } else {
+    } else if (d.nivel > 0) {
       const custoOutra = calcularCustoBonusDisciplina(false, d.nivel, 0);
       if (custoOutra > 0) {
         gastosDisciplinas += custoOutra;
+        const detalheCalculo =
+          d.nivel === 1
+            ? '1ª bolinha = 10 pts bônus'
+            : `10 pts (1ª bolinha) + ${(d.nivel - 1) * 7} pts (${d.nivel - 1}x7 pts bônus)`;
         itensDetalhados.push({
           id: 'disc_outra_' + d.id,
           categoria: 'disciplina',
           nome: d.nome,
           pontos: -custoOutra,
-          detalhe: `Disciplina fora do clã (${d.nome} nível ${d.nivel}) = -${custoOutra} pts`,
+          detalhe: `Disciplina fora do clã (${d.nome} nível ${d.nivel}) = -${custoOutra} pts (${detalheCalculo})`,
         });
       }
     }

@@ -1,6 +1,6 @@
 {
-    "version":  "v1.10.6",
-    "versionCode":  1106,
-    "updatedAt":  "2026-11-19T21:45:00.000Z",
-    "changelog":  "feat: extrato mestre com historico de XP das sessoes, tabelas 1E completas (armas, armaduras, cavalos) e correcao de custos canonicos de XP"
+    "version":  "v1.10.7",
+    "versionCode":  1107,
+    "updatedAt":  "2026-11-20T02:45:00.000Z",
+    "changelog":  "fix: cobranca correta de 10 XP e pontos bonus na 1a bolinha de nova disciplina e nivel atual x 7 / x 5 nas evolucoes seguintes"
 }

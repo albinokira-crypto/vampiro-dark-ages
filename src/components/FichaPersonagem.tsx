@@ -681,10 +681,89 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         : discSelecionada || 'Nova Disciplina';
     if (!nomeFinal) return;
 
+    const nivelFinal = Math.max(0, Math.min(isNpc ? 10 : 8, discNivelInicial));
+    const claEncontrado = CLAS_DARK_AGES_1E.find(
+      (c) => c.nome.trim().toLowerCase() === (ficha.cla || '').trim().toLowerCase()
+    );
+    const isClan = Boolean(
+      claEncontrado &&
+        claEncontrado.disciplinas.some(
+          (cd) => cd.trim().toLowerCase() === nomeFinal.trim().toLowerCase()
+        )
+    );
+
+    const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+
+    // Se NÃO estiver em criação e nem em modo de edição livre, e comprou com nível > 0:
+    // debita o custo em XP (1ª bolinha = 10 XP; evoluções seguintes = nível atual x 5 se clã, ou x 7 se fora de clã)
+    if (!isEmCriacao && !modoEdicaoLivre && nivelFinal > 0) {
+      const custoXP = calcularCustoXP('disciplina', 0, nivelFinal, { isClan });
+      const xpDisponivel = ficha.xp?.atual || 0;
+
+      if (xpDisponivel < custoXP) {
+        setAvisoXP(
+          `XP Insuficiente! Adquirir ${nomeFinal} nível ${nivelFinal} custa ${custoXP} XP (1ª bolinha = 10 XP${
+            nivelFinal > 1 ? ` + evoluções a nível x ${isClan ? 5 : 7}` : ''
+          }), mas você possui apenas ${xpDisponivel} XP.`
+        );
+        setTimeout(() => setAvisoXP(null), 5500);
+        return;
+      }
+
+      const estadoAnterior = JSON.parse(JSON.stringify(ficha));
+      const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const descricao = `Nova Disciplina ${nomeFinal} (Nível ${nivelFinal})`;
+      const novaLinhaHistorico = `- ${custoXP} XP: ${descricao} às ${hora}`;
+
+      const nova: ItemSimplesNivel = {
+        id: 'disc_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+        nome: nomeFinal,
+        nivel: nivelFinal,
+      };
+
+      setFicha((prev) => ({
+        ...prev,
+        disciplinas: [...prev.disciplinas, nova],
+        xp: {
+          ...prev.xp,
+          atual: Math.max(0, (prev.xp?.atual || 0) - custoXP),
+          totalGasto: (prev.xp?.totalGasto || 0) + custoXP,
+          historico: novaLinhaHistorico + (prev.xp?.historico ? '\n' + prev.xp.historico : ''),
+        },
+      }));
+
+      setHistoricoTransacoesXP((prev) => [
+        {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+          descricao,
+          custoXP,
+          estadoAnterior,
+        },
+        ...prev,
+      ]);
+      setHasChanges(true);
+      setSucessoXP(`✓ ${descricao} adquirida (-${custoXP} XP).`);
+      setTimeout(() => setSucessoXP(null), 4000);
+
+      storageService.registrarLogAlteracao({
+        personagemId: ficha.id,
+        personagemNome: ficha.nome,
+        jogadorNome: ficha.jogador || usuarioAtual.nome,
+        tipo: 'xp',
+        descricao: `Gasto de XP: ${descricao} (-${custoXP} XP)`,
+        detalhes: `XP Restante: ${xpDisponivel - custoXP}`,
+      });
+
+      setModalAddDisciplinaAberto(false);
+      setDiscCustomNome('');
+      setDiscNivelInicial(1);
+      return;
+    }
+
     const nova: ItemSimplesNivel = {
       id: 'disc_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
       nome: nomeFinal,
-      nivel: Math.max(1, Math.min(isNpc ? 10 : 8, discNivelInicial)),
+      nivel: nivelFinal,
     };
 
     updateFicha((prev) => ({
@@ -713,15 +792,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
       const disc = ficha.disciplinas.find((d) => d.id === id);
       if (!disc) return;
       const claEncontrado = CLAS_DARK_AGES_1E.find(
-        (c) => c.nome.toLowerCase() === (ficha.cla || '').toLowerCase()
+        (c) => c.nome.trim().toLowerCase() === (ficha.cla || '').trim().toLowerCase()
       );
-      const isClan =
-        ficha.criacao?.disciplinasPrimariasIds?.includes(id) ||
-        (claEncontrado &&
+      const isClan = Boolean(
+        claEncontrado &&
           claEncontrado.disciplinas.some(
-            (cd) => cd.toLowerCase() === disc.nome.toLowerCase()
-          )) ||
-        ficha.disciplinas.findIndex((d) => d.id === id) < 3;
+            (cd) => cd.trim().toLowerCase() === disc.nome.trim().toLowerCase()
+          )
+      );
 
       tentarEvoluirComXP(
         'disciplina',
@@ -4577,14 +4655,109 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                   <Bolinhas
                     valor={discNivelInicial}
                     max={isNpc ? 10 : 5}
-                    min={1}
+                    min={0}
                     onChange={(v) => setDiscNivelInicial(v)}
                   />
                   <span className="text-xs text-[#a89f91] font-serif">
-                    (Nível {discNivelInicial})
+                    {discNivelInicial === 0 ? '(0 - Sem pontos)' : `(Nível ${discNivelInicial})`}
                   </span>
                 </div>
               </div>
+
+              {/* Box Informativo de Custo em XP ou Pontos Bônus */}
+              {(() => {
+                const nomePrev =
+                  discSelecionada === '__custom__'
+                    ? discCustomNome.trim()
+                    : discSelecionada || 'Nova Disciplina';
+                const claEnc = CLAS_DARK_AGES_1E.find(
+                  (c) => c.nome.trim().toLowerCase() === (ficha.cla || '').trim().toLowerCase()
+                );
+                const isClanPrev = Boolean(
+                  claEnc &&
+                    claEnc.disciplinas.some(
+                      (cd) => cd.trim().toLowerCase() === nomePrev.trim().toLowerCase()
+                    )
+                );
+                const isCriacao = ficha.criacao?.status === 'em_criacao';
+                const custoXP =
+                  !isCriacao && !modoEdicaoLivre && discNivelInicial > 0
+                    ? calcularCustoXP('disciplina', 0, discNivelInicial, { isClan: isClanPrev })
+                    : 0;
+                const saldoAtual = ficha.xp?.atual || 0;
+
+                if (!isCriacao && !modoEdicaoLivre) {
+                  return (
+                    <div className="bg-[#181115] p-2.5 rounded-xs border border-[#3b181b] text-xs space-y-1.5 animate-fadeIn">
+                      <div className="flex items-center justify-between border-b border-[#251419] pb-1">
+                        <span className="text-[10px] font-bold uppercase text-[#d4af37]">
+                          {isClanPrev ? '🛡️ Disciplina de Clã' : '⚔️ Outra Disciplina (Fora do Clã)'}
+                        </span>
+                        <span className="font-mono text-xs font-bold text-purple-300">
+                          Custo: {custoXP} XP
+                        </span>
+                      </div>
+                      {discNivelInicial === 0 ? (
+                        <p className="text-[11px] text-[#8e8273] italic">
+                          A disciplina será incluída na ficha com 0 pontos (sem custo). A compra da 1ª bolinha custará 10 XP quando você clicar nela.
+                        </p>
+                      ) : (
+                        <div className="space-y-1 text-[11px]">
+                          <div className="text-[#a89f91] font-mono text-[10px]">
+                            • 1ª bolinha = 10 XP
+                            {discNivelInicial > 1 && (
+                              <span>
+                                {' '}• Próximas = nível atual × {isClanPrev ? 5 : 7} XP
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-[#251419] font-mono">
+                            <span className="text-[#a89f91]">Saldo de XP Atual:</span>
+                            <strong className={saldoAtual >= custoXP ? 'text-green-400' : 'text-red-400'}>
+                              {saldoAtual} XP {saldoAtual < custoXP && '(Insuficiente)'}
+                            </strong>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (isCriacao) {
+                  const custoBonus =
+                    discNivelInicial === 0
+                      ? 0
+                      : isClanPrev && ficha.criacao?.etapa === 'iniciais'
+                      ? 0
+                      : 10 + (discNivelInicial - 1) * 7;
+
+                  return (
+                    <div className="bg-[#181115] p-2.5 rounded-xs border border-[#3b181b] text-xs space-y-1 animate-fadeIn">
+                      <div className="flex items-center justify-between border-b border-[#251419] pb-1">
+                        <span className="text-[10px] font-bold uppercase text-[#d4af37]">
+                          {isClanPrev ? '🛡️ Disciplina de Clã' : '⚔️ Outra Disciplina (Fora do Clã)'}
+                        </span>
+                        <span className="font-mono text-xs font-bold text-amber-300">
+                          {isClanPrev && ficha.criacao?.etapa === 'iniciais'
+                            ? 'Cota Inicial (5 pts)'
+                            : `${custoBonus} Pontos Bônus`}
+                        </span>
+                      </div>
+                      {!isClanPrev ? (
+                        <p className="text-[10px] text-amber-400/90 leading-tight">
+                          Disciplinas fora do clã não podem ser compradas com pontos iniciais. A 1ª bolinha custa 10 pontos bônus e as seguintes 7 pontos cada.
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-[#a89f91] leading-tight">
+                          Disciplinas de clã usam a cota inicial gratuita de 5 pontos ou 5 pontos bônus por bolinha adicional.
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#3b181b]">
