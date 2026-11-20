@@ -1,6 +1,6 @@
 {
-    "version":  "v1.10.7",
-    "versionCode":  1107,
-    "updatedAt":  "2026-11-20T02:45:00.000Z",
-    "changelog":  "fix: cobranca correta de 10 XP e pontos bonus na 1a bolinha de nova disciplina e nivel atual x 7 / x 5 nas evolucoes seguintes"
+    "version":  "v1.10.8",
+    "versionCode":  1108,
+    "updatedAt":  "2026-11-20T03:00:00.000Z",
+    "changelog":  "fix: clareza no badge de bolinhas compradas com bonus e discriminacao de custo (-10 pts em 2 bolinhas de disciplina)"
 }

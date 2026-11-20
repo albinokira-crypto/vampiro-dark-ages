@@ -1247,12 +1247,18 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     Math.max(0, ficha.virtudes.coragem - 1);
 
   // Helper visual para exibir o contador de pontos ao lado de cada seção
-  const renderBadgePontos = (gastos: number, max: number, prioridadeNome?: string) => {
+  const renderBadgePontos = (
+    gastos: number,
+    max: number,
+    prioridadeNome?: string,
+    custoUnitarioBonus: number = 1
+  ) => {
     // Se a ficha não está em criação e o usuário não é o mestre, não polui a tela com contadores
     if (!isEmCriacao && !isMestre) return null;
 
     const pontosIniciais = Math.min(gastos, max);
-    const pontosBonus = Math.max(0, gastos - max);
+    const bolinhasBonus = Math.max(0, gastos - max);
+    const custoTotalBonus = bolinhasBonus * custoUnitarioBonus;
     const atingiuInicial = pontosIniciais === max;
     const excedeuEmIniciais = ficha.criacao?.etapa === 'iniciais' && gastos > max;
 
@@ -1276,9 +1282,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           {pontosIniciais}/{max} Iniciais
         </span>
         {atingiuInicial && <CheckCircle className="w-3 h-3 text-green-400 shrink-0" />}
-        {pontosBonus > 0 && (
-          <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-950/80 text-amber-300 border border-amber-600 font-mono font-bold">
-            +{pontosBonus} Bônus
+        {bolinhasBonus > 0 && (
+          <span
+            className="px-1.5 py-0.2 rounded text-[10px] bg-amber-950/80 text-amber-300 border border-amber-600 font-mono font-bold"
+            title={`${bolinhasBonus} bolinha${bolinhasBonus > 1 ? 's' : ''} comprada${bolinhasBonus > 1 ? 's' : ''} com Pontos Bônus (${custoUnitarioBonus} pts cada = -${custoTotalBonus} pts)`}
+          >
+            +{bolinhasBonus} {bolinhasBonus === 1 ? 'Bolinha' : 'Bolinhas'} (-{custoTotalBonus} pts)
           </span>
         )}
       </span>
@@ -2363,7 +2372,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Físicos
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosFisicos, limiteFisicos.max, limiteFisicos.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosFisicos, limiteFisicos.max, limiteFisicos.prioridade, 5)}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Força</span>
@@ -2429,7 +2438,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Sociais
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosSociais, limiteSociais.max, limiteSociais.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosSociais, limiteSociais.max, limiteSociais.prioridade, 5)}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Carisma</span>
@@ -2475,7 +2484,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Mentais
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosMentais, limiteMentais.max, limiteMentais.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosMentais, limiteMentais.max, limiteMentais.prioridade, 5)}
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -2551,7 +2560,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Talentos
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosTalentos, limiteTalentos.max, limiteTalentos.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosTalentos, limiteTalentos.max, limiteTalentos.prioridade, 2)}
                     </div>
                     {(
                       [
@@ -2589,7 +2598,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Perícias
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosPericias, limitePericias.max, limitePericias.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosPericias, limitePericias.max, limitePericias.prioridade, 2)}
                     </div>
                     {(
                       [
@@ -2627,7 +2636,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Conhecimentos
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosConhecimentos, limiteConhecimentos.max, limiteConhecimentos.prioridade)}
+                      {!isNpc && renderBadgePontos(gastosConhecimentos, limiteConhecimentos.max, limiteConhecimentos.prioridade, 2)}
                     </div>
                     {(
                       [
@@ -2686,7 +2695,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                           Disciplinas
                         </h4>
-                        {renderBadgePontos(gastosDisciplinas, maxDisciplinas, 'Inicial')}
+                        {renderBadgePontos(gastosDisciplinas, maxDisciplinas, 'Inicial', 5)}
                       </div>
                       {podeEditar && (
                         <button
@@ -2772,7 +2781,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                           Antecedentes
                         </h4>
-                        {!isNpc && renderBadgePontos(gastosAntecedentes, maxAntecedentes, 'Inicial')}
+                        {!isNpc && renderBadgePontos(gastosAntecedentes, maxAntecedentes, 'Inicial', 1)}
                       </div>
                       {podeEditar && (
                         <button
@@ -2845,7 +2854,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Virtudes
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial')}
+                      {!isNpc && renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial', 2)}
                     </div>
 
                     {/* Consciência ou Convicção */}
