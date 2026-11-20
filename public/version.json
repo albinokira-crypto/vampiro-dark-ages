@@ -1,6 +1,6 @@
 {
-    "version":  "v1.15.0",
-    "versionCode":  1150,
-    "updatedAt":  "2026-11-20T19:15:00.000Z",
-    "changelog":  "feat: inclusão da área de Habilidades Secundárias na ficha com cálculo automático de XP (1º ponto = 2 XP, demais = atual x 1), catálogo de sugestões canônicas da 1ª Edição e inserção manual livre para Mestre e Jogadores"
+    "version": "v1.16.0",
+    "versionCode": 1160,
+    "updatedAt": "2026-11-20T20:10:00.000Z",
+    "changelog": "feat: bloqueio estrito de Antecedentes e Virtudes após finalização da criação, inclusão canônica das Trilhas de Vampiro: A Máscara 1ª Edição e nova sub-aba exclusiva com compêndio completo de testes das 16 Disciplinas (Níveis 1 a 5)"
 }

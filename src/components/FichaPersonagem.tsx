@@ -836,8 +836,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }
   };
 
-  // Antecedentes
+  // Antecedentes (Travados após a criação da ficha - apenas o Narrador ou modo livre podem alterar)
   const handleAbrirModalAddAntecedente = () => {
+    if (!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre') {
+      alert('Antecedentes não podem mais ser adicionados após a finalização da criação.');
+      return;
+    }
     setAntSelecionado('Aliados');
     setAntCustomNome('');
     setAntNivelInicial(1);
@@ -845,6 +849,10 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   };
 
   const handleConfirmarNovoAntecedente = () => {
+    if (!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre') {
+      alert('Antecedentes não podem mais ser adicionados após a finalização da criação.');
+      return;
+    }
     const nomeFinal =
       antSelecionado === '__custom__'
         ? antCustomNome.trim()
@@ -878,6 +886,10 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   };
 
   const handleRemoverAntecedente = (id: string) => {
+    if (!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre') {
+      alert('Antecedentes não podem ser removidos após a finalização da criação.');
+      return;
+    }
     updateFicha((prev) => {
       const novosAntecedentes = prev.antecedentes.filter((a) => a.id !== id);
       const { geracao, sangueMax } = sincronizarGeracaoPorAntecedente(novosAntecedentes);
@@ -896,6 +908,12 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     campo: 'nome' | 'nivel',
     valor: string | number
   ) => {
+    if (!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre') {
+      alert(
+        'Antecedentes não podem ser alterados após a finalização da criação. Na Idade das Trevas, antecedentes só podem ser concedidos ou modificados pelo Narrador durante a crônica.'
+      );
+      return;
+    }
     updateFicha((prev) => {
       const novosAntecedentes = prev.antecedentes.map((a) =>
         a.id === id ? { ...a, [campo]: valor } : a
@@ -2930,13 +2948,19 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     Vantagens
                   </h3>
                   {!isNpc && (
-                    <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
-                      <span className="text-[#a89f91]">Disciplinas: <strong className="text-[#ded6cb]">{gastosDisciplinas}/{maxDisciplinas}</strong></span>
-                      <span className="text-[#3b181b]">•</span>
-                      <span className="text-[#a89f91]">Antecedentes: <strong className="text-[#ded6cb]">{gastosAntecedentes}/{maxAntecedentes}</strong></span>
-                      <span className="text-[#3b181b]">•</span>
-                      <span className="text-[#a89f91]">Virtudes: <strong className="text-[#ded6cb]">{gastosVirtudes}/{maxVirtudes}</strong></span>
-                    </div>
+                    isEmCriacao ? (
+                      <div className="flex items-center gap-2 text-xs bg-[#181014] px-2.5 py-1 rounded-xs border border-[#3b181b]">
+                        <span className="text-[#a89f91]">Disciplinas: <strong className="text-[#ded6cb]">{gastosDisciplinas}/{maxDisciplinas}</strong></span>
+                        <span className="text-[#3b181b]">•</span>
+                        <span className="text-[#a89f91]">Antecedentes: <strong className="text-[#ded6cb]">{gastosAntecedentes}/{maxAntecedentes}</strong></span>
+                        <span className="text-[#3b181b]">•</span>
+                        <span className="text-[#a89f91]">Virtudes: <strong className="text-[#ded6cb]">{gastosVirtudes}/{maxVirtudes}</strong></span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2.5 py-1 rounded-xs font-bold shadow-xs">
+                        ✓ Criação Consolidada • Antecedentes Travados
+                      </span>
+                    )
                   )}
                 </div>
 
@@ -2948,7 +2972,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                           Disciplinas
                         </h4>
-                        {renderBadgePontos(gastosDisciplinas, maxDisciplinas, 'Inicial', 5)}
+                        {isEmCriacao && renderBadgePontos(gastosDisciplinas, maxDisciplinas, 'Inicial', 5)}
                       </div>
                       {podeEditar && (
                         <button
@@ -3034,9 +3058,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                           Antecedentes
                         </h4>
-                        {!isNpc && renderBadgePontos(gastosAntecedentes, maxAntecedentes, 'Inicial', 1)}
+                        {!isNpc && isEmCriacao && renderBadgePontos(gastosAntecedentes, maxAntecedentes, 'Inicial', 1)}
                       </div>
-                      {podeEditar && (
+                      {(isEmCriacao || modoEdicaoLivre || usuarioAtual.role === 'mestre') && (
                         <button
                           type="button"
                           onClick={handleAbrirModalAddAntecedente}
@@ -3067,7 +3091,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                   <InlineField
                                     value={ant.nome}
                                     onChange={(val) => handleEditarAntecedente(ant.id, 'nome', val)}
-                                    readonly={!podeEditar}
+                                    readonly={!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre'}
                                     placeholder="Nome do Antecedente"
                                   />
                                 </div>
@@ -3081,9 +3105,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                                   min={1}
                                   tamanho="sm"
                                   onChange={(v) => handleEditarAntecedente(ant.id, 'nivel', v)}
-                                  readonly={!podeEditar}
+                                  readonly={!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre'}
                                 />
-                                {podeEditar && (
+                                {(isEmCriacao || modoEdicaoLivre || usuarioAtual.role === 'mestre') && (
                                   <button
                                     type="button"
                                     onClick={() => handleRemoverAntecedente(ant.id)}
@@ -3107,14 +3131,14 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Virtudes
                       </h4>
-                      {!isNpc && renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial', 2)}
+                      {!isNpc && isEmCriacao && renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial', 2)}
                     </div>
 
                     {/* Consciência ou Convicção */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <select
-                          disabled={!podeEditar}
+                          disabled={!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre'}
                           value={ficha.virtudes.tipoConsciencia}
                           onChange={(e) =>
                             updateFicha((prev) => ({
@@ -3125,7 +3149,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               },
                             }))
                           }
-                          className="bg-transparent text-xs font-semibold text-[#d4af37] border-b border-[#522228] focus:outline-none cursor-pointer"
+                          className="bg-transparent text-xs font-semibold text-[#d4af37] border-b border-[#522228] focus:outline-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="consciencia" className="bg-[#140e11] text-white">Consciência</option>
                           <option value="conviccao" className="bg-[#140e11] text-white">Convicção</option>
@@ -3146,7 +3170,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <select
-                          disabled={!podeEditar}
+                          disabled={!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre'}
                           value={ficha.virtudes.tipoAutocontrole}
                           onChange={(e) =>
                             updateFicha((prev) => ({
@@ -3157,7 +3181,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                               },
                             }))
                           }
-                          className="bg-transparent text-xs font-semibold text-[#d4af37] border-b border-[#522228] focus:outline-none cursor-pointer"
+                          className="bg-transparent text-xs font-semibold text-[#d4af37] border-b border-[#522228] focus:outline-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="autocontrole" className="bg-[#140e11] text-white">Autocontrole</option>
                           <option value="instinto" className="bg-[#140e11] text-white">Instinto</option>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { User, ConfiguracaoMesa, TabelaTeste } from '../types';
 import { storageService } from '../services/storage';
 import { TABELAS_TESTES_PADRAO_1E } from '../data/tabelasTestes1E';
+import { TESTES_DISCIPLINAS_1E } from '../data/testesDisciplinas1E';
 import {
   ScrollText,
   Search,
@@ -68,8 +69,11 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
       ? config.tabelasTestes
       : storageService.getTabelasTestes()
   );
+  const [abaSubTestes, setAbaSubTestes] = useState<'sistema' | 'disciplinas'>('sistema');
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState<'todas' | TabelaTeste['categoria']>('todas');
+  const [buscaDisciplina, setBuscaDisciplina] = useState('');
+  const [filtroDisciplinaId, setFiltroDisciplinaId] = useState<string>('todas');
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
 
   // Modal de edição/criação (Exclusivo Mestre)
@@ -224,28 +228,58 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
     return tab.linhas.some((linha) => linha.some((cel) => cel.toLowerCase().includes(t)));
   });
 
+  const disciplinasFiltradas = TESTES_DISCIPLINAS_1E.filter((disc) => {
+    const bateFiltro = filtroDisciplinaId === 'todas' || disc.id === filtroDisciplinaId;
+    if (!bateFiltro) return false;
+    const q = buscaDisciplina.toLowerCase().trim();
+    if (!q) return true;
+    if (
+      disc.nome.toLowerCase().includes(q) ||
+      disc.nomeIngles.toLowerCase().includes(q) ||
+      disc.clasTipicos.some((c) => c.toLowerCase().includes(q))
+    ) {
+      return true;
+    }
+    return disc.poderes.some(
+      (p) =>
+        p.nomePoder.toLowerCase().includes(q) ||
+        p.paradaDados.toLowerCase().includes(q) ||
+        p.dificuldade.toLowerCase().includes(q) ||
+        p.efeito.toLowerCase().includes(q) ||
+        p.custo.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#3b181b] pb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xs bg-[#241116] border border-[#522228] flex items-center justify-center shrink-0">
-            <ScrollText className="w-5 h-5 text-[#d4af37]" />
+            {abaSubTestes === 'sistema' ? (
+              <ScrollText className="w-5 h-5 text-[#d4af37]" />
+            ) : (
+              <Sparkles className="w-5 h-5 text-rose-400" />
+            )}
           </div>
           <div>
             <h2 className="text-xl sm:text-2xl font-gothic font-black text-[#d4af37] tracking-wider uppercase">
-              Tabelas de Testes &amp; Sistemas
+              {abaSubTestes === 'sistema'
+                ? 'Tabelas de Testes & Sistemas'
+                : 'Compêndio de Testes de Disciplinas'}
             </h2>
             <p className="text-xs text-[#a89f91] font-serif">
-              {isMestre
-                ? 'Referência oficial da 1ª Edição — você pode editar qualquer tabela, adicionar regras ou criar novas tabelas.'
-                : 'Referência oficial de testes, combate, frenesi, proezas e sobrevivência da crônica (somente visualização).'}
+              {abaSubTestes === 'sistema'
+                ? isMestre
+                  ? 'Referência oficial da 1ª Edição — você pode editar qualquer tabela, adicionar regras ou criar novas tabelas.'
+                  : 'Referência oficial de testes, combate, frenesi, proezas e sobrevivência da crônica (somente visualização).'
+                : 'Referência canônica de testes de todas as 16 Disciplinas (Níveis 1 a 5) da 1ª Edição — paradas de dados, dificuldades, custos, durações e efeitos mecânicos.'}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {isMestre && (
+          {isMestre && abaSubTestes === 'sistema' && (
             <>
               <button
                 type="button"
@@ -282,162 +316,349 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
         </div>
       )}
 
-      {/* Barra de Busca e Filtros */}
-      <div className="bg-[#140e11] border border-[#2d1217] p-4 rounded-sm space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar tabela, teste, dificuldade, manobra, peso, torpor, fogo, queda..."
-            className="w-full bg-[#1a1115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
-          />
-        </div>
+      {/* Sub-Abas do Painel de Testes */}
+      <div className="flex border-b border-[#3b181b] gap-2 pb-0">
+        <button
+          type="button"
+          onClick={() => setAbaSubTestes('sistema')}
+          className={`px-4 py-2.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center gap-2 cursor-pointer ${
+            abaSubTestes === 'sistema'
+              ? 'bg-[#1b1015] border-[#522228] text-[#d4af37] border-b-2 border-b-[#8b0000] -mb-[1px]'
+              : 'bg-[#120a0e] border-transparent text-[#8e8273] hover:text-[#d4af37]'
+          }`}
+        >
+          <ScrollText className="w-4 h-4" />
+          <span>Tabelas do Sistema &amp; Combate ({tabelas.length})</span>
+        </button>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(
-            [
-              { id: 'todas', label: `Todas (${tabelas.length})` },
-              { id: 'combate', label: 'Combate & Escudos' },
-              { id: 'besta', label: 'Frenesi & Rötschreck' },
-              { id: 'fisico', label: 'Escalar & Proezas' },
-              { id: 'sobrevivencia', label: 'Torpor, Sol, Fogo, Cura & Queda' },
-              { id: 'experiencia', label: 'Experiência (XP)' },
-              { id: 'outros', label: 'Outras' },
-            ] as const
-          ).map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setFiltroCategoria(cat.id)}
-              className={`px-3 py-1 text-[11px] font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
-                filtroCategoria === cat.id
-                  ? 'bg-[#8b0000] text-white border-[#b31419]'
-                  : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setAbaSubTestes('disciplinas')}
+          className={`px-4 py-2.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center gap-2 cursor-pointer ${
+            abaSubTestes === 'disciplinas'
+              ? 'bg-[#1b1015] border-[#522228] text-rose-300 border-b-2 border-b-[#8b0000] -mb-[1px]'
+              : 'bg-[#120a0e] border-transparent text-[#8e8273] hover:text-rose-300'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-rose-400" />
+          <span>Testes de Disciplinas (16 Disciplinas)</span>
+        </button>
       </div>
 
-      {/* Grade de Tabelas */}
-      {tabelasFiltradas.length === 0 ? (
-        <div className="bg-[#140e11] border border-[#2d1217] p-8 rounded-sm text-center text-xs text-[#8e8273] italic">
-          Nenhuma tabela encontrada para o filtro informado.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          {tabelasFiltradas.map((tab) => {
-            const catMeta = CATEGORIAS_META[tab.categoria] || CATEGORIAS_META.outros;
-            return (
-              <div
-                key={tab.id}
-                className="bg-[#140e11] border border-[#3b181b] hover:border-[#63262c] rounded-sm shadow-lg flex flex-col overflow-hidden transition-colors"
-              >
-                {/* Cabeçalho do Card da Tabela */}
-                <div className="bg-[#1b1015] px-4 py-3 border-b border-[#3b181b] flex items-start justify-between gap-2">
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {getIconeCategoria(tab.categoria)}
-                      <h3 className="font-gothic font-bold text-sm text-[#d4af37] uppercase tracking-wider">
-                        {tab.titulo}
-                      </h3>
-                      <span
-                        className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border ${catMeta.badgeClass}`}
-                      >
-                        {catMeta.label}
-                      </span>
+      {/* ================================================================= */}
+      {/* ABA 1: TABELAS DO SISTEMA & COMBATE */}
+      {/* ================================================================= */}
+      {abaSubTestes === 'sistema' && (
+        <div className="space-y-6">
+          {/* Barra de Busca e Filtros */}
+          <div className="bg-[#140e11] border border-[#2d1217] p-4 rounded-sm space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar tabela, teste, dificuldade, manobra, peso, torpor, fogo, queda..."
+                className="w-full bg-[#1a1115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(
+                [
+                  { id: 'todas', label: `Todas (${tabelas.length})` },
+                  { id: 'combate', label: 'Combate & Escudos' },
+                  { id: 'besta', label: 'Frenesi & Rötschreck' },
+                  { id: 'fisico', label: 'Escalar & Proezas' },
+                  { id: 'sobrevivencia', label: 'Torpor, Sol, Fogo, Cura & Queda' },
+                  { id: 'experiencia', label: 'Experiência (XP)' },
+                  { id: 'outros', label: 'Outras' },
+                ] as const
+              ).map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setFiltroCategoria(cat.id)}
+                  className={`px-3 py-1 text-[11px] font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                    filtroCategoria === cat.id
+                      ? 'bg-[#8b0000] text-white border-[#b31419]'
+                      : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Grade de Tabelas */}
+          {tabelasFiltradas.length === 0 ? (
+            <div className="bg-[#140e11] border border-[#2d1217] p-8 rounded-sm text-center text-xs text-[#8e8273] italic">
+              Nenhuma tabela encontrada para o filtro informado.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              {tabelasFiltradas.map((tab) => {
+                const catMeta = CATEGORIAS_META[tab.categoria] || CATEGORIAS_META.outros;
+                return (
+                  <div
+                    key={tab.id}
+                    className="bg-[#140e11] border border-[#3b181b] hover:border-[#63262c] rounded-sm shadow-lg flex flex-col overflow-hidden transition-colors"
+                  >
+                    {/* Cabeçalho do Card da Tabela */}
+                    <div className="bg-[#1b1015] px-4 py-3 border-b border-[#3b181b] flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {getIconeCategoria(tab.categoria)}
+                          <h3 className="font-gothic font-bold text-sm text-[#d4af37] uppercase tracking-wider">
+                            {tab.titulo}
+                          </h3>
+                          <span
+                            className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border ${catMeta.badgeClass}`}
+                          >
+                            {catMeta.label}
+                          </span>
+                        </div>
+                        {tab.subtitulo && (
+                          <p className="text-[11px] text-[#8e8273] font-serif">{tab.subtitulo}</p>
+                        )}
+                      </div>
+
+                      {isMestre && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleAbrirEditarTabela(tab)}
+                            className="px-2 py-1 bg-[#241318] hover:bg-[#381b22] border border-[#522228] text-[#d4af37] text-[11px] font-semibold rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Editar esta tabela"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Editar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExcluirTabela(tab)}
+                            className="p-1 bg-[#181014] hover:bg-red-950 border border-[#3b181b] text-[#8e8273] hover:text-red-400 rounded-xs cursor-pointer transition-colors"
+                            title="Excluir esta tabela"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    {tab.subtitulo && (
-                      <p className="text-[11px] text-[#8e8273] font-serif">{tab.subtitulo}</p>
+
+                    {/* Descrição */}
+                    {tab.descricao && (
+                      <div className="px-4 pt-3 pb-1 text-xs text-[#c7beb2] font-serif leading-relaxed">
+                        {tab.descricao}
+                      </div>
+                    )}
+
+                    {/* Tabela de Dados */}
+                    <div className="p-4 overflow-x-auto flex-1">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead>
+                          <tr className="border-b-2 border-[#4a1c22] bg-[#1a0f14]">
+                            {tab.colunas.map((col, cIdx) => (
+                              <th
+                                key={cIdx}
+                                className="py-2 px-2.5 font-gothic font-bold uppercase tracking-wider text-[10px] text-[#d4af37]"
+                              >
+                                {col}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#251318]">
+                          {tab.linhas.map((linha, lIdx) => (
+                            <tr
+                              key={lIdx}
+                              className={
+                                lIdx % 2 === 0
+                                  ? 'bg-[#120b0e] hover:bg-[#1e1217]'
+                                  : 'bg-[#170e13] hover:bg-[#1e1217]'
+                              }
+                            >
+                              {tab.colunas.map((_, cIdx) => (
+                                <td
+                                  key={cIdx}
+                                  className={`py-2 px-2.5 leading-snug ${
+                                    cIdx === 0
+                                      ? 'font-semibold text-white'
+                                      : 'text-[#ded6cb] font-mono text-[11px]'
+                                  }`}
+                                >
+                                  {linha[cIdx] ?? '—'}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Nota de Rodapé */}
+                    {tab.notaRodape && (
+                      <div className="px-4 py-2.5 bg-[#110a0d] border-t border-[#281318] text-[11px] text-[#a89f91] italic font-serif">
+                        {tab.notaRodape}
+                      </div>
                     )}
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
-                  {isMestre && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleAbrirEditarTabela(tab)}
-                        className="px-2 py-1 bg-[#241318] hover:bg-[#381b22] border border-[#522228] text-[#d4af37] text-[11px] font-semibold rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
-                        title="Editar esta tabela"
-                      >
-                        <Pencil className="w-3 h-3" />
-                        <span>Editar</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleExcluirTabela(tab)}
-                        className="p-1 bg-[#181014] hover:bg-red-950 border border-[#3b181b] text-[#8e8273] hover:text-red-400 rounded-xs cursor-pointer transition-colors"
-                        title="Excluir esta tabela"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+      {/* ================================================================= */}
+      {/* ABA 2: TESTES DE DISCIPLINAS (16 DISCIPLINAS) */}
+      {/* ================================================================= */}
+      {abaSubTestes === 'disciplinas' && (
+        <div className="space-y-6">
+          {/* Barra de Busca e Filtros de Disciplinas */}
+          <div className="bg-[#140e11] border border-[#2d1217] p-4 rounded-sm space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={buscaDisciplina}
+                onChange={(e) => setBuscaDisciplina(e.target.value)}
+                placeholder="Buscar disciplina, poder, parada de dados (ex: Manipulação + Lábia), dificuldade, custo..."
+                className="w-full bg-[#1a1115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setFiltroDisciplinaId('todas')}
+                className={`px-3 py-1 text-[11px] font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                  filtroDisciplinaId === 'todas'
+                    ? 'bg-[#8b0000] text-white border-[#b31419]'
+                    : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                }`}
+              >
+                Todas (16)
+              </button>
+              {TESTES_DISCIPLINAS_1E.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setFiltroDisciplinaId(d.id)}
+                  className={`px-2.5 py-1 text-[11px] font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                    filtroDisciplinaId === d.id
+                      ? 'bg-[#8b0000] text-white border-[#b31419]'
+                      : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                  }`}
+                >
+                  {d.nome}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Lista de Disciplinas */}
+          {disciplinasFiltradas.length === 0 ? (
+            <div className="bg-[#140e11] border border-[#2d1217] p-8 rounded-sm text-center text-xs text-[#8e8273] italic">
+              Nenhuma disciplina ou teste encontrado para a busca informada.
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {disciplinasFiltradas.map((disc) => (
+                <div
+                  key={disc.id}
+                  className="bg-[#140e11] border border-[#3b181b] hover:border-[#63262c] rounded-sm shadow-xl overflow-hidden transition-colors"
+                >
+                  {/* Cabeçalho da Disciplina */}
+                  <div className="bg-[#1c0f14] px-4 py-3.5 border-b border-[#3b181b] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#8b0000] shadow-[0_0_8px_#8b0000] inline-block" />
+                        <h3 className="font-gothic font-bold text-base sm:text-lg text-[#d4af37] tracking-wider uppercase">
+                          {disc.nome}
+                        </h3>
+                        <span className="text-xs text-[#8e8273] font-serif italic">
+                          ({disc.nomeIngles})
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#a89f91] font-serif leading-snug">
+                        {disc.descricaoGeral}
+                      </p>
                     </div>
-                  )}
-                </div>
 
-                {/* Descrição */}
-                {tab.descricao && (
-                  <div className="px-4 pt-3 pb-1 text-xs text-[#c7beb2] font-serif leading-relaxed">
-                    {tab.descricao}
-                  </div>
-                )}
-
-                {/* Tabela de Dados */}
-                <div className="p-4 overflow-x-auto flex-1">
-                  <table className="w-full text-xs text-left border-collapse">
-                    <thead>
-                      <tr className="border-b-2 border-[#4a1c22] bg-[#1a0f14]">
-                        {tab.colunas.map((col, cIdx) => (
-                          <th
-                            key={cIdx}
-                            className="py-2 px-2.5 font-gothic font-bold uppercase tracking-wider text-[10px] text-[#d4af37]"
-                          >
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#251318]">
-                      {tab.linhas.map((linha, lIdx) => (
-                        <tr
-                          key={lIdx}
-                          className={
-                            lIdx % 2 === 0
-                              ? 'bg-[#120b0e] hover:bg-[#1e1217]'
-                              : 'bg-[#170e13] hover:bg-[#1e1217]'
-                          }
+                    <div className="flex flex-wrap items-center gap-1 shrink-0">
+                      <span className="text-[10px] text-[#8e8273] uppercase font-mono mr-1">Clãs:</span>
+                      {disc.clasTipicos.map((cla) => (
+                        <span
+                          key={cla}
+                          className="text-[10px] font-mono px-2 py-0.5 rounded-xs bg-[#241318] border border-[#522228] text-rose-300"
                         >
-                          {tab.colunas.map((_, cIdx) => (
-                            <td
-                              key={cIdx}
-                              className={`py-2 px-2.5 leading-snug ${
-                                cIdx === 0
-                                  ? 'font-semibold text-white'
-                                  : 'text-[#ded6cb] font-mono text-[11px]'
-                              }`}
-                            >
-                              {linha[cIdx] ?? '—'}
-                            </td>
-                          ))}
-                        </tr>
+                          {cla}
+                        </span>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Nota de Rodapé */}
-                {tab.notaRodape && (
-                  <div className="px-4 py-2.5 bg-[#110a0d] border-t border-[#281318] text-[11px] text-[#a89f91] italic font-serif">
-                    {tab.notaRodape}
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* Tabela de Poderes (Níveis 1 a 5) */}
+                  <div className="divide-y divide-[#281318]">
+                    {disc.poderes.map((poder) => (
+                      <div
+                        key={poder.nivel}
+                        className="p-3.5 sm:p-4 hover:bg-[#180f14] transition-colors space-y-2.5"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-xs bg-[#8b0000]/30 border border-[#8b0000] text-rose-300 font-mono font-bold text-xs">
+                              Nv {poder.nivel}
+                            </span>
+                            <h4 className="font-gothic font-bold text-sm text-[#ded6cb] uppercase tracking-wide">
+                              {poder.nomePoder}
+                            </h4>
+                          </div>
+
+                          {/* Badges de Parada, Dificuldade, Custo e Duração */}
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+                            <span
+                              className="px-2 py-0.5 rounded-xs bg-[#221014] border border-[#541f26] text-rose-200"
+                              title="Parada de Dados testada"
+                            >
+                              🎲 <strong className="text-white">{poder.paradaDados}</strong>
+                            </span>
+                            <span
+                              className="px-2 py-0.5 rounded-xs bg-[#1f160e] border border-[#523d1d] text-amber-200"
+                              title="Dificuldade do Teste"
+                            >
+                              🎯 Dif: <strong className="text-white">{poder.dificuldade}</strong>
+                            </span>
+                            {poder.custo !== 'Nenhum' && (
+                              <span
+                                className="px-2 py-0.5 rounded-xs bg-[#2d090d] border border-red-700/80 text-red-200 font-semibold"
+                                title="Custo para ativação"
+                              >
+                                🩸 {poder.custo}
+                              </span>
+                            )}
+                            <span
+                              className="px-2 py-0.5 rounded-xs bg-[#161318] border border-[#3b3240] text-[#a89f91]"
+                              title="Duração do efeito"
+                            >
+                              ⏳ {poder.duracao}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Descrição mecânica e efeito */}
+                        <div className="text-xs text-[#c7beb2] font-serif leading-relaxed pl-1 sm:pl-2 border-l-2 border-[#522228]">
+                          {poder.efeito}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -264,62 +264,144 @@ export function calcularGeracaoEpoolSangue(pontosAntecedenteGeracao: number = 0)
 }
 
 /**
- * Trilhas de Moralidade Oficiais - Vampiro: A Idade das Trevas (Livro Devir 1998)
+ * Trilhas de Moralidade Oficiais - Vampiro: A Idade das Trevas e Vampiro: A Máscara (1ª Edição)
  */
 export interface TrilhaDarkAges1e {
   nome: string;
   viaLatin: string;
   descricao: string;
   virtudes: string;
+  origem?: 'Idade das Trevas' | 'Vampiro: A Máscara 1ª Edição';
 }
 
 export const TRILHAS_DARK_AGES_1E: TrilhaDarkAges1e[] = [
+  // --- CAMINHOS CANÔNICOS: IDADE DAS TREVAS (1996) ---
+  {
+    nome: 'Caminho da Humanidade',
+    viaLatin: 'Via Humanitatis',
+    descricao: 'Preserva a empatia mortal, a razão humana e os laços afetivos para sufocar a Besta interior.',
+    virtudes: 'Consciência e Autocontrole',
+    origem: 'Idade das Trevas',
+  },
   {
     nome: 'Caminho da Besta',
     viaLatin: 'Via Bestiae',
     descricao: 'Abraça a natureza predatória, sobrevivendo como fera astuta e instintiva em harmonia com a Besta.',
     virtudes: 'Convicção e Instinto',
+    origem: 'Idade das Trevas',
   },
   {
     nome: 'Caminho do Sangue',
     viaLatin: 'Via Sanguinis',
     descricao: 'Código de Alamut e dos Assamitas: purificação pelo sangue, honra e fidelidade estrita a Haqim.',
     virtudes: 'Convicção e Autocontrole',
+    origem: 'Idade das Trevas',
   },
   {
     nome: 'Caminho do Cavaleiro',
     viaLatin: 'Via Equitis',
     descricao: 'O código cavalheiresco de honra, nobreza feudal, lealdade inabalável e proteção aos fracos.',
     virtudes: 'Consciência e Autocontrole',
+    origem: 'Idade das Trevas',
   },
   {
     nome: 'Caminho do Diabo',
     viaLatin: 'Via Diabolis',
     descricao: 'Abraça a maldade e a corrupção consciente, assumindo o papel de emissário do inferno na Terra.',
     virtudes: 'Convicção e Instinto',
+    origem: 'Idade das Trevas',
   },
   {
     nome: 'Caminho do Paraíso',
     viaLatin: 'Via Caeli',
     descricao: 'A crença cainita na fé divina e na expiação: o vampiro como instrumento ou anjo vingador de Deus.',
     virtudes: 'Consciência e Autocontrole',
-  },
-  {
-    nome: 'Caminho da Humanidade',
-    viaLatin: 'Via Humanitatis',
-    descricao: 'Preserva a empatia mortal, a razão humana e os laços afetivos para sufocar a Besta interior.',
-    virtudes: 'Consciência e Autocontrole',
+    origem: 'Idade das Trevas',
   },
   {
     nome: 'Caminho do Paradoxo',
     viaLatin: 'Via Paradoxi',
     descricao: 'A filosofia cármica dos Ravnos: desiludir os tolos e quebrar as correntes da ilusão mundana (Maya).',
     virtudes: 'Convicção e Autocontrole',
+    origem: 'Idade das Trevas',
   },
   {
     nome: 'Caminho de Tífon',
     viaLatin: 'Via Typhonis',
     descricao: 'A via milenar dos Setitas: corrupção espiritual e quebra das amarras para o despertar do deus Set.',
     virtudes: 'Convicção e Instinto',
+    origem: 'Idade das Trevas',
+  },
+
+  // --- TRILHAS CANÔNICAS: VAMPIRO: A MÁSCARA (1ª EDIÇÃO) ---
+  {
+    nome: 'Trilha da Morte e da Alma',
+    viaLatin: 'Via Mortis et Animae',
+    descricao: 'Estudo científico, frio e desapegado da alma, dos mortos e do limiar cadavérico. Doutrina clássica dos Capadócios e Necromantes.',
+    virtudes: 'Convicção e Autocontrole',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha dos Ossos',
+    viaLatin: 'Via Ossis',
+    descricao: 'Compreensão do ciclo final e aceitação da inevitabilidade da extinção de todas as coisas, sem fúria e sem piedade.',
+    virtudes: 'Convicção e Autocontrole',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha da Noite',
+    viaLatin: 'Via Noctis',
+    descricao: 'Filosofia dos Lasombra e devotos das trevas: o vampiro existe como emissário do terror divino para testar a fraqueza da humanidade.',
+    virtudes: 'Convicção e Instinto',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha da Harmonia',
+    viaLatin: 'Via Harmoniae',
+    descricao: 'Predatismo equilibrado e simbiose natural com os ciclos silvestres, predando apenas o necessário (tradicional entre os Gangrel).',
+    virtudes: 'Consciência e Instinto',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha dos Cátaros',
+    viaLatin: 'Via Cathari',
+    descricao: 'Hedonismo albigense sombrio: o mundo material é intrinsecamente corrompido, e a iluminação espiritual vem do esgotamento de todo prazer e dor carnal.',
+    virtudes: 'Convicção e Instinto',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha do Poder e da Voz Interior',
+    viaLatin: 'Via Potentiae',
+    descricao: 'Supremacia darwiniana implacável: os fracos existem para servir e os fortes para comandar através da vontade e da espada.',
+    virtudes: 'Convicção e Instinto',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha da Metamorfose',
+    viaLatin: 'Via Metamorphosis',
+    descricao: 'Transcendência corporal e mental do Clã Tzimisce: o vampiro é um estágio intermediário rumo a uma existência superior através do domínio da carne e ossos.',
+    virtudes: 'Convicção e Instinto',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha de Caim',
+    viaLatin: 'Via Caini',
+    descricao: 'Reverência mística e devotada aos preceitos e ensinamentos arcanos do Primeiro Vampiro, buscando dominar a maldição como dádiva sagrada.',
+    virtudes: 'Convicção e Instinto',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha do Acordo Maléfico',
+    viaLatin: 'Via Maleficii',
+    descricao: 'Pactos e servidão deliberada às entidades infernais e senhores do abismo para obter poderes que transcendem a maldição de Caim.',
+    virtudes: 'Convicção e Instinto',
+    origem: 'Vampiro: A Máscara 1ª Edição',
+  },
+  {
+    nome: 'Trilha da Honra',
+    viaLatin: 'Via Bellatoris',
+    descricao: 'O rígido pacto de honra cainita: compromisso inviolável com a palavra empenhada, proteção de aliados e lealdade até a Morte Final.',
+    virtudes: 'Consciência e Autocontrole',
+    origem: 'Vampiro: A Máscara 1ª Edição',
   },
 ];
