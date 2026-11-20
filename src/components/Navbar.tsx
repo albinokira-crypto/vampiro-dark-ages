@@ -164,16 +164,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {/* Configurações da Crônica e Equipamentos (Exclusivo Mestre) */}
+          {/* Configurações da Crônica, Equipamentos, Qualidades e Defeitos (Exclusivo Mestre) */}
           {usuarioAtual.role === 'mestre' && onAbrirConfigMestre && (
             <button
               type="button"
               onClick={onAbrirConfigMestre}
-              title="Configurações da crônica, pontuação inicial, armas e armaduras"
+              title="Configurações da crônica: pontuação inicial, armas, armaduras, qualidades e defeitos"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#251016] hover:bg-[#3d1820] border border-[#8b0000] text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37] rounded-xs cursor-pointer transition-all shadow-[0_0_10px_rgba(212,175,55,0.2)]"
             >
               <Settings className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span className="hidden md:inline">Pontuação Inicial</span>
+              <span className="hidden md:inline">Configurações</span>
             </button>
           )}
 

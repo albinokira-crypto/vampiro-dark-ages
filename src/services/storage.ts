@@ -15,6 +15,7 @@ import { ATALHOS_CARD_PADRAO } from '../data/atalhosCard';
 import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
 import { ARMAS_CATALOGO_1E, ARMADURAS_CATALOGO_1E } from '../data/combate1E';
 import { TABELAS_TESTES_PADRAO_1E } from '../data/tabelasTestes1E';
+import { QUALIDADES_DEFEITOS_1E } from '../data/qualidadesDefeitos1E';
 
 const STORAGE_KEY_PERSONAGENS = 'vampiro_dark_ages_personagens_v1';
 const STORAGE_KEY_USERS = 'vampiro_dark_ages_users_v1';
@@ -73,6 +74,7 @@ export const CONFIGURACAO_MESA_PADRAO: ConfiguracaoMesa = {
   elisio: DADOS_ELISIO_PADRAO,
   catalogoArmas: ARMAS_CATALOGO_1E,
   catalogoArmaduras: ARMADURAS_CATALOGO_1E,
+  catalogoQualidadesDefeitos: QUALIDADES_DEFEITOS_1E,
   catalogoLivro1eVersao: 2,
   tabelasTestes: TABELAS_TESTES_PADRAO_1E,
 };

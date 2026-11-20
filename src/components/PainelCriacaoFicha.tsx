@@ -18,7 +18,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import {
-  QUALIDADES_DEFEITOS_1E,
+  getCatalogoQualidadesDefeitos,
   type ModeloQualidadeDefeito,
 } from '../data/qualidadesDefeitos1E';
 import { calcularGastosPontosBonus, isDisciplinaDeClan } from '../data/calculosPontosBonus';
@@ -371,7 +371,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   };
 
   // Filtragem da lista do catálogo de Qualidades e Defeitos
-  const listaFiltradaQD = QUALIDADES_DEFEITOS_1E.filter((item) => {
+  const listaFiltradaQD = getCatalogoQualidadesDefeitos(config).filter((item) => {
     const bateTipo = filtroTipoQD === 'todos' || item.tipo === filtroTipoQD;
     const bateCat = filtroCatQD === 'todas' || item.categoria === filtroCatQD;
     const termo = buscaQD.toLowerCase().trim();

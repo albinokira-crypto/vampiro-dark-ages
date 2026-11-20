@@ -106,8 +106,17 @@ export interface ConfiguracaoMesa {
   elisio?: DadosElisio;
   catalogoArmas?: CatalogoArmaItem[];
   catalogoArmaduras?: CatalogoArmaduraItem[];
+  catalogoQualidadesDefeitos?: ModeloQualidadeDefeito[];
   catalogoLivro1eVersao?: number;
   tabelasTestes?: TabelaTeste[];
+}
+
+export interface ModeloQualidadeDefeito {
+  nome: string;
+  tipo: 'qualidade' | 'defeito';
+  categoria: 'fisico' | 'mental' | 'social' | 'sobrenatural';
+  pontos: number;
+  descricao: string;
 }
 
 export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';

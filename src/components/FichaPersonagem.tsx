@@ -51,7 +51,10 @@ import {
   Search,
   FileText,
 } from 'lucide-react';
-import { QUALIDADES_DEFEITOS_1E, type ModeloQualidadeDefeito } from '../data/qualidadesDefeitos1E';
+import {
+  getCatalogoQualidadesDefeitos,
+  type ModeloQualidadeDefeito,
+} from '../data/qualidadesDefeitos1E';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import { ModalExtratoGastosMestre } from './ModalExtratoGastosMestre';
 import { obterValoresIniciaisTraços } from '../data/calculosPontosBonus';
@@ -1011,7 +1014,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const [filtroCatQD, setFiltroCatQD] = useState<'todas' | 'fisico' | 'mental' | 'social' | 'sobrenatural'>('todas');
   const [buscaQD, setBuscaQD] = useState('');
 
-  const listaFiltradaQD = QUALIDADES_DEFEITOS_1E.filter((item) => {
+  const listaFiltradaQD = getCatalogoQualidadesDefeitos(configMesa).filter((item) => {
     const bateTipo = filtroTipoQD === 'todos' || item.tipo === filtroTipoQD;
     const bateCat = filtroCatQD === 'todas' || item.categoria === filtroCatQD;
     const termo = buscaQD.toLowerCase().trim();

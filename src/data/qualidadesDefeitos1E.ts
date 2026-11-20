@@ -1,15 +1,11 @@
 /**
- * Catálogo Oficial de Qualidades e Defeitos - Vampiro: A Idade das Trevas (Livro Devir 1998)
- * Disponíveis exclusivamente durante a criação de personagens.
+ * Catálogo Oficial de Qualidades e Defeitos - Vampiro: A Idade das Trevas (Livro Devir 1998 & Canon Oficial)
+ * Disponíveis durante a criação de personagens e gerenciáveis pelo Mestre nas configurações.
  */
 
-export interface ModeloQualidadeDefeito {
-  nome: string;
-  tipo: 'qualidade' | 'defeito';
-  categoria: 'fisico' | 'mental' | 'social' | 'sobrenatural';
-  pontos: number;
-  descricao: string;
-}
+import type { ModeloQualidadeDefeito, ConfiguracaoMesa } from '../types';
+
+export type { ModeloQualidadeDefeito };
 
 export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
   // ==================== FÍSICOS: QUALIDADES ====================
@@ -49,20 +45,6 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Sua mordida e o beijo provocam êxtase sereno sem dor ou marcas evidentes de ferimento.',
   },
   {
-    nome: 'Digestão Eficiente',
-    tipo: 'qualidade',
-    categoria: 'fisico',
-    pontos: 3,
-    descricao: 'Extrai mais sustento do sangue: a cada 2 pontos de sangue consumidos, ganha 3.',
-  },
-  {
-    nome: 'Corpo Grande',
-    tipo: 'qualidade',
-    categoria: 'fisico',
-    pontos: 4,
-    descricao: 'Estatura imensa (mais de 2 metros); recebe uma caixa de Vitalidade extra do nível Escoriado.',
-  },
-  {
     nome: 'Equilíbrio Perfeito',
     tipo: 'qualidade',
     categoria: 'fisico',
@@ -98,11 +80,46 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Tom de voz suave, melodioso e envolvente; reduz em 2 a dificuldade de todas as jogadas sociais envolvendo oratória, persuasão falada ou canto.',
   },
   {
+    nome: 'Visão Noturna / Olhos de Coruja',
+    tipo: 'qualidade',
+    categoria: 'fisico',
+    pontos: 2,
+    descricao: 'Seus olhos se adaptam perfeitamente à escuridão da noite medieval, permitindo enxergar na penumbra e escuridão comum sem penalidades.',
+  },
+  {
+    nome: 'Fisiologia Incomum',
+    tipo: 'qualidade',
+    categoria: 'fisico',
+    pontos: 2,
+    descricao: 'A anatomia de seus órgãos internos é invertida ou deslocada; ataques direcionados ao coração (como estacas) exigem 2 sucessos extras para atingirem o local correto.',
+  },
+  {
+    nome: 'Digestão Eficiente',
+    tipo: 'qualidade',
+    categoria: 'fisico',
+    pontos: 3,
+    descricao: 'Extrai mais sustento do sangue: a cada 2 pontos de sangue consumidos, ganha 3.',
+  },
+  {
     nome: 'Cura Rápida',
     tipo: 'qualidade',
     categoria: 'fisico',
     pontos: 3,
     descricao: 'Seu corpo regenera ferimentos com espantosa velocidade; gasta apenas metade dos pontos de sangue usuais para curar níveis de dano.',
+  },
+  {
+    nome: 'Resistente à Dor',
+    tipo: 'qualidade',
+    categoria: 'fisico',
+    pontos: 3,
+    descricao: 'Suporta agonia física com bravura inabalável; reduz em 1 ponto todas as penalidades em testes provocadas por ferimentos e caixas de vitalidade marcadas.',
+  },
+  {
+    nome: 'Corpo Grande',
+    tipo: 'qualidade',
+    categoria: 'fisico',
+    pontos: 4,
+    descricao: 'Estatura imensa (mais de 2 metros); recebe uma caixa de Vitalidade extra do nível Escoriado.',
   },
 
   // ==================== FÍSICOS: DEFEITOS ====================
@@ -135,48 +152,6 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Audição comprometida; +2 na dificuldade em testes de Percepção auditivos.',
   },
   {
-    nome: 'Desfigurado',
-    tipo: 'defeito',
-    categoria: 'fisico',
-    pontos: 2,
-    descricao: 'Cicatrizes brutais ou ferimentos graves reduzem a sua Aparência para no máximo 2.',
-  },
-  {
-    nome: 'Caolho',
-    tipo: 'defeito',
-    categoria: 'fisico',
-    pontos: 2,
-    descricao: 'Perda de um dos olhos; +2 na dificuldade em ataques à distância e profundidade.',
-  },
-  {
-    nome: 'Membro Deformado ou Manco',
-    tipo: 'defeito',
-    categoria: 'fisico',
-    pontos: 3,
-    descricao: 'Um braço ou perna atrofiado; penalidades severas de mobilidade e corrida.',
-  },
-  {
-    nome: 'Monstruoso',
-    tipo: 'defeito',
-    categoria: 'fisico',
-    pontos: 3,
-    descricao: 'Aparência hedionda de pesadelo (Aparência 0 compulsória para não-Nosferatu).',
-  },
-  {
-    nome: 'Mudo',
-    tipo: 'defeito',
-    categoria: 'fisico',
-    pontos: 4,
-    descricao: 'Incapaz de emitir voz ou palavras; comunica-se apenas por gestos ou escrita.',
-  },
-  {
-    nome: 'Cego',
-    tipo: 'defeito',
-    categoria: 'fisico',
-    pontos: 6,
-    descricao: 'Cegueira completa; todas as ações baseadas na visão tornam-se impossíveis ou sofrem +4 na dificuldade.',
-  },
-  {
     nome: 'Dentes Rompidos / Presas Cegas',
     tipo: 'defeito',
     categoria: 'fisico',
@@ -198,11 +173,46 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Dificuldade extrema para acordar em repouso diurno antes do pôr do sol, mesmo sob barulhos altos ou perigo iminente (+2 na dificuldade para despertar).',
   },
   {
+    nome: 'Odor Cadavérico / Cheiro de Sepultura',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 1,
+    descricao: 'Exala constantemente um cheiro gélido de terra fresca de cemitério e decomposição; impõe +1 de dificuldade em interações sociais com mortais.',
+  },
+  {
+    nome: 'Corcunda / Deformidade Óssea',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 1,
+    descricao: 'A curvatura anormal de sua coluna prejudica seu porte e agilidade; impõe +1 na dificuldade de testes de Atletismo e atrai repulsa popular.',
+  },
+  {
+    nome: 'Desfigurado',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 2,
+    descricao: 'Cicatrizes brutais ou ferimentos graves reduzem a sua Aparência para no máximo 2.',
+  },
+  {
+    nome: 'Caolho',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 2,
+    descricao: 'Perda de um dos olhos; +2 na dificuldade em ataques à distância e percepções de profundidade.',
+  },
+  {
     nome: 'Presas Defeituosas',
     tipo: 'defeito',
     categoria: 'fisico',
     pontos: 2,
     descricao: 'Incapaz de retrair as presas à vontade; deve escondê-las constantemente sob capuzes, véus ou evitar abrir a boca na presença de mortais.',
+  },
+  {
+    nome: 'Cura Lenta / Cicatrização Tardia',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 2,
+    descricao: 'Seu sangue tem dificuldade para regenerar tecidos; gasta o dobro de pontos de sangue e tempo normal para fechar ferimentos.',
   },
   {
     nome: 'Ferimento Permanente',
@@ -212,11 +222,53 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Carrega uma lesão incurável recebida durante o Abraço mortal; sempre começa com a primeira caixa de dano (nível Ferido) marcada.',
   },
   {
+    nome: 'Membro Deformado ou Manco',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 3,
+    descricao: 'Um braço ou perna atrofiado; penalidades severas de mobilidade e corrida.',
+  },
+  {
     nome: 'Um Braço Só',
     tipo: 'defeito',
     categoria: 'fisico',
     pontos: 3,
     descricao: 'Perda completa de um dos membros superiores; testes que exigem ambas as mãos tornam-se impossíveis ou sofrem +3 de dificuldade.',
+  },
+  {
+    nome: 'Monstruoso',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 3,
+    descricao: 'Aparência hedionda de pesadelo (Aparência 0 compulsória para não-Nosferatu).',
+  },
+  {
+    nome: 'Leproso',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 3,
+    descricao: 'Contraiu a lepra antes do Abraço e a imortalidade congelou a doença; extremidades necrosadas, dedos dormentes (-2 em testes manuais) e rejeição absoluta da sociedade.',
+  },
+  {
+    nome: 'Estirpe Doente / Sangue Infectado',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 3,
+    descricao: 'Sua Vitae carrega os miasmas de uma peste medieval; qualquer mortal que você beijar ou morder adoece com febre pestilenta em poucos dias.',
+  },
+  {
+    nome: 'Mudo',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 4,
+    descricao: 'Incapaz de emitir voz ou palavras; comunica-se apenas por gestos ou escrita.',
+  },
+  {
+    nome: 'Cego',
+    tipo: 'defeito',
+    categoria: 'fisico',
+    pontos: 6,
+    descricao: 'Cegueira completa; todas as ações baseadas na visão tornam-se impossíveis ou sofrem +4 na dificuldade.',
   },
   {
     nome: 'Paraplégico',
@@ -242,25 +294,18 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Ignora penalidades de distração externa e ambientes caóticos.',
   },
   {
-    nome: 'Memória Eidética',
+    nome: 'Senso de Direção Absoluto',
     tipo: 'qualidade',
     categoria: 'mental',
-    pontos: 2,
-    descricao: 'Lembrança perfeita de cenas, rostos, textos e detalhes vistos anteriormente.',
+    pontos: 1,
+    descricao: 'Nunca perde o senso de orientação em florestas escuras, labirintos ou catacumbas; sabe intuitivamente a direção do norte e do seu refúgio.',
   },
   {
-    nome: 'Mente Calma',
+    nome: 'Consciência Limpa',
     tipo: 'qualidade',
     categoria: 'mental',
-    pontos: 3,
-    descricao: 'Duas dificuldades a menos para resistir a insultos e testes de autocontrole.',
-  },
-  {
-    nome: 'Vontade de Ferro',
-    tipo: 'qualidade',
-    categoria: 'mental',
-    pontos: 3,
-    descricao: 'Imune a Dominação quando gasta um ponto de Força de Vontade; +3 dados contra feitiços mentais.',
+    pontos: 1,
+    descricao: 'Mantém uma serenidade ética inabalável; ganha 1 dado extra em testes de remorso e testes para evitar perda de Humanidade ou Trilha.',
   },
   {
     nome: 'Código de Honra',
@@ -277,11 +322,32 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Facilidade prodigiosa para compreender, aprender e falar línguas e dialetos arcaicos medievais.',
   },
   {
+    nome: 'Memória Eidética',
+    tipo: 'qualidade',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Lembrança perfeita de cenas, rostos, textos e detalhes vistos anteriormente.',
+  },
+  {
     nome: 'Perspicácia / Discernimento',
     tipo: 'qualidade',
     categoria: 'mental',
     pontos: 2,
     descricao: 'Olhar aguçado para intenções humanas e cainitas; reduz em 2 a dificuldade para perceber embustes, blefes e traições.',
+  },
+  {
+    nome: 'Mente Calma',
+    tipo: 'qualidade',
+    categoria: 'mental',
+    pontos: 3,
+    descricao: 'Duas dificuldades a menos para resistir a insultos e testes de autocontrole.',
+  },
+  {
+    nome: 'Vontade de Ferro',
+    tipo: 'qualidade',
+    categoria: 'mental',
+    pontos: 3,
+    descricao: 'Imune a Dominação quando gasta um ponto de Força de Vontade; +3 dados contra feitiços mentais.',
   },
   {
     nome: 'Sangue Frio / Mente Inabalável',
@@ -290,14 +356,49 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     pontos: 3,
     descricao: 'Raciocínio impassível mesmo sob o horror; testes de Autocontrole para resistir a provocações têm dificuldade reduzida em 2.',
   },
+  {
+    nome: 'Fé Inabalável / Devoção Heroica',
+    tipo: 'qualidade',
+    categoria: 'mental',
+    pontos: 3,
+    descricao: 'Sua convicção espiritual em sua causa, ordem ou divindade é titânica; confere 3 dados extras para resistir a poderes mentais que o forcem a trair seus juramentos sagrados.',
+  },
 
   // ==================== MENTAIS: DEFEITOS ====================
+  {
+    nome: 'Exclusão de Presa',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 1,
+    descricao: 'Você se recusa estritamente a se alimentar de uma classe específica de pessoas (ex: crianças, clérigos, mulheres, mendigos ou sua antiga família mortal). Se for forçado ou quebrar essa promessa, perde 1 Força de Vontade temporária e deve testar Consciência.',
+  },
+  {
+    nome: 'Intolerância / Ódio (1 ponto)',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 1,
+    descricao: 'Preconceito irracional e hostilidade contra determinado grupo social, ordem religiosa, seita ou etnia medieval (+2 de dificuldade em testes sociais envolvendo esse grupo).',
+  },
+  {
+    nome: 'Intolerância / Ódio (2 pontos)',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Aversão profunda a uma classe ou facção ampla; exige teste de Autocontrole (dif. 7) ou gasto de 1 Força de Vontade para evitar agir com arrogância, ofensas ou agressividade aberta em sua presença.',
+  },
+  {
+    nome: 'Intolerância / Ódio (3 pontos)',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 3,
+    descricao: 'Ódio cego e homicida contra um grupo ou clã rival; qualquer contato direto exige teste de Autocontrole (dif. 8) imediato para não sucumbir a um Frenesi assassino e atacá-los sem hesitação.',
+  },
   {
     nome: 'Pesadelos',
     tipo: 'defeito',
     categoria: 'mental',
     pontos: 1,
-    descricao: 'Tormentos durante o sono diurno; noites de sobressalto podem impedir a recuperação plena.',
+    descricao: 'Tormentos durante o sono diurno; noites de sobressalto podem impedir a recuperação plena de Força de Vontade.',
   },
   {
     nome: 'Fobia Leve',
@@ -314,46 +415,11 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Dificuldade extrema em lidar com estranhos; +1 em testes de interação social pública.',
   },
   {
-    nome: 'Cabeça Quente',
-    tipo: 'defeito',
-    categoria: 'mental',
-    pontos: 2,
-    descricao: 'Fácil de provocar; +2 na dificuldade para resistir ao Frenesi sob provocação.',
-  },
-  {
-    nome: 'Vingativo',
-    tipo: 'defeito',
-    categoria: 'mental',
-    pontos: 2,
-    descricao: 'Nunca esquece um ultraje e coloca a vingança pessoal acima da própria segurança.',
-  },
-  {
-    nome: 'Amnésia',
-    tipo: 'defeito',
-    categoria: 'mental',
-    pontos: 2,
-    descricao: 'Sem recordação da vida mortal anterior ao Abraço e de quem realizou a transformação.',
-  },
-  {
-    nome: 'Objetivo Condutor',
-    tipo: 'defeito',
-    categoria: 'mental',
-    pontos: 2,
-    descricao: 'Você tem uma meta pessoal e obsessiva que direciona suas ações. Deve gastar Força de Vontade para ignorar oportunidades de avançar nesse objetivo, mesmo sob perigo iminente.',
-  },
-  {
     nome: 'Excesso de Confiança',
     tipo: 'defeito',
     categoria: 'mental',
     pontos: 1,
     descricao: 'Acredita piamente que nunca pode ser derrotado, subestimando inimigos mortais e sobrenaturais.',
-  },
-  {
-    nome: 'Intolerância',
-    tipo: 'defeito',
-    categoria: 'mental',
-    pontos: 1,
-    descricao: 'Preconceito irracional e irredutível contra determinada seita, ordem religiosa, etnia ou classe social medieval.',
   },
   {
     nome: 'Compulsão',
@@ -370,6 +436,48 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Incapaz de resistir a mistérios e segredos proibidos, arriscando sua integridade física ou social para saciar a curiosidade.',
   },
   {
+    nome: 'Arrogância Feudal',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 1,
+    descricao: 'Desdém insolente por qualquer pessoa de linhagem inferior ou plebeia; recusa conselhos sábios de servos e atrai o rancor de vassalos.',
+  },
+  {
+    nome: 'Melancolia / Depressão Espiritual',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 1,
+    descricao: 'Crises periódicas de apatia profunda; em noites sombrias, deve gastar 1 Força de Vontade para tomar iniciativas voluntárias.',
+  },
+  {
+    nome: 'Cabeça Quente',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Fácil de provocar; +2 na dificuldade para resistir ao Frenesi sob provocação.',
+  },
+  {
+    nome: 'Vingativo',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Nunca esquece um ultraje e coloca a vingança pessoal acima da própria segurança e das leis feudais.',
+  },
+  {
+    nome: 'Amnésia',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Sem recordação da vida mortal anterior ao Abraço e de quem realizou a transformação.',
+  },
+  {
+    nome: 'Objetivo Condutor',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Você tem uma meta pessoal e obsessiva que direciona suas ações. Deve gastar Força de Vontade para ignorar oportunidades de avançar nesse objetivo.',
+  },
+  {
     nome: 'Fúria Incontrolável / Pavio Curto',
     tipo: 'defeito',
     categoria: 'mental',
@@ -381,10 +489,45 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     tipo: 'defeito',
     categoria: 'mental',
     pontos: 2,
-    descricao: 'Terror avassalador diante de um elemento específico (ex: fogo alto, água profunda, confinamento, multidões).',
+    descricao: 'Terror avassalador diante de um elemento específico (ex: água profunda, confinamento, multidões).',
+  },
+  {
+    nome: 'Terror do Fogo / Pirofobia Severa',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'O pavor de chamas é desproporcional; a visão de tochas ou fogueiras médias impõe +2 na dificuldade de testes de Coragem contra o Röstschreck.',
+  },
+  {
+    nome: 'Sadismo',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Prazer visceral no sofrimento alheio; recusa-se a abater presas ou oponentes rapidamente, arriscando reviravoltas no combate.',
+  },
+  {
+    nome: 'Terror da Fera / Culpa Cainita',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Remorso paralisante após cada ato de predação; a cada alimentação violenta, sofre angústia moral profunda e penalidades temporárias de Força de Vontade.',
+  },
+  {
+    nome: 'Alucinações Recorrentes',
+    tipo: 'defeito',
+    categoria: 'mental',
+    pontos: 2,
+    descricao: 'Sons espectrais, sussurros fantasmagóricos ou visões fugazes invadem sua percepção em momentos de tensão extrema (+2 em dificuldades sob estresse).',
   },
 
   // ==================== SOCIAIS: QUALIDADES ====================
+  {
+    nome: 'Senhor Respeitado',
+    tipo: 'qualidade',
+    categoria: 'social',
+    pontos: 1,
+    descricao: 'Seu senhor goza de imenso prestígio e autoridade feudal, e essa honra recai favoravelmente sobre você nos tribunais e feudos.',
+  },
   {
     nome: 'Prestígio do Clã',
     tipo: 'qualidade',
@@ -414,13 +557,6 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Um cainita poderoso deve-lhe um favor substancial por atos passados.',
   },
   {
-    nome: 'Senhor Respeitado',
-    tipo: 'qualidade',
-    categoria: 'social',
-    pontos: 1,
-    descricao: 'Seu senhor goza de imenso prestígio e autoridade feudal, e essa honra recai favoravelmente sobre você nos tribunais e feudos.',
-  },
-  {
     nome: 'Nobreza de Berço',
     tipo: 'qualidade',
     categoria: 'social',
@@ -433,6 +569,27 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     categoria: 'social',
     pontos: 2,
     descricao: 'Possui um refúgio seguro em cripta, abadia ou fortaleza feudal protegido por muralhas e sentinelas contra invasores mundanos e cainitas.',
+  },
+  {
+    nome: 'Linhagem Pura / Sangue Distinto',
+    tipo: 'qualidade',
+    categoria: 'social',
+    pontos: 2,
+    descricao: 'Sua linhagem direta descende de um grande patriarca ou herói de clã célebre; concede +2 dados em testes de diplomacia com seu próprio clã.',
+  },
+  {
+    nome: 'Patrono Nobre / Protetor da Corte',
+    tipo: 'qualidade',
+    categoria: 'social',
+    pontos: 2,
+    descricao: 'Um governante de cidade ou barão influente atua como seu patrono formal, defendendo sua reputação contra intrigas e acusações injustas.',
+  },
+  {
+    nome: 'Favor do Príncipe',
+    tipo: 'qualidade',
+    categoria: 'social',
+    pontos: 3,
+    descricao: 'O soberano supremo do domínio confia plenamente em sua lealdade, garantindo privilégios especiais de trânsito, imunidades e proteção política.',
   },
   {
     nome: 'Imunidade a Laço de Sangue',
@@ -451,6 +608,20 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Fama negativa precede seus passos; desconfiança em cortes e praças.',
   },
   {
+    nome: 'Senhor Infame',
+    tipo: 'defeito',
+    categoria: 'social',
+    pontos: 1,
+    descricao: 'Seu criador cometeu heresias ou atrocidades abomináveis; o desdém e a suspeita da corte cainita recaem sobre você.',
+  },
+  {
+    nome: 'Identidade Trocada',
+    tipo: 'defeito',
+    categoria: 'social',
+    pontos: 1,
+    descricao: 'Você se assemelha fisicamente a outro cainita infame ou caçado; é frequentemente confundido por sentinelas e inimigos do outro indivíduo.',
+  },
+  {
     nome: 'Senhor Odiado',
     tipo: 'defeito',
     categoria: 'social',
@@ -465,25 +636,11 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Um clã inteiro da região nutre aversão e desprezo por suas ações.',
   },
   {
-    nome: 'Caçado pela Inquisição / Caçadores',
-    tipo: 'defeito',
-    categoria: 'social',
-    pontos: 3,
-    descricao: 'Inquisidores ou cavaleiros fanáticos têm seu rastro e juraram destruí-lo.',
-  },
-  {
     nome: 'Segredo Obscuro',
     tipo: 'defeito',
     categoria: 'social',
     pontos: 2,
     descricao: 'Guarda um segredo vergonhoso ou herético que se revelado destruiria seu status.',
-  },
-  {
-    nome: 'Senhor Infame',
-    tipo: 'defeito',
-    categoria: 'social',
-    pontos: 1,
-    descricao: 'Seu criador cometeu heresias ou atrocidades abomináveis; o desdém e a suspeita da corte cainita recaem sobre você.',
   },
   {
     nome: 'Exilado / Pária',
@@ -513,6 +670,34 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     pontos: 2,
     descricao: 'Um rival influente ou conspirador oculto dedica suas noites para sabotar suas conquistas e arquitetar sua ruína.',
   },
+  {
+    nome: 'Juramento Quebrado / Quebrador de Votos',
+    tipo: 'defeito',
+    categoria: 'social',
+    pontos: 2,
+    descricao: 'Ficou conhecido por quebrar um juramento feudal ou promessa sagrada; sua palavra tem pouco valor perante as cortes e tribunais da noite.',
+  },
+  {
+    nome: 'Escravo da Dívida',
+    tipo: 'defeito',
+    categoria: 'social',
+    pontos: 2,
+    descricao: 'Deve favores e Dívidas de Sangue substanciais a figuras perigosas da cidade, sendo convocado periodicamente para cumprir tarefas arriscadas.',
+  },
+  {
+    nome: 'Caçado pela Inquisição / Caçadores',
+    tipo: 'defeito',
+    categoria: 'social',
+    pontos: 3,
+    descricao: 'Inquisidores ou cavaleiros fanáticos têm seu rastro e juraram destruí-lo com tochas e espadas abençoadas.',
+  },
+  {
+    nome: 'Alvo de Caçada / Marcado para Morrer',
+    tipo: 'defeito',
+    categoria: 'social',
+    pontos: 3,
+    descricao: 'Uma recompensa mortal foi posta sobre sua cabeça por um Príncipe rival ou seita inimiga; assassinos espreitam seus passos.',
+  },
 
   // ==================== SOBRENATURAIS: QUALIDADES ====================
   {
@@ -521,27 +706,6 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     categoria: 'sobrenatural',
     pontos: 1,
     descricao: 'Sensibilidade inata para perceber aparições e fantasmas dos mortos.',
-  },
-  {
-    nome: 'Resistência à Magia',
-    tipo: 'qualidade',
-    categoria: 'sobrenatural',
-    pontos: 2,
-    descricao: '+2 na dificuldade de rituais e magias taumatúrgicas lançadas contra você.',
-  },
-  {
-    nome: 'Sangue Potente',
-    tipo: 'qualidade',
-    categoria: 'sobrenatural',
-    pontos: 3,
-    descricao: 'Sua Vitae é excepcionalmente rica, equivalendo a 1 geração inferior para uso de sangue.',
-  },
-  {
-    nome: 'Bênção Divina / Aura Sagrada',
-    tipo: 'qualidade',
-    categoria: 'sobrenatural',
-    pontos: 4,
-    descricao: 'Apesar de cainita, mantém resquícios de graça santa; reduz dano de símbolos sagrados.',
   },
   {
     nome: 'Comunhão com Animais',
@@ -558,11 +722,32 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Sua aura emite uma luminosidade límpida e serena, dificultando que o identifiquem como um predador maldito através de Auspícios.',
   },
   {
+    nome: 'Inofensivo aos Animais',
+    tipo: 'qualidade',
+    categoria: 'sobrenatural',
+    pontos: 1,
+    descricao: 'Os corcéis, cães de caça e animais de fazenda reagem a você com serenidade, como se você ainda respirasse a vida mortal.',
+  },
+  {
+    nome: 'Resistência à Magia',
+    tipo: 'qualidade',
+    categoria: 'sobrenatural',
+    pontos: 2,
+    descricao: '+2 na dificuldade de rituais e magias taumatúrgicas lançadas contra você.',
+  },
+  {
     nome: 'Sensibilidade ao Sobrenatural',
     tipo: 'qualidade',
     categoria: 'sobrenatural',
     pontos: 2,
     descricao: 'Um sexto sentido místico alerta sobre a aproximação de espíritos, magias ativas ou presenças sobrenaturais nas redondezas.',
+  },
+  {
+    nome: 'Sangue Potente',
+    tipo: 'qualidade',
+    categoria: 'sobrenatural',
+    pontos: 3,
+    descricao: 'Sua Vitae é excepcionalmente rica, equivalendo a 1 geração inferior para uso de sangue.',
   },
   {
     nome: 'Espírito Guardião',
@@ -578,6 +763,20 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     pontos: 3,
     descricao: 'O destino favorece suas noites; permite ignorar ou rolar novamente uma falha crítica uma vez por sessão de jogo.',
   },
+  {
+    nome: 'Destino Maior',
+    tipo: 'qualidade',
+    categoria: 'sobrenatural',
+    pontos: 3,
+    descricao: 'Uma grande profecia pesa sobre sua não-vida; o destino impede sua destruição prematura por golpes casuais até que cumpra sua missão histórica.',
+  },
+  {
+    nome: 'Bênção Divina / Aura Sagrada',
+    tipo: 'qualidade',
+    categoria: 'sobrenatural',
+    pontos: 4,
+    descricao: 'Apesar de cainita, mantém resquícios de graça santa; reduz dano de símbolos sagrados e água benta.',
+  },
 
   // ==================== SOBRENATURAIS: DEFEITOS ====================
   {
@@ -586,6 +785,34 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     categoria: 'sobrenatural',
     pontos: 1,
     descricao: 'Suas presas não retraem completamente, arriscando quebrar o silêncio entre mortais.',
+  },
+  {
+    nome: 'Sem Reflexo',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 1,
+    descricao: 'Seu corpo não produz reflexo em espelhos, águas calmas ou superfícies metálicas polidas, revelando sua condição não-viva.',
+  },
+  {
+    nome: 'Sem Sombra',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 1,
+    descricao: 'Mesmo sob a luz da lua ou de tochas acesas, você não projeta sombra alguma, atraindo a atenção e terror de mortais e da Igreja.',
+  },
+  {
+    nome: 'Aura Maculada',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 1,
+    descricao: 'Sua aura reflete uma névoa sombria e corrupta, gerando suspeita mística imediata e hostilidade por parte de taumaturgos e clérigos.',
+  },
+  {
+    nome: 'Aversão a Folclore / Alho e Água Corrente',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 1,
+    descricao: 'Folclores populares mortais exercem efeito real sobre sua carne: alho causa náusea extrema e cruzar água corrente exige teste de Força de Vontade.',
   },
   {
     nome: 'Presença Sinistra',
@@ -613,42 +840,14 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     tipo: 'defeito',
     categoria: 'sobrenatural',
     pontos: 2,
-    descricao: 'Não consegue se aproximar de igrejas consagradas ou pessoas com Fé Verdadeira.',
+    descricao: 'Não consegue se aproximar de igrejas consagradas ou pessoas portando Fé Verdadeira sem sofrer repulsa mística.',
   },
   {
     nome: 'Vulnerabilidade à Prata',
     tipo: 'defeito',
     categoria: 'sobrenatural',
     pontos: 2,
-    descricao: 'O toque de prata queima como fogo e causa dano agravado.',
-  },
-  {
-    nome: 'Amaldiçoado',
-    tipo: 'defeito',
-    categoria: 'sobrenatural',
-    pontos: 3,
-    descricao: 'Alvo de uma maldição ancestral que atrai desgraças e infortúnios pontuais.',
-  },
-  {
-    nome: 'Sem Reflexo',
-    tipo: 'defeito',
-    categoria: 'sobrenatural',
-    pontos: 1,
-    descricao: 'Seu corpo não produz reflexo em espelhos, águas calmas ou superfícies metálicas polidas, revelando sua condição não-viva.',
-  },
-  {
-    nome: 'Sem Sombra',
-    tipo: 'defeito',
-    categoria: 'sobrenatural',
-    pontos: 1,
-    descricao: 'Mesmo sob a luz da lua ou de tochas acesas, você não projeta sombra alguma, atraindo a atenção e terror de mortais e da Igreja.',
-  },
-  {
-    nome: 'Aura Maculada',
-    tipo: 'defeito',
-    categoria: 'sobrenatural',
-    pontos: 1,
-    descricao: 'Sua aura reflete uma névoa sombria e corrupta, gerando suspeita mística imediata e hostilidade por parte de taumaturgos e clérigos.',
+    descricao: 'O toque de prata pura queima sua carne como ferro em brasa e causa dano agravado.',
   },
   {
     nome: 'Assombrado por Fantasma',
@@ -665,6 +864,20 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     descricao: 'Seu organismo só consegue digerir e extrair sustento do sangue de um grupo seleto de mortais (ex: nobres, sacerdotes, donzelas ou criminosos).',
   },
   {
+    nome: 'Marca de Caim / Estigma Demoníaco',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 2,
+    descricao: 'Uma marca mística visível (olhos com fenda de cabra, runa sangrenta na fronte ou pele cinzenta) proclama sua condição maldita a quem o observar.',
+  },
+  {
+    nome: 'Amaldiçoado',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 3,
+    descricao: 'Alvo de uma maldição ancestral que atrai desgraças e infortúnios pontuais em momentos críticos.',
+  },
+  {
     nome: 'Sangue Fraco',
     tipo: 'defeito',
     categoria: 'sobrenatural',
@@ -678,4 +891,36 @@ export const QUALIDADES_DEFEITOS_1E: ModeloQualidadeDefeito[] = [
     pontos: 3,
     descricao: 'As chamas da luz solar infligem o dobro do dano agravado ao seu corpo imortal, exigindo abrigo hermético durante o dia.',
   },
+  {
+    nome: 'Estaca Fatal',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 3,
+    descricao: 'Uma estaca de madeira cravada em seu coração não apenas o paralisa, mas consome sua vitalidade e pode levá-lo à Morte Final se não for extraída rapidamente.',
+  },
+  {
+    nome: 'Fome Insaciável',
+    tipo: 'defeito',
+    categoria: 'sobrenatural',
+    pontos: 3,
+    descricao: 'Sua Besta interior nunca se farta; a dificuldade de todos os testes de Autocontrole para interromper a alimentação em uma presa é aumentada em 2.',
+  },
 ];
+
+/**
+ * Retorna o catálogo de qualidades e defeitos da mesa:
+ * Se a mesa possuir itens personalizados cadastrados pelo Mestre, utiliza-os;
+ * Caso contrário, utiliza o catálogo oficial padrão da 1ª Edição.
+ */
+export function getCatalogoQualidadesDefeitos(
+  config?: ConfiguracaoMesa
+): ModeloQualidadeDefeito[] {
+  if (
+    config?.catalogoQualidadesDefeitos &&
+    Array.isArray(config.catalogoQualidadesDefeitos) &&
+    config.catalogoQualidadesDefeitos.length > 0
+  ) {
+    return config.catalogoQualidadesDefeitos;
+  }
+  return QUALIDADES_DEFEITOS_1E;
+}

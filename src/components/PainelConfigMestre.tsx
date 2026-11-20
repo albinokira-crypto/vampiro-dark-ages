@@ -4,9 +4,11 @@ import type {
   AtalhoParadaDado,
   CatalogoArmaItem,
   CatalogoArmaduraItem,
+  ModeloQualidadeDefeito,
 } from '../types';
 import { storageService, CONFIGURACAO_MESA_PADRAO } from '../services/storage';
 import { ARMAS_CATALOGO_1E, ARMADURAS_CATALOGO_1E } from '../data/combate1E';
+import { QUALIDADES_DEFEITOS_1E, getCatalogoQualidadesDefeitos } from '../data/qualidadesDefeitos1E';
 import {
   Settings,
   Save,
@@ -64,8 +66,16 @@ const ARMADURA_VAZIA: CatalogoArmaduraItem = {
   poderMagico: '',
 };
 
+const QD_VAZIA: ModeloQualidadeDefeito = {
+  nome: '',
+  tipo: 'qualidade',
+  categoria: 'mental',
+  pontos: 1,
+  descricao: '',
+};
+
 export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar }) => {
-  const [abaAtiva, setAbaAtiva] = useState<'regras' | 'armas' | 'armaduras'>('regras');
+  const [abaAtiva, setAbaAtiva] = useState<'regras' | 'armas' | 'armaduras' | 'qualidades_defeitos'>('regras');
   const [config, setConfig] = useState<ConfiguracaoMesa>(() =>
     storageService.getConfiguracaoMesa()
   );
@@ -84,6 +94,14 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
   const [editandoArmaduraIdx, setEditandoArmaduraIdx] = useState<number | null>(null);
   const [criandoNovaArmadura, setCriandoNovaArmadura] = useState(false);
   const [formArmadura, setFormArmadura] = useState<CatalogoArmaduraItem>({ ...ARMADURA_VAZIA });
+
+  // Estados de gestão de Qualidades & Defeitos
+  const [buscaQD, setBuscaQD] = useState('');
+  const [filtroTipoQD, setFiltroTipoQD] = useState<'todos' | 'qualidade' | 'defeito'>('todos');
+  const [filtroCatQD, setFiltroCatQD] = useState<'todas' | 'fisico' | 'mental' | 'social' | 'sobrenatural'>('todas');
+  const [editandoQDIdx, setEditandoQDIdx] = useState<number | null>(null);
+  const [criandoNovoQD, setCriandoNovoQD] = useState(false);
+  const [formQD, setFormQD] = useState<ModeloQualidadeDefeito>({ ...QD_VAZIA });
 
   useEffect(() => {
     storageService.carregarConfiguracaoMesaRemota().then((remoto) => {
@@ -113,6 +131,75 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
     Array.isArray(config.catalogoArmaduras) && config.catalogoArmaduras.length > 0
       ? config.catalogoArmaduras
       : ARMADURAS_CATALOGO_1E;
+
+  const qdAtuais: ModeloQualidadeDefeito[] = getCatalogoQualidadesDefeitos(config);
+
+  // CRUD Qualidades e Defeitos do Sistema
+  const handleIniciarNovoQD = () => {
+    setEditandoQDIdx(null);
+    setFormQD({ ...QD_VAZIA });
+    setCriandoNovoQD(true);
+  };
+
+  const handleIniciarEdicaoQD = (idx: number) => {
+    setCriandoNovoQD(false);
+    setEditandoQDIdx(idx);
+    setFormQD({ ...qdAtuais[idx] });
+  };
+
+  const handleSalvarQD = async () => {
+    if (!formQD.nome.trim()) {
+      alert('Informe o nome da qualidade ou defeito.');
+      return;
+    }
+    const itemLimpo: ModeloQualidadeDefeito = {
+      nome: formQD.nome.trim(),
+      tipo: formQD.tipo,
+      categoria: formQD.categoria,
+      pontos: Math.max(1, Math.min(7, Number(formQD.pontos) || 1)),
+      descricao: formQD.descricao.trim(),
+    };
+
+    const novaLista = [...qdAtuais];
+    if (editandoQDIdx !== null) {
+      novaLista[editandoQDIdx] = itemLimpo;
+    } else {
+      novaLista.unshift(itemLimpo);
+    }
+
+    await persistirConfig(
+      { ...config, catalogoQualidadesDefeitos: novaLista },
+      editandoQDIdx !== null
+        ? `✓ ${itemLimpo.tipo === 'qualidade' ? 'Qualidade' : 'Defeito'} "${itemLimpo.nome}" atualizado no sistema!`
+        : `✓ Novo ${itemLimpo.tipo === 'qualidade' ? 'Qualidade' : 'Defeito'} "${itemLimpo.nome}" cadastrado com sucesso!`
+    );
+    setEditandoQDIdx(null);
+    setCriandoNovoQD(false);
+    setFormQD({ ...QD_VAZIA });
+  };
+
+  const handleExcluirQD = async (idx: number) => {
+    const alvo = qdAtuais[idx];
+    if (!confirm(`Deseja remover "${alvo.nome}" (${alvo.tipo}) do catálogo de Qualidades e Defeitos da crônica?`)) return;
+    const novaLista = qdAtuais.filter((_, i) => i !== idx);
+    await persistirConfig(
+      { ...config, catalogoQualidadesDefeitos: novaLista },
+      `"${alvo.nome}" removido do catálogo.`
+    );
+    if (editandoQDIdx === idx) {
+      setEditandoQDIdx(null);
+    }
+  };
+
+  const handleRestaurarQDPadrao = async () => {
+    if (!confirm('Deseja restaurar o catálogo de Qualidades e Defeitos para os itens oficiais padrão da 1ª Edição?')) return;
+    await persistirConfig(
+      { ...config, catalogoQualidadesDefeitos: [...QUALIDADES_DEFEITOS_1E] },
+      '✓ Catálogo de Qualidades e Defeitos restaurado para o padrão oficial.'
+    );
+    setEditandoQDIdx(null);
+    setCriandoNovoQD(false);
+  };
 
   // CRUD Armas do Sistema
   const handleIniciarNovaArma = () => {
@@ -409,6 +496,19 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
           >
             <Shield className="w-3.5 h-3.5 text-sky-300" />
             <span>Armaduras ({armadurasAtuais.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('qualidades_defeitos')}
+            className={`px-3 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors flex items-center gap-1.5 ${
+              abaAtiva === 'qualidades_defeitos'
+                ? 'bg-[#8b0000] text-white border-[#b31419] shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                : 'bg-[#181115] text-[#a89f91] border-[#3b181b] hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-rose-300" />
+            <span>Qualidades &amp; Defeitos ({qdAtuais.length})</span>
           </button>
         </div>
 
@@ -1643,6 +1743,295 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
                         onClick={() => handleExcluirArmadura(idx)}
                         className="p-1.5 bg-[#1b1014] hover:bg-red-950 border border-[#3b181b] text-[#8e8273] hover:text-red-400 rounded-xs cursor-pointer transition-colors"
                         title="Excluir armadura do catálogo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* ABA: QUALIDADES E DEFEITOS                                           */}
+        {/* ===================================================================== */}
+        {abaAtiva === 'qualidades_defeitos' && (
+          <div className="space-y-4">
+            {/* Barra de Ações: Busca, Filtros, Novo Item e Restaurar */}
+            <div className="bg-[#140e11] p-3.5 rounded-xs border border-[#2d1217] space-y-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={buscaQD}
+                    onChange={(e) => setBuscaQD(e.target.value)}
+                    placeholder="Buscar por nome ou efeito da qualidade/defeito..."
+                    className="w-full bg-[#1b1216] border border-[#3b181b] focus:border-[#d4af37] rounded-xs text-xs text-[#ded6cb] pl-9 pr-8 py-2 focus:outline-hidden"
+                  />
+                  {buscaQD && (
+                    <button
+                      type="button"
+                      onClick={() => setBuscaQD('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8e8273] hover:text-white text-xs cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleIniciarNovoQD}
+                    className="px-3 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(239,68,68,0.35)] whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Cadastrar Característica</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRestaurarQDPadrao}
+                    title="Restaurar para as Qualidades e Defeitos oficiais padrão da 1ª Edição"
+                    className="p-1.5 bg-[#1b1014] hover:bg-[#2e1820] border border-[#3b181b] text-[#a89f91] hover:text-[#d4af37] rounded-xs cursor-pointer transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Filtros por Tipo e Categoria */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#251015]">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-[11px] text-[#8e8273] uppercase font-bold mr-1">Tipo:</span>
+                  {(
+                    [
+                      ['todos', 'Todos'],
+                      ['qualidade', 'Qualidades'],
+                      ['defeito', 'Defeitos'],
+                    ] as const
+                  ).map(([tipoVal, label]) => (
+                    <button
+                      key={tipoVal}
+                      type="button"
+                      onClick={() => setFiltroTipoQD(tipoVal)}
+                      className={`px-2.5 py-1 rounded-xs font-semibold text-[11px] transition-colors cursor-pointer ${
+                        filtroTipoQD === tipoVal
+                          ? tipoVal === 'qualidade'
+                            ? 'bg-emerald-900 text-emerald-100 border border-emerald-600'
+                            : tipoVal === 'defeito'
+                            ? 'bg-rose-950 text-rose-100 border border-rose-700'
+                            : 'bg-[#8b0000] text-white border border-[#b31419]'
+                          : 'bg-[#1b1216] text-[#a89f91] border border-[#3b181b] hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-[11px] text-[#8e8273] uppercase font-bold">Categoria:</span>
+                  <select
+                    value={filtroCatQD}
+                    onChange={(e) => setFiltroCatQD(e.target.value as any)}
+                    className="bg-[#1b1216] border border-[#3b181b] text-[#ded6cb] text-xs rounded-xs px-2 py-1 focus:border-[#d4af37] focus:outline-hidden"
+                  >
+                    <option value="todas">Todas as Categorias</option>
+                    <option value="fisico">Físico</option>
+                    <option value="mental">Mental</option>
+                    <option value="social">Social</option>
+                    <option value="sobrenatural">Sobrenatural</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Formulário de Criação / Edição de Qualidade ou Defeito */}
+            {(criandoNovoQD || editandoQDIdx !== null) && (
+              <div className="bg-[#180f14] border-2 border-[#8b0000] p-4 rounded-xs shadow-xl space-y-3.5 animate-fadeIn">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
+                  <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#ef4444]" />
+                    <span>
+                      {editandoQDIdx !== null
+                        ? `Editar Característica: ${qdAtuais[editandoQDIdx]?.nome}`
+                        : 'Nova Qualidade ou Defeito'}
+                    </span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCriandoNovoQD(false);
+                      setEditandoQDIdx(null);
+                    }}
+                    className="text-[#8e8273] hover:text-white p-1 text-xs cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-[#a89f91] mb-1">
+                      Nome da Característica *
+                    </label>
+                    <input
+                      type="text"
+                      value={formQD.nome}
+                      onChange={(e) => setFormQD({ ...formQD, nome: e.target.value })}
+                      placeholder="Ex: Exclusão de Presa, Intolerância..."
+                      className="w-full bg-[#120a0e] border border-[#3b181b] focus:border-[#d4af37] rounded-xs px-2.5 py-1.5 text-xs text-[#ded6cb] focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#a89f91] mb-1">
+                      Tipo *
+                    </label>
+                    <select
+                      value={formQD.tipo}
+                      onChange={(e) => setFormQD({ ...formQD, tipo: e.target.value as 'qualidade' | 'defeito' })}
+                      className="w-full bg-[#120a0e] border border-[#3b181b] focus:border-[#d4af37] rounded-xs px-2 py-1.5 text-xs text-[#ded6cb] focus:outline-hidden"
+                    >
+                      <option value="qualidade">Qualidade (Custo em Bônus)</option>
+                      <option value="defeito">Defeito (Ganha Bônus)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#a89f91] mb-1">
+                      Categoria *
+                    </label>
+                    <select
+                      value={formQD.categoria}
+                      onChange={(e) => setFormQD({ ...formQD, categoria: e.target.value as any })}
+                      className="w-full bg-[#120a0e] border border-[#3b181b] focus:border-[#d4af37] rounded-xs px-2 py-1.5 text-xs text-[#ded6cb] focus:outline-hidden"
+                    >
+                      <option value="fisico">Físico</option>
+                      <option value="mental">Mental</option>
+                      <option value="social">Social</option>
+                      <option value="sobrenatural">Sobrenatural</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#a89f91] mb-1">
+                      Pontos (1 a 7) *
+                    </label>
+                    <select
+                      value={formQD.pontos}
+                      onChange={(e) => setFormQD({ ...formQD, pontos: Number(e.target.value) || 1 })}
+                      className="w-full bg-[#120a0e] border border-[#3b181b] focus:border-[#d4af37] rounded-xs px-2 py-1.5 text-xs text-[#ded6cb] focus:outline-hidden"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                        <option key={n} value={n}>
+                          {n} {n === 1 ? 'Ponto' : 'Pontos'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2 md:col-span-3">
+                    <label className="block text-[11px] font-bold text-[#a89f91] mb-1">
+                      Descrição / Regra Mecânica e Narrativa
+                    </label>
+                    <textarea
+                      value={formQD.descricao}
+                      onChange={(e) => setFormQD({ ...formQD, descricao: e.target.value })}
+                      placeholder="Descreva o funcionamento no jogo, dificuldades de testes, penalidades ou vantagens concedidas..."
+                      rows={2}
+                      className="w-full bg-[#120a0e] border border-[#3b181b] focus:border-[#d4af37] rounded-xs px-2.5 py-1.5 text-xs text-[#ded6cb] focus:outline-hidden resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#3b181b]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCriandoNovoQD(false);
+                      setEditandoQDIdx(null);
+                    }}
+                    className="px-3 py-1.5 bg-[#1b1216] hover:bg-[#29161d] border border-[#3b181b] text-xs font-semibold text-[#a89f91] hover:text-white rounded-xs cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSalvarQD}
+                    className="px-4 py-1.5 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(239,68,68,0.4)]"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Salvar no Catálogo</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Listagem de Qualidades e Defeitos */}
+            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+              {qdAtuais
+                .map((item, idx) => ({ item, idx }))
+                .filter(({ item }) => {
+                  const bateTipo = filtroTipoQD === 'todos' || item.tipo === filtroTipoQD;
+                  const bateCat = filtroCatQD === 'todas' || item.categoria === filtroCatQD;
+                  const termo = buscaQD.toLowerCase().trim();
+                  const bateBusca =
+                    !termo ||
+                    item.nome.toLowerCase().includes(termo) ||
+                    item.descricao.toLowerCase().includes(termo);
+                  return bateTipo && bateCat && bateBusca;
+                })
+                .map(({ item, idx }) => (
+                  <div
+                    key={`${item.nome}_${idx}`}
+                    className="bg-[#160f13] hover:bg-[#1f141a] border border-[#2d1217] hover:border-[#522228] p-3 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-gothic font-bold text-sm text-[#f5e6d3]">
+                          {item.nome}
+                        </span>
+
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                            item.tipo === 'qualidade'
+                              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80'
+                              : 'bg-rose-950/80 text-rose-300 border-rose-700/80'
+                          }`}
+                        >
+                          {item.tipo === 'qualidade' ? `+${item.pontos} Pts (Qualidade)` : `-${item.pontos} Pts (Defeito)`}
+                        </span>
+
+                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#241318] text-[#d4af37] border border-[#522228]">
+                          {item.categoria}
+                        </span>
+                      </div>
+
+                      {item.descricao && (
+                        <p className="text-xs text-[#a89f91] leading-relaxed line-clamp-2">
+                          {item.descricao}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => handleIniciarEdicaoQD(idx)}
+                        className="px-2.5 py-1 bg-[#241318] hover:bg-[#381b22] border border-[#522228] text-[#d4af37] text-xs font-semibold rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExcluirQD(idx)}
+                        className="p-1.5 bg-[#1b1014] hover:bg-red-950 border border-[#3b181b] text-[#8e8273] hover:text-red-400 rounded-xs cursor-pointer transition-colors"
+                        title="Excluir do catálogo"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
