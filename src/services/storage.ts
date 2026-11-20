@@ -225,6 +225,7 @@ export const PERSONAGEM_ZERADO_MODELO: Omit<Personagem, 'id' | 'createdAt' | 'up
   disciplinas: [],
   antecedentes: [],
   qualidadesDefeitos: [],
+  habilidadesSecundarias: [],
   virtudes: {
     tipoConsciencia: 'consciencia',
     consciencia: 1,
@@ -422,6 +423,11 @@ export function normalizarPersonagem(p: Personagem): Personagem {
       disciplinasPrimariasIds: copia.criacao?.disciplinasPrimariasIds || [],
       pontosBonusGastos: copia.criacao?.pontosBonusGastos || 0,
     };
+  }
+
+  // Garantir integridade de Habilidades Secundárias
+  if (!Array.isArray(copia.habilidadesSecundarias)) {
+    copia.habilidadesSecundarias = [];
   }
 
   // Garantir integridade do objeto de Experiência (XP)

@@ -121,10 +121,20 @@ export interface ModeloQualidadeDefeito {
 
 export type CategoriaAtributo = 'fisicos' | 'sociais' | 'mentais';
 export type CategoriaHabilidade = 'talentos' | 'pericias' | 'conhecimentos';
+export type CategoriaHabilidadeSecundaria = 'talento' | 'pericia' | 'conhecimento';
+
+export interface HabilidadeSecundariaItem {
+  id: string;
+  nome: string;
+  categoria: CategoriaHabilidadeSecundaria;
+  nivel: number; // 0 a 5/8
+  observacao?: string;
+}
 
 export interface SnapshotIniciais {
   atributos?: Record<string, number>;
   habilidades?: Record<string, number>;
+  habilidadesSecundarias?: HabilidadeSecundariaItem[];
   disciplinas?: { id: string; nome: string; nivel: number }[];
   antecedentes?: { id: string; nome: string; nivel: number }[];
   virtudes?: { consciencia: number; autocontrole: number; coragem: number };
@@ -319,6 +329,7 @@ export interface Personagem {
   disciplinas: ItemSimplesNivel[];
   antecedentes: ItemSimplesNivel[];
   qualidadesDefeitos?: QualidadeDefeitoItem[];
+  habilidadesSecundarias?: HabilidadeSecundariaItem[];
   virtudes: {
     tipoConsciencia: 'consciencia' | 'conviccao';
     consciencia: number; // 1 a 5/8

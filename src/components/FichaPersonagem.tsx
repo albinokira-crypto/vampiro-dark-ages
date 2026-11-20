@@ -11,6 +11,7 @@ import type {
   CategoriaAtributo,
   CategoriaHabilidade,
   QualidadeDefeitoItem,
+  HabilidadeSecundariaItem,
 } from '../types';
 import { Bolinhas } from './Bolinhas';
 import { QuadradosStatus } from './QuadradosStatus';
@@ -60,6 +61,7 @@ import {
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import { ModalExtratoGastosMestre } from './ModalExtratoGastosMestre';
 import { ModalAjustarXP } from './ModalAjustarXP';
+import { ModalAddHabilidadeSecundaria } from './ModalAddHabilidadeSecundaria';
 import { obterValoresIniciaisTraços } from '../data/calculosPontosBonus';
 import {
   calcularStatusCombate,
@@ -205,7 +207,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
   // Cálculo de Custo Exato em XP
   const calcularCustoXP = (
-    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
+    tipo: 'atributo' | 'habilidade' | 'habilidade_secundaria' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
     atual: number,
     novo: number,
     extra?: { isPrimaria?: boolean; isClan?: boolean }
@@ -221,6 +223,10 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
         case 'habilidade':
           // Habilidade nova 1ª bola = 3 XP; Nível atual x 2
           total += n === 0 ? 3 : n * 2;
+          break;
+        case 'habilidade_secundaria':
+          // Habilidade Secundária: 1ª bola = 2 XP; Nível atual x 1
+          total += n === 0 ? 2 : n * 1;
           break;
         case 'disciplina':
           // Nova disciplina 1ª bola = 10 XP; Clan = nivel * 5; Outras = nivel * 7
@@ -260,7 +266,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   };
 
   const tentarEvoluirComXP = (
-    tipo: 'atributo' | 'habilidade' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
+    tipo: 'atributo' | 'habilidade' | 'habilidade_secundaria' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
     nomeItem: string,
     valorAtual: number,
     novoValor: number,
@@ -982,6 +988,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const valoresIniciais = useMemo(() => obterValoresIniciaisTraços(ficha, configMesa), [ficha, configMesa]);
   const [modalExtratoAberto, setModalExtratoAberto] = useState<boolean>(false);
   const [modalAjustarXPAberto, setModalAjustarXPAberto] = useState<boolean>(false);
+  const [modalAddHabSecundariaAberto, setModalAddHabSecundariaAberto] = useState<boolean>(false);
 
   const listaQD = ficha.qualidadesDefeitos || [];
   const qualidadesEscolhidas = listaQD.filter((q) => q.tipo === 'qualidade');
@@ -1155,6 +1162,111 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     setObsCustomQD('');
     setPontosCustomQD(1);
     setMostrarFormCustomQD(false);
+  };
+
+  // Habilidades Secundárias (Canônicas 1ª Edição)
+  const handleAdicionarHabilidadeSecundaria = (
+    nova: HabilidadeSecundariaItem,
+    custoXP: number
+  ) => {
+    const isEmCriacao = ficha.criacao?.status === 'em_criacao';
+    const isGratis = modoEdicaoLivre || isEmCriacao;
+
+    if (!isGratis && custoXP > 0) {
+      const xpDisponivel = ficha.xp?.atual || 0;
+      if (xpDisponivel < custoXP) {
+        setAvisoXP(
+          `XP Insuficiente! Adquirir ${nova.nome} nível ${nova.nivel} custa ${custoXP} XP, mas você possui apenas ${xpDisponivel} XP.`
+        );
+        setTimeout(() => setAvisoXP(null), 5000);
+        return;
+      }
+
+      const estadoAnterior = JSON.parse(JSON.stringify(ficha));
+      const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const descricao = `Nova Hab. Secundária ${nova.nome} (Nível ${nova.nivel})`;
+      const novaLinhaHistorico = `- ${custoXP} XP: ${descricao} às ${hora}`;
+
+      const listaAtual = ficha.habilidadesSecundarias || [];
+      const novaLista = [...listaAtual, nova];
+
+      const atualizada: Personagem = {
+        ...ficha,
+        habilidadesSecundarias: novaLista,
+        xp: {
+          ...ficha.xp,
+          atual: Math.max(0, (ficha.xp?.atual || 0) - custoXP),
+          totalGasto: (ficha.xp?.totalGasto || 0) + custoXP,
+          historico: novaLinhaHistorico + (ficha.xp?.historico ? '\n' + ficha.xp.historico : ''),
+        },
+        updatedAt: new Date().toISOString(),
+      };
+
+      setFicha(atualizada);
+      onSalvar(atualizada);
+      setHistoricoTransacoesXP((prev) => [
+        {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+          descricao,
+          custoXP,
+          estadoAnterior,
+        },
+        ...prev,
+      ]);
+      setHasChanges(false);
+      setSucessoXP(`✓ ${descricao} adquirida (-${custoXP} XP).`);
+      setTimeout(() => setSucessoXP(null), 4000);
+
+      storageService.salvarPersonagem(atualizada);
+      storageService.registrarLogAlteracao({
+        personagemId: ficha.id,
+        personagemNome: ficha.nome,
+        jogadorNome: ficha.jogador || usuarioAtual.nome,
+        tipo: 'xp',
+        descricao: `Gasto de XP: ${descricao} (-${custoXP} XP)`,
+        detalhes: `XP Restante: ${xpDisponivel - custoXP}`,
+      });
+
+      setModalAddHabSecundariaAberto(false);
+      return;
+    }
+
+    const listaAtual = ficha.habilidadesSecundarias || [];
+    const novaLista = [...listaAtual, nova];
+    updateFicha((prev) => ({
+      ...prev,
+      habilidadesSecundarias: novaLista,
+    }));
+    setModalAddHabSecundariaAberto(false);
+  };
+
+  const handleNivelHabilidadeSecundaria = (id: string, novoValor: number) => {
+    const hab = (ficha.habilidadesSecundarias || []).find((h) => h.id === id);
+    if (!hab) return;
+
+    tentarEvoluirComXP(
+      'habilidade_secundaria',
+      `Hab. Secundária ${hab.nome}`,
+      hab.nivel,
+      novoValor,
+      (prev) => ({
+        ...prev,
+        habilidadesSecundarias: (prev.habilidadesSecundarias || []).map((h) =>
+          h.id === id ? { ...h, nivel: novoValor } : h
+        ),
+      })
+    );
+  };
+
+  const handleRemoverHabilidadeSecundaria = (id: string) => {
+    if (!podeEditar) return;
+    const hab = (ficha.habilidadesSecundarias || []).find((h) => h.id === id);
+    if (!confirm(`Deseja remover a habilidade secundária "${hab?.nome || 'esta habilidade'}"?`)) return;
+
+    updateFicha((prev) => ({
+      ...prev,
+      habilidadesSecundarias: (prev.habilidadesSecundarias || []).filter((h) => h.id !== id),
+    }));
   };
 
   // Limites e Gastos de Atributos (Base 1 em cada)
@@ -2636,6 +2748,181 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 </div>
               </div>
 
+              {/* HABILIDADES SECUNDÁRIAS (Canônicas 1ª Edição) */}
+              <div className="bg-[#120a0e] p-4 sm:p-5 rounded-sm border border-[#3b181b] space-y-4 shadow-md">
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
+                      Habilidades Secundárias
+                    </h3>
+                    <span className="text-[10px] text-[#8e8273] font-mono">
+                      (1º ponto = 2 XP • Próximos = Nível Atual × 1)
+                    </span>
+                  </div>
+                  {podeEditar && (
+                    <button
+                      type="button"
+                      onClick={() => setModalAddHabSecundariaAberto(true)}
+                      className="px-2.5 py-1 text-xs font-mono font-bold uppercase rounded-xs bg-[#241318] hover:bg-[#381822] text-[#d4af37] hover:text-white border border-[#522228] hover:border-[#8b0000] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      title="Adicionar talento, perícia ou conhecimento secundário"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Adicionar Habilidade Secundária</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* 3 Colunas: Talentos Secundários | Perícias Secundárias | Conhecimentos Secundários */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* TALENTOS SECUNDÁRIOS */}
+                  <div className="bg-[#180f14] p-3.5 rounded-sm border border-[#2d1217] space-y-2">
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Talentos Secundários
+                      </h4>
+                      <span className="text-[10px] text-[#706456] font-mono">
+                        ({(ficha.habilidadesSecundarias || []).filter((h) => h.categoria === 'talento').length})
+                      </span>
+                    </div>
+                    {((ficha.habilidadesSecundarias || []).filter((h) => h.categoria === 'talento')).length === 0 ? (
+                      <p className="text-[11px] text-[#6b6055] italic py-1">
+                        Nenhum talento secundário registrado.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(ficha.habilidadesSecundarias || [])
+                          .filter((h) => h.categoria === 'talento')
+                          .map((hab) => (
+                            <div key={hab.id} className="flex items-center justify-between text-xs py-0.5 border-b border-[#251419] last:border-b-0">
+                              <div className="flex items-center gap-1 min-w-0 pr-1">
+                                {podeEditar && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoverHabilidadeSecundaria(hab.id)}
+                                    title={`Remover ${hab.nome}`}
+                                    className="text-[#6b6055] hover:text-rose-400 p-0.5 cursor-pointer shrink-0"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                                <span className="text-[#ded6cb] truncate" title={hab.observacao || hab.nome}>
+                                  {hab.nome}
+                                </span>
+                              </div>
+                              <Bolinhas
+                                valor={hab.nivel}
+                                max={maxBolinhasTraço}
+                                min={0}
+                                tamanho="sm"
+                                onChange={(novoValor) => handleNivelHabilidadeSecundaria(hab.id, novoValor)}
+                                readonly={!podeEditar}
+                              />
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PERÍCIAS SECUNDÁRIAS */}
+                  <div className="bg-[#180f14] p-3.5 rounded-sm border border-[#2d1217] space-y-2">
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Perícias Secundárias
+                      </h4>
+                      <span className="text-[10px] text-[#706456] font-mono">
+                        ({(ficha.habilidadesSecundarias || []).filter((h) => h.categoria === 'pericia').length})
+                      </span>
+                    </div>
+                    {((ficha.habilidadesSecundarias || []).filter((h) => h.categoria === 'pericia')).length === 0 ? (
+                      <p className="text-[11px] text-[#6b6055] italic py-1">
+                        Nenhuma perícia secundária registrada.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(ficha.habilidadesSecundarias || [])
+                          .filter((h) => h.categoria === 'pericia')
+                          .map((hab) => (
+                            <div key={hab.id} className="flex items-center justify-between text-xs py-0.5 border-b border-[#251419] last:border-b-0">
+                              <div className="flex items-center gap-1 min-w-0 pr-1">
+                                {podeEditar && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoverHabilidadeSecundaria(hab.id)}
+                                    title={`Remover ${hab.nome}`}
+                                    className="text-[#6b6055] hover:text-rose-400 p-0.5 cursor-pointer shrink-0"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                                <span className="text-[#ded6cb] truncate" title={hab.observacao || hab.nome}>
+                                  {hab.nome}
+                                </span>
+                              </div>
+                              <Bolinhas
+                                valor={hab.nivel}
+                                max={maxBolinhasTraço}
+                                min={0}
+                                tamanho="sm"
+                                onChange={(novoValor) => handleNivelHabilidadeSecundaria(hab.id, novoValor)}
+                                readonly={!podeEditar}
+                              />
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CONHECIMENTOS SECUNDÁRIOS */}
+                  <div className="bg-[#180f14] p-3.5 rounded-sm border border-[#2d1217] space-y-2">
+                    <div className="flex items-center justify-between border-b border-[#3b181b] pb-1">
+                      <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
+                        Conhecimentos Secundários
+                      </h4>
+                      <span className="text-[10px] text-[#706456] font-mono">
+                        ({(ficha.habilidadesSecundarias || []).filter((h) => h.categoria === 'conhecimento').length})
+                      </span>
+                    </div>
+                    {((ficha.habilidadesSecundarias || []).filter((h) => h.categoria === 'conhecimento')).length === 0 ? (
+                      <p className="text-[11px] text-[#6b6055] italic py-1">
+                        Nenhum conhecimento secundário registrado.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(ficha.habilidadesSecundarias || [])
+                          .filter((h) => h.categoria === 'conhecimento')
+                          .map((hab) => (
+                            <div key={hab.id} className="flex items-center justify-between text-xs py-0.5 border-b border-[#251419] last:border-b-0">
+                              <div className="flex items-center gap-1 min-w-0 pr-1">
+                                {podeEditar && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoverHabilidadeSecundaria(hab.id)}
+                                    title={`Remover ${hab.nome}`}
+                                    className="text-[#6b6055] hover:text-rose-400 p-0.5 cursor-pointer shrink-0"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                                <span className="text-[#ded6cb] truncate" title={hab.observacao || hab.nome}>
+                                  {hab.nome}
+                                </span>
+                              </div>
+                              <Bolinhas
+                                valor={hab.nivel}
+                                max={maxBolinhasTraço}
+                                min={0}
+                                tamanho="sm"
+                                onChange={(novoValor) => handleNivelHabilidadeSecundaria(hab.id, novoValor)}
+                                readonly={!podeEditar}
+                              />
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* VANTAGENS (Disciplinas, Antecedentes, Virtudes) */}
               <div>
                 <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 mb-4 flex-wrap gap-2">
@@ -3468,6 +3755,10 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
                       <strong className="text-white block">Habilidades</strong>
                       <span>Nova: 3 XP • Evolução: Nível Atual × 2</span>
+                    </div>
+                    <div className="bg-[#160f13] p-2 rounded-xs border border-amber-900/50 bg-amber-950/20">
+                      <strong className="text-amber-300 block">Habilidades Secundárias</strong>
+                      <span className="text-amber-200">Nova: 2 XP • Evolução: Nível Atual × 1</span>
                     </div>
                     <div className="bg-[#160f13] p-2 rounded-xs border border-[#241318]">
                       <strong className="text-white block">Disciplinas</strong>
@@ -5924,6 +6215,18 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             setSucessoXP(`✓ Saldo de XP atualizado com sucesso! Novo saldo: ${atualizada.xp?.atual || 0} XP.`);
             setTimeout(() => setSucessoXP(null), 4000);
           }}
+        />
+      )}
+
+      {/* Modal de Adicionar Habilidade Secundária */}
+      {modalAddHabSecundariaAberto && (
+        <ModalAddHabilidadeSecundaria
+          ficha={ficha}
+          usuarioAtual={usuarioAtual}
+          maxBolinhas={maxBolinhasTraço}
+          modoEdicaoLivre={modoEdicaoLivre}
+          onFechar={() => setModalAddHabSecundariaAberto(false)}
+          onAdicionar={handleAdicionarHabilidadeSecundaria}
         />
       )}
     </div>

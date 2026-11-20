@@ -1,6 +1,6 @@
 {
-    "version":  "v1.14.0",
-    "versionCode":  1140,
-    "updatedAt":  "2026-11-20T16:15:00.000Z",
-    "changelog":  "feat: sistema de ajuste e correção de XP individual com histórico/auditoria e distribuição de XP geral de sessão exclusiva do Mestre para todos os cainitas"
+    "version":  "v1.15.0",
+    "versionCode":  1150,
+    "updatedAt":  "2026-11-20T19:15:00.000Z",
+    "changelog":  "feat: inclusão da área de Habilidades Secundárias na ficha com cálculo automático de XP (1º ponto = 2 XP, demais = atual x 1), catálogo de sugestões canônicas da 1ª Edição e inserção manual livre para Mestre e Jogadores"
 }
