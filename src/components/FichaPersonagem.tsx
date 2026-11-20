@@ -50,6 +50,8 @@ import {
   Pencil,
   Search,
   FileText,
+  Minus,
+  Award,
 } from 'lucide-react';
 import {
   getCatalogoQualidadesDefeitos,
@@ -57,6 +59,7 @@ import {
 } from '../data/qualidadesDefeitos1E';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import { ModalExtratoGastosMestre } from './ModalExtratoGastosMestre';
+import { ModalAjustarXP } from './ModalAjustarXP';
 import { obterValoresIniciaisTraços } from '../data/calculosPontosBonus';
 import {
   calcularStatusCombate,
@@ -978,6 +981,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const deveDestacarBonus = isMestre || isEmCriacao;
   const valoresIniciais = useMemo(() => obterValoresIniciaisTraços(ficha, configMesa), [ficha, configMesa]);
   const [modalExtratoAberto, setModalExtratoAberto] = useState<boolean>(false);
+  const [modalAjustarXPAberto, setModalAjustarXPAberto] = useState<boolean>(false);
 
   const listaQD = ficha.qualidadesDefeitos || [];
   const qualidadesEscolhidas = listaQD.filter((q) => q.tipo === 'qualidade');
@@ -1770,48 +1774,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }));
   };
 
-  // Conceder XP diretamente pelo Mestre com registro de histórico
+  // Ajustar XP diretamente com modal avançado (concessão, dedução, correção)
   const handleAdicionarRapidoXP = () => {
-    const qtdStr = prompt(
-      `Conceder Experiência (XP) a ${ficha.nome || 'este personagem'}:\nDigite a quantidade de XP a conceder (ex: 5, 10, 20):`,
-      '5'
-    );
-    if (!qtdStr) return;
-    const qtd = parseInt(qtdStr, 10);
-    if (isNaN(qtd) || qtd <= 0) {
-      alert('Por favor, informe um número inteiro positivo de XP.');
-      return;
-    }
-
-    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const logXP = `+ ${qtd} XP concedidos às ${hora}`;
-    const novoSaldo = (ficha.xp?.atual || 0) + qtd;
-
-    const atualizada: Personagem = {
-      ...ficha,
-      xp: {
-        ...ficha.xp,
-        atual: novoSaldo,
-        historico: logXP + (ficha.xp?.historico ? '\n' + ficha.xp.historico : ''),
-      },
-      updatedAt: new Date().toISOString(),
-    };
-
-    setFicha(atualizada);
-    onSalvar(atualizada);
-    setHasChanges(false);
-
-    setSucessoXP(`✓ +${qtd} XP concedidos e sincronizados com sucesso! Novo saldo: ${novoSaldo} XP.`);
-    setTimeout(() => setSucessoXP(null), 4000);
-
-    storageService.registrarLogAlteracao({
-      personagemId: ficha.id,
-      personagemNome: ficha.nome,
-      jogadorNome: ficha.jogador || usuarioAtual.nome,
-      tipo: 'xp',
-      descricao: `XP Concedido pelo Mestre: +${qtd} XP`,
-      detalhes: `Novo saldo: ${novoSaldo} XP`,
-    });
+    setModalAjustarXPAberto(true);
   };
 
   // Finalizar a criação do NPC e ativar o modo oficial de evolução por XP
@@ -2030,14 +1995,16 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                 <span className="text-xs font-mono font-bold text-[#d4af37]">
                   {ficha.xp?.atual || 0} pts
                 </span>
-                {usuarioAtual.role === 'mestre' && (
+                {podeEditar && (
                   <button
                     type="button"
-                    onClick={handleAdicionarRapidoXP}
-                    title="Conceder pontos de experiência (XP) diretamente"
-                    className="p-0.5 text-xs text-[#a89f91] hover:text-[#d4af37] cursor-pointer"
+                    onClick={() => setModalAjustarXPAberto(true)}
+                    title="Ajustar, conceder ou corrigir pontos de experiência (XP)"
+                    className="flex items-center gap-1 ml-1 px-1.5 py-0.5 bg-[#251217] hover:bg-[#38181f] text-[#ded6cb] hover:text-[#d4af37] border border-[#542127] hover:border-[#8b0000] rounded-xs text-[10px] font-mono cursor-pointer transition-colors"
                   >
-                    <Plus className="w-3 h-3" />
+                    <Plus className="w-2.5 h-2.5 text-emerald-400" />
+                    <Minus className="w-2.5 h-2.5 text-rose-400" />
+                    <span>Ajustar</span>
                   </button>
                 )}
                 {usuarioAtual.role === 'mestre' && ficha.criacao?.status !== 'em_criacao' && (
@@ -3395,10 +3362,23 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
             <div className="space-y-8 animate-fadeIn">
               {/* CONTROLE DE EXPERIÊNCIA (XP) */}
               <div className="bg-[#140e11] p-5 rounded-sm border border-[#2d1217] space-y-4">
-                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2">
-                  <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
-                    Controle de Experiência (XP)
-                  </h3>
+                <div className="flex items-center justify-between border-b border-[#3b181b] pb-2 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
+                      Controle de Experiência (XP)
+                    </h3>
+                    {podeEditar && (
+                      <button
+                        type="button"
+                        onClick={() => setModalAjustarXPAberto(true)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-[#251217] hover:bg-[#3b1820] text-[#d4af37] border border-[#6b1e28] rounded-xs text-xs font-mono font-semibold cursor-pointer transition-colors"
+                        title="Ajustar ou corrigir pontos de experiência (XP)"
+                      >
+                        <Award className="w-3.5 h-3.5 text-[#d4af37]" />
+                        <span>Ajustar / Corrigir</span>
+                      </button>
+                    )}
+                  </div>
                   <span className="text-xs text-[#ef4444] font-mono">
                     Total Acumulado: {Number(ficha.xp.atual) + Number(ficha.xp.totalGasto)} XP
                   </span>
@@ -5932,6 +5912,22 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               onSalvar(atualizado);
             }
           } : undefined}
+        />
+      )}
+
+      {/* Modal de Ajuste de XP (Mestre ou Jogador dono da ficha) */}
+      {modalAjustarXPAberto && (
+        <ModalAjustarXP
+          ficha={ficha}
+          usuarioAtual={usuarioAtual}
+          onFechar={() => setModalAjustarXPAberto(false)}
+          onSalvar={(atualizada) => {
+            setFicha(atualizada);
+            onSalvar(atualizada);
+            setHasChanges(false);
+            setSucessoXP(`✓ Saldo de XP atualizado com sucesso! Novo saldo: ${atualizada.xp?.atual || 0} XP.`);
+            setTimeout(() => setSucessoXP(null), 4000);
+          }}
         />
       )}
     </div>

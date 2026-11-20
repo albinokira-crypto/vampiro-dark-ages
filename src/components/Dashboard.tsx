@@ -15,6 +15,7 @@ import {
   Wand2,
   FileText,
   BookOpen,
+  Award,
 } from 'lucide-react';
 import { FotoPersonagem } from './FotoPersonagem';
 import { PainelAuditoriaMestre } from './PainelAuditoriaMestre';
@@ -25,6 +26,7 @@ import { PainelLivros } from './PainelLivros';
 import { ModalConfigAtalhosPersonagem } from './ModalConfigAtalhosPersonagem';
 import { ModalGeradorNpc } from './ModalGeradorNpc';
 import { ModalExtratoGastosMestre } from './ModalExtratoGastosMestre';
+import { ModalXpSessaoGeral } from './ModalXpSessaoGeral';
 import {
   calcularDetalhesAtalho,
   ATALHOS_CARD_PADRAO,
@@ -60,6 +62,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
   const [personagemConfigurandoAtalhos, setPersonagemConfigurandoAtalhos] = useState<Personagem | null>(null);
   const [modalGeradorNpcAberto, setModalGeradorNpcAberto] = useState(false);
+  const [modalXpGeralAberto, setModalXpGeralAberto] = useState(false);
   const [personagemExtrato, setPersonagemExtrato] = useState<Personagem | null>(null);
 
   const handleSalvarAtalhosPersonagem = async (novosAtalhos: AtalhoParadaDado[] | undefined) => {
@@ -253,6 +256,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
               >
                 <Wand2 className="w-3.5 h-3.5 text-[#d4af37]" />
                 <span>Gerar NPC</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalXpGeralAberto(true)}
+                className="px-3 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border border-emerald-800 bg-emerald-950/90 hover:bg-emerald-900 text-emerald-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.35)] touch-manipulation"
+                title="Distribuir ou corrigir XP da sessão geral para todos os jogadores"
+              >
+                <Award className="w-3.5 h-3.5 text-emerald-300" />
+                <span>XP da Sessão</span>
               </button>
             </>
           )}
@@ -786,6 +799,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
             if (atualizado) {
               setPersonagens((prev) => prev.map((item) => (item.id === id ? atualizado : item)));
             }
+          }}
+        />
+      )}
+
+      {/* Modal Conceder / Ajustar XP da Sessão Geral para Todos (Exclusivo Mestre) */}
+      {modalXpGeralAberto && usuarioAtual.role === 'mestre' && (
+        <ModalXpSessaoGeral
+          usuarioAtual={usuarioAtual}
+          personagens={personagens}
+          onFechar={() => setModalXpGeralAberto(false)}
+          onPersonagensAtualizados={(atualizados) => {
+            setPersonagens(atualizados);
           }}
         />
       )}
