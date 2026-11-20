@@ -3,7 +3,6 @@ import type { User } from '../types';
 import {
   LIVROS_BIBLIOTECA_VAMPIRO,
   type LivroVampiro,
-  type CapituloLivro,
 } from '../data/livrosVampiro';
 import {
   BookOpen,
@@ -12,12 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Bookmark,
-  Sparkles,
-  AlignLeft,
-  Type,
   List,
   X,
-  ScrollText,
 } from 'lucide-react';
 
 interface PainelLivrosProps {
@@ -404,7 +399,7 @@ export const PainelLivros: React.FC<PainelLivrosProps> = ({
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-1">
-                {livroAtivo.capitulos.map((cap, i) => {
+                {livroAtivo.capitulos.map((cap) => {
                   const isAtual = cap.id === capituloAtivo.id;
                   return (
                     <button
