@@ -1,6 +1,6 @@
 {
-    "version":  "v1.10.8",
-    "versionCode":  1108,
-    "updatedAt":  "2026-11-20T03:00:00.000Z",
-    "changelog":  "fix: clareza no badge de bolinhas compradas com bonus e discriminacao de custo (-10 pts em 2 bolinhas de disciplina)"
+    "version":  "v1.11.0",
+    "versionCode":  1110,
+    "updatedAt":  "2026-11-20T03:30:00.000Z",
+    "changelog":  "feat: nova aba Livros com leitor e-book canônico (Idade das Trevas 1ª Edição, A Máscara, Guia da Camarilla e O Livro de Nod)"
 }
