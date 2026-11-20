@@ -1774,10 +1774,6 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     }));
   };
 
-  // Ajustar XP diretamente com modal avançado (concessão, dedução, correção)
-  const handleAdicionarRapidoXP = () => {
-    setModalAjustarXPAberto(true);
-  };
 
   // Finalizar a criação do NPC e ativar o modo oficial de evolução por XP
   const handleFinalizarCriacaoNPC = () => {

@@ -4,14 +4,10 @@ import { storageService } from '../services/storage';
 import {
   Award,
   X,
-  Plus,
-  Minus,
   Check,
   CheckSquare,
   Square,
   Users,
-  Sparkles,
-  RotateCcw,
 } from 'lucide-react';
 
 interface ModalXpSessaoGeralProps {

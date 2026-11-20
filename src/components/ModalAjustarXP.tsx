@@ -4,12 +4,7 @@ import { storageService } from '../services/storage';
 import {
   Award,
   X,
-  Plus,
-  Minus,
   Check,
-  RotateCcw,
-  Sparkles,
-  HelpCircle,
 } from 'lucide-react';
 
 interface ModalAjustarXPProps {
