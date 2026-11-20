@@ -1,6 +1,6 @@
 {
-    "version":  "v1.11.0",
-    "versionCode":  1110,
-    "updatedAt":  "2026-11-20T03:30:00.000Z",
-    "changelog":  "feat: nova aba Livros com leitor e-book canônico (Idade das Trevas 1ª Edição, A Máscara, Guia da Camarilla e O Livro de Nod)"
+    "version":  "v1.12.0",
+    "versionCode":  1120,
+    "updatedAt":  "2026-11-20T04:00:00.000Z",
+    "changelog":  "feat: inclusão de todos os 14 livros de clã e expansão completa do livro básico de Idade das Trevas (1ª Edição com todas as disciplinas nível 1 a 5, sistemas, combate e trilhas)"
 }
