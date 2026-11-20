@@ -1,6 +1,6 @@
 {
-    "version": "v1.16.0",
-    "versionCode": 1160,
-    "updatedAt": "2026-11-20T20:10:00.000Z",
-    "changelog": "feat: bloqueio estrito de Antecedentes e Virtudes após finalização da criação, inclusão canônica das Trilhas de Vampiro: A Máscara 1ª Edição e nova sub-aba exclusiva com compêndio completo de testes das 16 Disciplinas (Níveis 1 a 5)"
+    "version": "v1.17.0",
+    "versionCode": 1170,
+    "updatedAt": "2026-11-20T20:30:00.000Z",
+    "changelog": "feat: inclusão de testes de disciplinas até o Nível 8 (Anciões e Matusaléns) e variações canônicas dos Livros de Clã da 1ª Edição com filtros de faixa de poder e livro de origem"
 }

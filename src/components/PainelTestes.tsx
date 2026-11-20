@@ -74,6 +74,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
   const [filtroCategoria, setFiltroCategoria] = useState<'todas' | TabelaTeste['categoria']>('todas');
   const [buscaDisciplina, setBuscaDisciplina] = useState('');
   const [filtroDisciplinaId, setFiltroDisciplinaId] = useState<string>('todas');
+  const [filtroTierNivel, setFiltroTierNivel] = useState<'todos' | 'neofito' | 'anciao'>('todos');
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
 
   // Modal de edição/criação (Exclusivo Mestre)
@@ -228,7 +229,18 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
     return tab.linhas.some((linha) => linha.some((cel) => cel.toLowerCase().includes(t)));
   });
 
-  const disciplinasFiltradas = TESTES_DISCIPLINAS_1E.filter((disc) => {
+  const disciplinasFiltradas = TESTES_DISCIPLINAS_1E.map((disc) => {
+    const poderesDoTier = disc.poderes.filter((p) => {
+      if (filtroTierNivel === 'neofito') return p.nivel <= 5;
+      if (filtroTierNivel === 'anciao') return p.nivel >= 6;
+      return true;
+    });
+    return {
+      ...disc,
+      poderes: poderesDoTier,
+    };
+  }).filter((disc) => {
+    if (disc.poderes.length === 0) return false;
     const bateFiltro = filtroDisciplinaId === 'todas' || disc.id === filtroDisciplinaId;
     if (!bateFiltro) return false;
     const q = buscaDisciplina.toLowerCase().trim();
@@ -246,7 +258,12 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
         p.paradaDados.toLowerCase().includes(q) ||
         p.dificuldade.toLowerCase().includes(q) ||
         p.efeito.toLowerCase().includes(q) ||
-        p.custo.toLowerCase().includes(q)
+        p.custo.toLowerCase().includes(q) ||
+        (p.variacao && p.variacao.toLowerCase().includes(q)) ||
+        (p.livroFonte && p.livroFonte.toLowerCase().includes(q)) ||
+        `nv ${p.nivel}`.includes(q) ||
+        `nivel ${p.nivel}`.includes(q) ||
+        (p.nivel >= 6 && ('anciao'.includes(q) || 'ancião'.includes(q) || 'matusalem'.includes(q) || 'matusalém'.includes(q)))
     );
   });
 
@@ -273,7 +290,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                 ? isMestre
                   ? 'Referência oficial da 1ª Edição — você pode editar qualquer tabela, adicionar regras ou criar novas tabelas.'
                   : 'Referência oficial de testes, combate, frenesi, proezas e sobrevivência da crônica (somente visualização).'
-                : 'Referência canônica de testes de todas as 16 Disciplinas (Níveis 1 a 5) da 1ª Edição — paradas de dados, dificuldades, custos, durações e efeitos mecânicos.'}
+                : 'Referência canônica de testes de todas as 16 Disciplinas (Níveis 1 a 8 — Neófitos a Matusaléns) e variações dos Livros de Clã da 1ª Edição — paradas de dados, dificuldades, custos, durações e efeitos mecânicos.'}
             </p>
           </div>
         </div>
@@ -524,7 +541,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                 type="text"
                 value={buscaDisciplina}
                 onChange={(e) => setBuscaDisciplina(e.target.value)}
-                placeholder="Buscar disciplina, poder, parada de dados (ex: Manipulação + Lábia), dificuldade, custo..."
+                placeholder="Buscar disciplina, poder (Nv 1 a 8), parada de dados (ex: Manipulação + Lábia), dificuldade, custo, variação, livro..."
                 className="w-full bg-[#1a1115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
               />
             </div>
@@ -555,6 +572,44 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                   {d.nome}
                 </button>
               ))}
+            </div>
+
+            {/* Filtros de Nível / Tier (Básicos 1-5 vs Anciões 6-8) */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#261014]">
+              <span className="text-[10px] text-[#8e8273] uppercase font-mono mr-1">Faixa de Poder:</span>
+              <button
+                type="button"
+                onClick={() => setFiltroTierNivel('todos')}
+                className={`px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                  filtroTierNivel === 'todos'
+                    ? 'bg-amber-900/50 text-amber-200 border-amber-600'
+                    : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                }`}
+              >
+                Todos os Níveis (1 a 8)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFiltroTierNivel('neofito')}
+                className={`px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                  filtroTierNivel === 'neofito'
+                    ? 'bg-[#8b0000] text-white border-[#b31419]'
+                    : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                }`}
+              >
+                Básicos (Níveis 1 a 5)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFiltroTierNivel('anciao')}
+                className={`px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                  filtroTierNivel === 'anciao'
+                    ? 'bg-purple-950 text-purple-200 border-purple-600'
+                    : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                }`}
+              >
+                Anciões &amp; Matusaléns (Níveis 6 a 8)
+              </button>
             </div>
           </div>
 
@@ -600,21 +655,39 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                     </div>
                   </div>
 
-                  {/* Tabela de Poderes (Níveis 1 a 5) */}
+                  {/* Tabela de Poderes (Níveis 1 a 8 com variações) */}
                   <div className="divide-y divide-[#281318]">
                     {disc.poderes.map((poder) => (
                       <div
-                        key={poder.nivel}
+                        key={`${disc.id}_nv${poder.nivel}_${poder.nomePoder}`}
                         className="p-3.5 sm:p-4 hover:bg-[#180f14] transition-colors space-y-2.5"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-xs bg-[#8b0000]/30 border border-[#8b0000] text-rose-300 font-mono font-bold text-xs">
-                              Nv {poder.nivel}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`px-2 py-0.5 rounded-xs font-mono font-bold text-xs ${
+                                poder.nivel >= 8
+                                  ? 'bg-purple-950/80 border border-purple-500/80 text-purple-200'
+                                  : poder.nivel >= 6
+                                  ? 'bg-amber-950/70 border border-amber-600/80 text-amber-300'
+                                  : 'bg-[#8b0000]/30 border border-[#8b0000] text-rose-300'
+                              }`}
+                            >
+                              Nv {poder.nivel} {poder.nivel >= 8 ? '• Matusalém' : poder.nivel >= 6 ? '• Ancião' : ''}
                             </span>
                             <h4 className="font-gothic font-bold text-sm text-[#ded6cb] uppercase tracking-wide">
                               {poder.nomePoder}
                             </h4>
+                            {poder.variacao && (
+                              <span className="px-2 py-0.5 rounded-xs bg-[#241318] border border-[#522228] text-rose-300 text-[10px] font-mono">
+                                ⚡ {poder.variacao}
+                              </span>
+                            )}
+                            {poder.livroFonte && (
+                              <span className="px-2 py-0.5 rounded-xs bg-[#1f160e] border border-[#523d1d] text-[#d4af37] text-[10px] font-mono">
+                                📖 {poder.livroFonte}
+                              </span>
+                            )}
                           </div>
 
                           {/* Badges de Parada, Dificuldade, Custo e Duração */}
