@@ -10,7 +10,6 @@ import {
   Zap,
   TrendingUp,
   Clock,
-  CheckCircle,
 } from 'lucide-react';
 
 interface ModalExtratoGastosMestreProps {
@@ -32,7 +31,6 @@ export const ModalExtratoGastosMestre: React.FC<ModalExtratoGastosMestreProps> =
 
   const extrato = calcularGastosPontosBonus(ficha, config);
   const snap = ficha.criacao?.snapshotIniciais;
-  const isEmCriacao = ficha.criacao?.status === 'em_criacao';
 
   // Carregar histórico de logs de XP do banco/servidor
   useEffect(() => {
