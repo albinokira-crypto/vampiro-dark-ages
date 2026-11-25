@@ -13,14 +13,16 @@ import {
   CheckCircle,
   ArrowLeft,
   AtSign,
+  Palette,
 } from 'lucide-react';
 import logoDarkAges from '../assets/vampire-dark-ages-logo.png';
 
 interface TelaLoginProps {
   onLoginSucesso: (user: User) => void;
+  onAbrirPaletaCores?: () => void;
 }
 
-export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
+export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso, onAbrirPaletaCores }) => {
   const [modo, setModo] = useState<'login' | 'cadastro' | 'recuperar' | 'buscar_login'>('login');
   const [nome, setNome] = useState('');
   const [nick, setNick] = useState('');
@@ -163,12 +165,26 @@ export const TelaLogin: React.FC<TelaLoginProps> = ({ onLoginSucesso }) => {
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#d4af37]/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md bg-[#100b0e] border border-[#3b181b] rounded-sm shadow-2xl p-5 sm:p-8 relative z-10 space-y-6">
+        {onAbrirPaletaCores && (
+          <div className="flex justify-end -mb-2">
+            <button
+              type="button"
+              onClick={onAbrirPaletaCores}
+              title="Ajustar paleta de cores / acessibilidade visual (Preto & Branco, Sépia, etc.)"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#181115] hover:bg-[#251419] border border-[#3b181b] text-[11px] font-semibold text-[#d4af37] rounded-xs cursor-pointer transition-colors"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Cores / Vista</span>
+            </button>
+          </div>
+        )}
+
         {/* Cabeçalho */}
         <div className="text-center space-y-2">
           <img
             src={logoDarkAges}
             alt="Vampire: The Dark Ages"
-            className="w-full max-w-[280px] sm:max-w-[320px] mx-auto object-contain drop-shadow-[0_4px_12px_rgba(255,255,255,0.18)]"
+            className="vda-logo-img w-full max-w-[280px] sm:max-w-[320px] mx-auto object-contain drop-shadow-[0_4px_12px_rgba(255,255,255,0.18)]"
           />
           <p className="text-xs text-[#a89f91] font-serif tracking-wide">
             Portal da Crônica • Acesso Rápido por Nick

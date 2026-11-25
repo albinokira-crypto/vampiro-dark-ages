@@ -75,13 +75,13 @@ export const Bolinhas: React.FC<BolinhasProps> = ({
             onClick={() => handleClick(ponto)}
             title={tituloPonto}
             className={`
-              ${tamanhoCls} rounded-full transition-all duration-150 relative
+              ${tamanhoCls} vda-dot rounded-full transition-all duration-150 relative
               border focus:outline-none touch-manipulation
               before:absolute before:-inset-1 before:content-['']
               ${
                 preenchido
-                  ? estiloPreenchido
-                  : 'bg-[#181517] border-[#3d3337] hover:border-[#6b5860]'
+                  ? `${ehBonus ? 'vda-dot-bonus' : 'vda-dot-filled'} ${estiloPreenchido}`
+                  : 'vda-dot-empty bg-[#181517] border-[#3d3337] hover:border-[#6b5860]'
               }
               ${
                 readonly

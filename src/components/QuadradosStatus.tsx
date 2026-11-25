@@ -48,11 +48,11 @@ export const QuadradosStatus: React.FC<QuadradosStatusProps> = ({
               onClick={() => handleClick(n)}
               title={gasto ? `Ponto ${n}: Gasto (clique para recuperar)` : `Ponto ${n}: Disponível (clique para gastar)`}
               className={`
-                w-4 h-4 sm:w-5 sm:h-5 rounded-xs border text-xs font-black flex items-center justify-center transition-all duration-150
+                w-4 h-4 sm:w-5 sm:h-5 vda-box rounded-xs border text-xs font-black flex items-center justify-center transition-all duration-150
                 ${
                   gasto
-                    ? 'border-[#991b1b] bg-[#3b0d10] text-[#ef4444]'
-                    : 'border-[#4a3f44] bg-[#161214] text-transparent hover:border-[#8b262d]'
+                    ? 'vda-box-used border-[#991b1b] bg-[#3b0d10] text-[#ef4444]'
+                    : 'vda-box-empty border-[#4a3f44] bg-[#161214] text-transparent hover:border-[#8b262d]'
                 }
                 ${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110 active:scale-95'}
               `}

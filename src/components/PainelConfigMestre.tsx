@@ -24,7 +24,9 @@ import {
   Pencil,
   Search,
   Sparkles,
+  Palette,
 } from 'lucide-react';
+import { SeletorPaletaCores } from './SeletorPaletaCores';
 import {
   MAPA_TRACOS,
   ATALHOS_CARD_PADRAO,
@@ -75,7 +77,7 @@ const QD_VAZIA: ModeloQualidadeDefeito = {
 };
 
 export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar }) => {
-  const [abaAtiva, setAbaAtiva] = useState<'regras' | 'armas' | 'armaduras' | 'qualidades_defeitos'>('regras');
+  const [abaAtiva, setAbaAtiva] = useState<'regras' | 'armas' | 'armaduras' | 'qualidades_defeitos' | 'paleta'>('regras');
   const [config, setConfig] = useState<ConfiguracaoMesa>(() =>
     storageService.getConfiguracaoMesa()
   );
@@ -510,7 +512,24 @@ export const PainelConfigMestre: React.FC<PainelConfigMestreProps> = ({ onFechar
             <Sparkles className="w-3.5 h-3.5 text-rose-300" />
             <span>Qualidades &amp; Defeitos ({qdAtuais.length})</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('paleta')}
+            className={`px-3 py-1.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors flex items-center gap-1.5 ${
+              abaAtiva === 'paleta'
+                ? 'bg-[#8b0000] text-white border-[#b31419] shadow-[0_0_10px_rgba(239,68,68,0.35)]'
+                : 'bg-[#181115] text-[#a89f91] border-[#3b181b] hover:text-white'
+            }`}
+          >
+            <Palette className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Paleta de Cores</span>
+          </button>
         </div>
+
+        {abaAtiva === 'paleta' && (
+          <SeletorPaletaCores />
+        )}
 
         {mensagemEquipamento && (
           <div className="p-2.5 bg-emerald-950/80 border border-emerald-700/80 text-emerald-200 text-xs rounded-xs text-center font-semibold">

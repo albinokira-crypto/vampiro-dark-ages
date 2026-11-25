@@ -78,7 +78,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         <img
           src={logoDarkAges}
           alt="Vampire: The Dark Ages"
-          className="w-full max-w-[360px] sm:max-w-[480px] object-contain drop-shadow-[0_4px_25px_rgba(255,255,255,0.25)] filter"
+          className="vda-logo-img w-full max-w-[360px] sm:max-w-[480px] object-contain drop-shadow-[0_4px_25px_rgba(255,255,255,0.25)] filter"
         />
 
         {/* Linha ornamental gótica */}

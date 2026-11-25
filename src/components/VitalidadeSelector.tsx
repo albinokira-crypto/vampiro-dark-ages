@@ -54,13 +54,13 @@ export const VitalidadeSelector: React.FC<VitalidadeSelectorProps> = ({
   const corDano = (dano: TipoDanoVitalidade) => {
     switch (dano) {
       case 'contusao':
-        return 'text-amber-500 border-amber-600 bg-amber-950/40';
+        return 'vda-vit-box vda-vit-contusao text-amber-500 border-amber-600 bg-amber-950/40';
       case 'letal':
-        return 'text-red-500 border-red-600 bg-red-950/40';
+        return 'vda-vit-box vda-vit-letal text-red-500 border-red-600 bg-red-950/40';
       case 'agravado':
-        return 'text-purple-400 border-purple-500 bg-purple-950/60 font-black';
+        return 'vda-vit-box vda-vit-agravado text-purple-400 border-purple-500 bg-purple-950/60 font-black';
       default:
-        return 'text-transparent border-[#4a3f44] bg-[#161214]';
+        return 'vda-vit-box vda-vit-empty text-transparent border-[#4a3f44] bg-[#161214]';
     }
   };
 

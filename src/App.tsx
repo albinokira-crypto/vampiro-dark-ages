@@ -11,6 +11,7 @@ import { Dashboard } from './components/Dashboard';
 import { FichaPersonagem } from './components/FichaPersonagem';
 import { TelaLogin } from './components/TelaLogin';
 import { PainelConfigMestre } from './components/PainelConfigMestre';
+import { ModalPaletaCores } from './components/ModalPaletaCores';
 import { SplashScreen } from './components/SplashScreen';
 
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
   );
   const [personagemAtivoId, setPersonagemAtivoId] = useState<string | null>(null);
   const [modalConfigMestreAberto, setModalConfigMestreAberto] = useState(false);
+  const [modalPaletaAberto, setModalPaletaAberto] = useState(false);
   const [novaVersaoDisponivel, setNovaVersaoDisponivel] = useState<string | null>(null);
 
   const personagemAtivoIdRef = useRef<string | null>(personagemAtivoId);
@@ -135,7 +137,17 @@ export function App() {
 
   // Se não estiver logado, exibe a Tela de Login e Cadastro
   if (!usuarioAtual) {
-    return <TelaLogin onLoginSucesso={(user) => setUsuarioAtual(user)} />;
+    return (
+      <>
+        <TelaLogin
+          onLoginSucesso={(user) => setUsuarioAtual(user)}
+          onAbrirPaletaCores={() => setModalPaletaAberto(true)}
+        />
+        {modalPaletaAberto && (
+          <ModalPaletaCores onFechar={() => setModalPaletaAberto(false)} />
+        )}
+      </>
+    );
   }
 
   const personagemAtivo = personagemAtivoId
@@ -149,6 +161,7 @@ export function App() {
         onTrocarUsuario={handleTrocarUsuario}
         onVoltarDashboard={handleVoltarDashboard}
         onAbrirConfigMestre={() => setModalConfigMestreAberto(true)}
+        onAbrirPaletaCores={() => setModalPaletaAberto(true)}
         onLogout={handleLogout}
         emFicha={!!personagemAtivoId}
         novaVersaoDisponivel={novaVersaoDisponivel}
@@ -176,6 +189,11 @@ export function App() {
       {/* Modal de Configurações da Crônica e Equipamentos (Exclusivo do Mestre) */}
       {modalConfigMestreAberto && usuarioAtual.role === 'mestre' && (
         <PainelConfigMestre onFechar={() => setModalConfigMestreAberto(false)} />
+      )}
+
+      {/* Modal de Paleta de Cores / Acessibilidade Visual (Visível para Jogadores e Mestre) */}
+      {modalPaletaAberto && (
+        <ModalPaletaCores onFechar={() => setModalPaletaAberto(false)} />
       )}
     </div>
   );

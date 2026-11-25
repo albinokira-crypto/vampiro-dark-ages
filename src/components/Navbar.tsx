@@ -9,6 +9,7 @@ import {
   LogOut,
   Check,
   RefreshCw,
+  Palette,
 } from 'lucide-react';
 import { InstaladorPWA } from './InstaladorPWA';
 import { APP_VERSION } from '../config/version';
@@ -20,6 +21,7 @@ interface NavbarProps {
   onTrocarUsuario: (novoUsuario: User) => void;
   onVoltarDashboard?: () => void;
   onAbrirConfigMestre?: () => void;
+  onAbrirPaletaCores?: () => void;
   onLogout?: () => void;
   emFicha?: boolean;
   novaVersaoDisponivel?: string | null;
@@ -30,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTrocarUsuario,
   onVoltarDashboard,
   onAbrirConfigMestre,
+  onAbrirPaletaCores,
   onLogout,
   emFicha = false,
   novaVersaoDisponivel = null,
@@ -115,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <img
               src={logoDarkAges}
               alt="Vampire: The Dark Ages"
-              className="h-9 sm:h-11 w-auto max-w-[210px] sm:max-w-[270px] object-contain drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)] group-hover:brightness-110 transition-all"
+              className="vda-logo-img h-9 sm:h-11 w-auto max-w-[210px] sm:max-w-[270px] object-contain drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)] group-hover:brightness-110 transition-all"
             />
           </div>
         </div>
@@ -163,6 +166,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               </>
             )}
           </button>
+
+          {/* Paleta de Cores & Conforto Visual (Visível para Jogadores e Mestre) */}
+          {onAbrirPaletaCores && (
+            <button
+              type="button"
+              onClick={onAbrirPaletaCores}
+              title="Alterar paleta de cores da tela (Preto & Branco, Sépia, Azul Noturno, Padrão)"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#1e1317] hover:bg-[#2e1c22] border border-[#522228] text-xs font-semibold text-[#d4af37] hover:text-white rounded-xs cursor-pointer transition-colors"
+            >
+              <Palette className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Cores</span>
+            </button>
+          )}
 
           {/* Configurações da Crônica, Equipamentos, Qualidades e Defeitos (Exclusivo Mestre) */}
           {usuarioAtual.role === 'mestre' && onAbrirConfigMestre && (
