@@ -82,6 +82,25 @@ export function App() {
     setPersonagemAtivoId(null);
   };
 
+  const forcarScrollTopo = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+
+  useEffect(() => {
+    forcarScrollTopo();
+    const raf = requestAnimationFrame(forcarScrollTopo);
+    const timer = setTimeout(forcarScrollTopo, 60);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [personagemAtivoId]);
+
   const handleAbrirFicha = (id: string) => {
     const p = storageService.getPersonagem(id, usuarioAtual);
     if (!p) {
@@ -89,7 +108,7 @@ export function App() {
       return;
     }
     setPersonagemAtivoId(id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    forcarScrollTopo();
   };
 
   const handleCriarNovo = (tipo: 'jogador' | 'npc') => {
@@ -97,7 +116,7 @@ export function App() {
     if (tipo === 'npc' && usuarioAtual.role !== 'mestre') return;
     const novo = storageService.criarNovoPersonagem(usuarioAtual, tipo);
     setPersonagemAtivoId(novo.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    forcarScrollTopo();
   };
 
   const handleSalvarFicha = (personagemAtualizado: Personagem) => {
@@ -106,7 +125,7 @@ export function App() {
 
   const handleVoltarDashboard = () => {
     setPersonagemAtivoId(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    forcarScrollTopo();
   };
 
   // Splash Screen de abertura: NADA do sistema é renderizado enquanto o splash estiver ativo

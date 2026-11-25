@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import type {
   Personagem,
   User,
@@ -358,6 +358,32 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   // Permissão de edição: Mestre pode editar tudo; Jogador só pode editar a sua própria ficha (nunca NPCs)
   const podeEditar =
     usuarioAtual.role === 'mestre' || (ficha.usuarioId === usuarioAtual.id && ficha.tipo !== 'npc');
+
+  // Garante que ao abrir ou retornar para qualquer ficha ela abra sempre no topo e na aba inicial
+  useLayoutEffect(() => {
+    setAbaAtiva('caracteristicas');
+    setMostrarFormCustomQD(false);
+    setModalCatalogoQDAberto(false);
+    setItemEditandoQD(null);
+
+    const irParaTopo = () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    irParaTopo();
+    const raf = requestAnimationFrame(irParaTopo);
+    const timer = setTimeout(irParaTopo, 80);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [personagem.id]);
 
   // Atualizar quando mudar o personagem passado por prop e normalizar automaticamente
   useEffect(() => {
@@ -2298,6 +2324,9 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
               setFicha(finalizada);
               onSalvar(finalizada);
               setHasChanges(false);
+              window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+              document.documentElement.scrollTop = 0;
+              document.body.scrollTop = 0;
               alert('Personagem finalizado com sucesso! Agora você está no modo de jogo padrão.');
             }
           }}

@@ -1,6 +1,6 @@
 {
-    "version": "v1.17.0",
-    "versionCode": 1170,
-    "updatedAt": "2026-11-20T20:30:00.000Z",
-    "changelog": "feat: inclusão de testes de disciplinas até o Nível 8 (Anciões e Matusaléns) e variações canônicas dos Livros de Clã da 1ª Edição com filtros de faixa de poder e livro de origem"
+    "version": "v1.18.0",
+    "versionCode": 1180,
+    "updatedAt": "2026-11-24T22:10:00.000Z",
+    "changelog": "feat: modal de aviso e reversão integral dos Pontos Bônus e Qualidades (mantendo Defeitos) ao retornar à etapa inicial, além de garantir abertura da ficha sempre no topo inicial"
 }

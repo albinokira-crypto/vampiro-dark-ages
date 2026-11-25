@@ -22,6 +22,7 @@ import {
   type ModeloQualidadeDefeito,
 } from '../data/qualidadesDefeitos1E';
 import { calcularGastosPontosBonus, isDisciplinaDeClan } from '../data/calculosPontosBonus';
+import { calcularGeracaoEpoolSangue } from '../data/darkAges1e';
 import { ajustarVitalidadeCorpoGrande } from '../services/storage';
 
 interface PainelCriacaoFichaProps {
@@ -41,6 +42,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
     !ficha.criacao?.prioridadesAtributos || !ficha.criacao?.prioridadesHabilidades
   );
   const [modalQualidadesAberto, setModalQualidadesAberto] = useState(false);
+  const [modalConfirmarVoltarIniciaisAberto, setModalConfirmarVoltarIniciaisAberto] = useState(false);
 
   // Filtros de Qualidades e Defeitos
   const [filtroTipoQD, setFiltroTipoQD] = useState<'todos' | 'qualidade' | 'defeito'>('todos');
@@ -186,45 +188,121 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
   const totalBonusDisponivel = gastosBonus.totalBonusDisponivel;
   const saldoBonusRestante = gastosBonus.saldoRestante;
 
-  // Alternar entre Iniciais e Bônus
-  const alternarEtapaBonus = () => {
-    const novaEtapa = etapa === 'iniciais' ? 'bonus' : 'iniciais';
+  // Avançar dos Pontos Iniciais para os Pontos Bônus (salvando retrato da base inicial)
+  const avancarParaBonus = () => {
     const c = ficha.virtudes?.consciencia || 1;
     const a = ficha.virtudes?.autocontrole || 1;
     const cor = ficha.virtudes?.coragem || 1;
     const trilhaCalc = Math.min(10, Math.max(1, c + a));
     const vontadeCalc = Math.min(10, Math.max(1, cor));
 
-    const novoCaminho = Math.max(ficha.caminhoNivel || 0, trilhaCalc);
-    const novaVontade = Math.max(ficha.forcaDeVontade || 0, vontadeCalc);
-
-    let novoSnapshot = criacao.snapshotIniciais;
-    if (novaEtapa === 'bonus') {
-      novoSnapshot = {
-        atributos: { ...ficha.atributos },
-        habilidades: { ...ficha.habilidades },
-        disciplinas: ficha.disciplinas.map((d) => ({
-          id: d.id,
-          nome: d.nome,
-          nivel: isDisciplinaDeClan(ficha, d.nome) ? d.nivel : 0,
-        })),
-        antecedentes: ficha.antecedentes.map((ant) => ({ id: ant.id, nome: ant.nome, nivel: ant.nivel })),
-        virtudes: { ...ficha.virtudes },
-        forcaDeVontade: novaVontade,
-        caminhoNivel: novoCaminho,
-      };
-    }
+    const novoSnapshot = {
+      atributos: { ...ficha.atributos },
+      habilidades: { ...ficha.habilidades },
+      habilidadesSecundarias: (ficha.habilidadesSecundarias || []).map((h) => ({ ...h })),
+      disciplinas: ficha.disciplinas.map((d) => ({
+        id: d.id,
+        nome: d.nome,
+        nivel: isDisciplinaDeClan(ficha, d.nome) ? d.nivel : 0,
+      })),
+      antecedentes: ficha.antecedentes.map((ant) => ({ id: ant.id, nome: ant.nome, nivel: ant.nivel })),
+      virtudes: { ...ficha.virtudes },
+      forcaDeVontade: vontadeCalc,
+      caminhoNivel: trilhaCalc,
+    };
 
     onAtualizarFicha({
       ...ficha,
-      caminhoNivel: novoCaminho,
-      forcaDeVontade: novaVontade,
+      caminhoNivel: trilhaCalc,
+      forcaDeVontade: vontadeCalc,
       criacao: {
         ...criacao,
-        etapa: novaEtapa,
+        etapa: 'bonus',
         snapshotIniciais: novoSnapshot,
       },
     });
+  };
+
+  // Reverter tudo o que foi feito na etapa de Pontos Bônus (e Qualidades) ao voltar para Pontos Iniciais
+  const confirmarVoltarParaIniciais = () => {
+    const snap = criacao.snapshotIniciais;
+
+    const atributosRestaurados = snap?.atributos
+      ? ({ ...ficha.atributos, ...snap.atributos } as typeof ficha.atributos)
+      : ficha.atributos;
+
+    const habilidadesRestauradas = snap?.habilidades
+      ? ({ ...ficha.habilidades, ...snap.habilidades } as typeof ficha.habilidades)
+      : ficha.habilidades;
+
+    const habSecundariasRestauradas = snap?.habilidadesSecundarias
+      ? snap.habilidadesSecundarias.map((h) => ({ ...h }))
+      : ficha.habilidadesSecundarias || [];
+
+    const disciplinasRestauradas = snap?.disciplinas
+      ? snap.disciplinas.map((sd) => ({ id: sd.id, nome: sd.nome, nivel: sd.nivel }))
+      : ficha.disciplinas
+          .filter((d) => isDisciplinaDeClan(ficha, d.nome))
+          .map((d) => ({ ...d, nivel: Math.min(d.nivel, config.pontosDisciplinas) }));
+
+    const antecedentesRestaurados = snap?.antecedentes
+      ? snap.antecedentes.map((ant) => ({ ...ant }))
+      : ficha.antecedentes;
+
+    const antGeracao = antecedentesRestaurados.find(
+      (a) =>
+        a.nome.toLowerCase().trim() === 'geração' ||
+        a.nome.toLowerCase().trim() === 'geracao'
+    );
+    const infoGeracao = calcularGeracaoEpoolSangue(antGeracao ? antGeracao.nivel : 0);
+
+    const virtudesRestauradas = snap?.virtudes
+      ? {
+          ...ficha.virtudes,
+          consciencia: snap.virtudes.consciencia,
+          autocontrole: snap.virtudes.autocontrole,
+          coragem: snap.virtudes.coragem,
+        }
+      : ficha.virtudes;
+
+    const c = virtudesRestauradas.consciencia || 1;
+    const a = virtudesRestauradas.autocontrole || 1;
+    const cor = virtudesRestauradas.coragem || 1;
+    const trilhaRestaurada = snap?.caminhoNivel ?? Math.min(10, Math.max(1, c + a));
+    const vontadeRestaurada = snap?.forcaDeVontade ?? Math.min(10, Math.max(1, cor));
+
+    // Remove todas as Qualidades (devolvendo os pontos bônus gastos), mas preserva Defeitos (que somam ao bônus)
+    const qualidadesDefeitosRestaurados = (ficha.qualidadesDefeitos || []).filter(
+      (qd) => qd.tipo === 'defeito'
+    );
+    const vitalidadeRestaurada = ajustarVitalidadeCorpoGrande(
+      ficha.vitalidade,
+      qualidadesDefeitosRestaurados
+    );
+
+    onAtualizarFicha({
+      ...ficha,
+      atributos: atributosRestaurados,
+      habilidades: habilidadesRestauradas,
+      habilidadesSecundarias: habSecundariasRestauradas,
+      disciplinas: disciplinasRestauradas,
+      antecedentes: antecedentesRestaurados,
+      geracao: infoGeracao.geracaoNome,
+      pontosDeSangueMax: infoGeracao.reservaSangueMax,
+      pontosDeSangueAtual: Math.min(ficha.pontosDeSangueAtual, infoGeracao.reservaSangueMax),
+      virtudes: virtudesRestauradas,
+      caminhoNivel: trilhaRestaurada,
+      forcaDeVontade: vontadeRestaurada,
+      qualidadesDefeitos: qualidadesDefeitosRestaurados,
+      vitalidade: vitalidadeRestaurada,
+      criacao: {
+        ...criacao,
+        etapa: 'iniciais',
+        pontosBonusGastos: 0,
+      },
+    });
+
+    setModalConfirmarVoltarIniciaisAberto(false);
   };
 
   // Handlers de Qualidades e Defeitos
@@ -435,7 +513,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
               {etapa === 'iniciais' ? (
                 <button
                   type="button"
-                  onClick={alternarEtapaBonus}
+                  onClick={avancarParaBonus}
                   className="px-3 py-1 bg-[#8b0000] hover:bg-[#a30d12] text-white text-xs font-gothic font-bold uppercase tracking-wider rounded-xs cursor-pointer flex items-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)]"
                 >
                   <span>Avançar p/ Bônus</span>
@@ -444,7 +522,7 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={alternarEtapaBonus}
+                  onClick={() => setModalConfirmarVoltarIniciaisAberto(true)}
                   className="px-3 py-1 bg-[#251419] hover:bg-[#3d1820] text-[#ded6cb] text-xs font-semibold rounded-xs cursor-pointer flex items-center gap-1 border border-[#522228]"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -1099,6 +1177,84 @@ export const PainelCriacaoFicha: React.FC<PainelCriacaoFichaProps> = ({
             >
               Confirmar Prioridades & Iniciar Preenchimento
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE AVISO AO VOLTAR PARA PONTUAÇÃO INICIAL */}
+      {modalConfirmarVoltarIniciaisAberto && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-lg bg-[#120a0e] border border-[#8b0000] rounded-sm shadow-2xl p-5 sm:p-6 space-y-4 text-[#ded6cb]">
+            <div className="flex items-start justify-between gap-3 border-b border-[#3b181b] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xs bg-amber-950/70 border border-amber-600/80 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-gothic font-bold text-[#d4af37] uppercase tracking-wider">
+                    Voltar para Pontos Iniciais?
+                  </h3>
+                  <p className="text-[11px] text-[#a89f91]">
+                    Leia atentamente o que acontecerá ao retornar à etapa inicial:
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalConfirmarVoltarIniciaisAberto(false)}
+                className="text-[#8e8273] hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-[#181014] border border-[#3b181b] rounded-xs p-3.5 space-y-2.5 text-xs leading-relaxed">
+              <p className="text-[#ded6cb]">
+                Se você retornar para alterar a pontuação inicial, <strong className="text-red-400">todas as compras e modificações feitas com Pontos Bônus serão desfeitas</strong>:
+              </p>
+              <ul className="space-y-1.5 text-[11px] sm:text-xs text-[#c7beb2] list-disc pl-4">
+                <li>
+                  <strong className="text-white">Atributos, Habilidades, Disciplinas, Antecedentes, Virtudes, Força de Vontade e Trilha</strong> voltarão exatamente ao estado de quando você concluiu os Pontos Iniciais (disciplinas extras adicionadas no bônus também serão removidas).
+                </li>
+                <li>
+                  <strong className="text-amber-300">Qualidades adquiridas serão removidas</strong> e todos os Pontos Bônus gastos nelas retornarão integralmente ao seu saldo.
+                </li>
+                <li>
+                  <strong className="text-green-400">Defeitos cadastrados serão mantidos</strong>, pois eles somam pontos ao seu bônus em vez de gastar pontos.
+                </li>
+                <li>
+                  Toda a sua <strong className="text-[#d4af37]">pontuação bônus será devolvida</strong> para que você possa distribuí-la novamente ao avançar para o Passo 2.
+                </li>
+              </ul>
+
+              {gastosBonus.totalGastoGeral > 0 && (
+                <div className="mt-2 pt-2 border-t border-[#2d1217] flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-[#a89f91]">Total gasto no Bônus a ser devolvido:</span>
+                  <strong className="text-[#d4af37]">
+                    +{gastosBonus.totalGastoGeral} pts
+                    {qualidades.length > 0 ? ` (${qualidades.length} qualidade${qualidades.length > 1 ? 's' : ''})` : ''}
+                  </strong>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setModalConfirmarVoltarIniciaisAberto(false)}
+                className="px-4 py-2 text-xs font-semibold text-[#a89f91] hover:text-white bg-[#1a1114] hover:bg-[#251419] border border-[#3b181b] rounded-xs cursor-pointer transition-colors"
+              >
+                Cancelar (Continuar no Bônus)
+              </button>
+              <button
+                type="button"
+                onClick={confirmarVoltarParaIniciais}
+                className="px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider text-white bg-[#8b0000] hover:bg-[#a30d12] rounded-xs cursor-pointer shadow-md flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Confirmar e Voltar p/ Iniciais</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
