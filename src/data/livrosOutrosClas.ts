@@ -6,7 +6,7 @@ export const LIVROS_OUTROS_CLAS: LivroVampiro[] = [
   // =========================================================================
   {
     id: 'outro_cla_crias_tempestade',
-    titulo: 'Outros Clãs: Crias de Tempestade',
+    titulo: 'Crias de Tempestade',
     subtitulo: 'Os Filhos de Beatrix, Senhores do Raio e "Lambedores de Tomada"',
     edicao: 'Suplemento de Fãs Brasil (Assis-SP / Satanick P.)',
     ano: '1998',
@@ -101,7 +101,7 @@ Liderados com mão de ferro por **Beatrix**, que protege todos os membros. Seus 
   // =========================================================================
   {
     id: 'outro_cla_caitiff_sangue_ralo',
-    titulo: 'Outros Clãs: Caitiff, Panders & Sangue-Ralo',
+    titulo: 'Caitiff, Panders & Sangue-Ralo',
     subtitulo: 'Os Órfãos de Caim, Párias das Seitas e Filhos do Crepúsculo',
     edicao: 'Idade das Trevas / Máscara / V20 / V5',
     ano: 'Todas as Eras',
@@ -158,7 +158,7 @@ Pertencentes às gerações mais distantes de Caim (14ª, 15ª e 16ª gerações
   // =========================================================================
   {
     id: 'outro_cla_linhagens_dark_ages',
-    titulo: 'Outros Clãs: Linhagens Raras (Dark Ages & Sabá)',
+    titulo: 'Linhagens Raras (Dark Ages & Sabá)',
     subtitulo: 'Salubri, Baali, Kiasyd, Verdadeiros Brujah, Gárgulas, Velho Clã e Mais',
     edicao: 'Idade das Trevas / V20 / Guia do Sabá',
     ano: '1197 – Noites Finais',
@@ -267,7 +267,7 @@ Obcecados por levar a "arte da beleza" ao extremo do terror, os Volgirre abraça
   // =========================================================================
   {
     id: 'outro_cla_morte_hecata',
-    titulo: 'Outros Clãs: Linhagens da Morte & Hecata',
+    titulo: 'Linhagens da Morte & Hecata',
     subtitulo: 'Giovanni & Famílias, Lâmias, Precursores do Ódio, Samedi, Nagaraja e Hecata',
     edicao: 'Idade das Trevas / V20 / Cults of the Blood Gods (V5)',
     ano: '1197 – Noites Finais',
@@ -350,7 +350,7 @@ Nas noites modernas do V5, após a queda parcial de Augustus Giovanni e a press�
   // =========================================================================
   {
     id: 'outro_cla_selvagens_regionais',
-    titulo: 'Outros Clãs: Linhagens Selvagens, Místicas & Revenants',
+    titulo: 'Linhagens Selvagens, Místicas & Revenants',
     subtitulo: 'Filhas da Cacofonia, Osíris, Serpentes da Luz, Tlacique, Ahrimanes, Lhiannan e Revenants',
     edicao: 'Idade das Trevas / Máscara Revisada / V20',
     ano: 'Antiguidade – Noites Finais',
@@ -452,7 +452,7 @@ Famílias humanas alteradas pelo sangue que geram sua própria *vitae* intername
   // =========================================================================
   {
     id: 'outro_cla_derivados_mundos',
-    titulo: 'Outros Clãs: Derivados (Laibon, Kuei-Jin & Ordo Dracul)',
+    titulo: 'Derivados (Laibon, Kuei-Jin & Ordo Dracul)',
     subtitulo: 'Reino de Ébano (África), Oriente (Wan Kuei) e Vampire: The Requiem',
     edicao: 'Kindred of the Ebony Kingdom / East / Chronicles of Darkness',
     ano: 'Suplementos Derivados',
@@ -519,7 +519,7 @@ No jogo derivado *Vampire: The Requiem* (*Chronicles of Darkness*), o próprio V
   // =========================================================================
   {
     id: 'outro_cla_fans_draculean',
-    titulo: 'Outros Clãs: Criações de Fãs, Storytellers Vault & Draculean',
+    titulo: 'Criações de Fãs, Storytellers Vault & Draculean',
     subtitulo: 'Draculean, Shrouded Legacies (Estea, Haljura, Kimeris, Storverkr, Stryge, Vrykolak) e Netbooks',
     edicao: 'Comunidade / Storytellers Vault / RPGs Terceiros',
     ano: '1998 – Atualidade',

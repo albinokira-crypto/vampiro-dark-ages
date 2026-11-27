@@ -535,45 +535,45 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
         )
       ) : (
         <>
-          {/* Sub-Abas do Painel de Testes */}
-          <div className="flex flex-wrap border-b border-[#3b181b] gap-2 pb-0">
+          {/* Sub-Abas do Painel de Testes (sempre lado a lado na mesma linha) */}
+          <div className="grid grid-cols-3 sm:inline-flex sm:flex-nowrap border-b border-[#3b181b] gap-1 sm:gap-2 pb-0 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setAbaSubTestes('sistema')}
-              className={`px-4 py-2.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-2 sm:px-4 py-2.5 text-[11px] sm:text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap ${
                 abaSubTestes === 'sistema'
                   ? 'bg-[#1b1015] border-[#522228] text-[#d4af37] border-b-2 border-b-[#8b0000] -mb-[1px]'
                   : 'bg-[#120a0e] border-transparent text-[#8e8273] hover:text-[#d4af37]'
               }`}
             >
-              <ScrollText className="w-4 h-4" />
-              <span>Tabelas do Sistema &amp; Combate ({tabelasSistemaVisiveis.length})</span>
+              <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span>Sistemas</span>
             </button>
 
             <button
               type="button"
               onClick={() => setAbaSubTestes('disciplinas')}
-              className={`px-4 py-2.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-2 sm:px-4 py-2.5 text-[11px] sm:text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap ${
                 abaSubTestes === 'disciplinas'
                   ? 'bg-[#1b1015] border-[#522228] text-rose-300 border-b-2 border-b-[#8b0000] -mb-[1px]'
                   : 'bg-[#120a0e] border-transparent text-[#8e8273] hover:text-rose-300'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-rose-400" />
-              <span>Testes de Disciplinas</span>
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+              <span>Disciplinas</span>
             </button>
 
             <button
               type="button"
               onClick={() => setAbaSubTestes('meta_disciplinas')}
-              className={`px-4 py-2.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-2 sm:px-4 py-2.5 text-[11px] sm:text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap ${
                 abaSubTestes === 'meta_disciplinas'
                   ? 'bg-[#1b1015] border-[#522228] text-amber-300 border-b-2 border-b-[#8b0000] -mb-[1px]'
                   : 'bg-[#120a0e] border-transparent text-[#8e8273] hover:text-amber-300'
               }`}
             >
-              <Layers className="w-4 h-4 text-amber-400" />
-              <span>Meta Disciplina</span>
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+              <span>Meta-Disciplinas</span>
             </button>
           </div>
 

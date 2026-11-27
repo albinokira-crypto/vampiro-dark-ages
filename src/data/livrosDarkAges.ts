@@ -2,7 +2,7 @@ import type { LivroVampiro } from './livrosVampiro';
 
 export const LIVRO_DARK_AGES_1E: LivroVampiro = {
   id: 'livro_dark_ages_1e',
-  titulo: 'Vampiro: A Idade das Trevas',
+  titulo: 'Livro Básico (1ª Edição)',
   subtitulo: 'O Livro Básico de 1996 — Regras Canônicas da 1ª Edição',
   edicao: '1ª Edição Canônica (White Wolf / 1996)',
   ano: '1197 d.C.',

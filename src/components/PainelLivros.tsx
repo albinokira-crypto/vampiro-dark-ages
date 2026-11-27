@@ -607,6 +607,18 @@ export const PainelLivros: React.FC<PainelLivrosProps> = ({
                         </div>
                         <div>
                           <span className="text-[10px] font-mono uppercase tracking-wider text-[#d4af37]/80 block">
+                            {filtroCategoria === 'todos'
+                              ? `${
+                                  {
+                                    cla: 'Livro de Clã',
+                                    outros_clas: 'Outros Clãs',
+                                    dark_ages: 'Idade das Trevas',
+                                    mascara: 'A Máscara',
+                                    camarilla: 'Camarilla',
+                                    lore_nod: 'Livro de Nod',
+                                  }[livro.categoria]
+                                } • `
+                              : ''}
                             {livro.ano} • {livro.edicao}
                           </span>
                           <h3 className="text-base sm:text-lg font-gothic font-bold text-[#f5e6d3] uppercase tracking-wide group-hover:text-[#d4af37] transition-colors">

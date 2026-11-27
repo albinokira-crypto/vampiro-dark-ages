@@ -6,7 +6,7 @@ export const LIVROS_MODERNOS_E_NOD: LivroVampiro[] = [
   // =========================================================================
   {
     id: 'livro_de_nod',
-    titulo: 'O Livro de Nod',
+    titulo: 'As Crônicas de Caim',
     subtitulo: 'As Crônicas de Caim, os Mandamentos Ancestrais e a Profecia da Gehenna',
     edicao: 'Códice Ancestral (Tradução e Compilação Acadêmica de Aristóteles de Laurent)',
     ano: 'Tempo Imemorial / Século XVIII',
@@ -158,7 +158,7 @@ Caim deixou gravado nos rolos de bronze os sinais infalíveis que precederão a 
   // =========================================================================
   {
     id: 'livro_vampiro_mascara',
-    titulo: 'Vampiro: A Máscara',
+    titulo: 'Noites Contemporâneas (Livro Básico)',
     subtitulo: 'O Horror Gótico-Pessoal nas Noites Contemporâneas',
     edicao: 'Edição Revisada / Livro Básico Moderno',
     ano: 'Era Contemporânea',
@@ -221,7 +221,7 @@ Todos os vampiros do domínio recebem o chamado através de mensageiros ou códi
   // =========================================================================
   {
     id: 'livro_guia_camarilla',
-    titulo: 'Vampiro: O Guia da Camarilla',
+    titulo: 'A Torre de Marfim & Seis Tradições',
     subtitulo: 'A Estrutura de Poder, o Elísio e o Protocolo das Seis Tradições',
     edicao: 'Tomo Institucional da Torre de Marfim',
     ano: '1493 aos Dias Atuais',

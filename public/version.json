@@ -1,6 +1,6 @@
 {
-    "version": "v1.22.0",
-    "versionCode": 1220,
-    "updatedAt": "2026-11-27T20:10:00.000Z",
-    "changelog": "feat: nova aba 'Outros Clãs' na Biblioteca (incluindo Crias de Tempestade, Caitiff, linhagens raras, derivados e fãs), divisão de Testes de Disciplinas em 'Disciplinas Originais' e 'Outras Disciplinas' (com Electros Nv 1-10 e 18 disciplinas raras) e nova aba 'Meta Disciplina' com efeitos, custos em XP e pré-requisitos exatos"
+    "version": "v1.23.0",
+    "versionCode": 1230,
+    "updatedAt": "2026-11-27T20:30:00.000Z",
+    "changelog": "ui: abas de Testes alinhadas na mesma linha ('Sistemas', 'Disciplinas', 'Meta-Disciplinas') e remoção dos prefixos redundantes nos títulos de todos os livros em Livros"
 }

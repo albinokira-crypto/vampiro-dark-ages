@@ -6,7 +6,7 @@ export const LIVROS_CLANS_VAMPIRO: LivroVampiro[] = [
   // =========================================================================
   {
     id: 'livro_cla_assamita',
-    titulo: 'Livro de Clã: Assamita',
+    titulo: 'Assamita',
     subtitulo: 'Os Filhos de Haqim, Juízes Silenciosos e Assassinos de Alamut',
     edicao: 'Libellus Sanguinis III / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -71,7 +71,7 @@ Além disso, como dízimo sagrado para a Montanha, todo guerreiro do clã deve e
   // =========================================================================
   {
     id: 'livro_cla_brujah',
-    titulo: 'Livro de Clã: Brujah',
+    titulo: 'Brujah',
     subtitulo: 'Os Reis-Filósofos, Zealotas e a Glória Perdida de Cartago',
     edicao: 'Libellus Sanguinis II / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -131,7 +131,7 @@ Nas regras canônicas da 1ª Edição, a dificuldade de qualquer teste de **Auto
   // =========================================================================
   {
     id: 'livro_cla_capadocio',
-    titulo: 'Livro de Clã: Capadócio',
+    titulo: 'Capadócio',
     subtitulo: 'Os Ladrões de Cadáveres, Necromantes e Eruditos da Sepultura',
     edicao: 'Libellus Sanguinis II / Canon 1ª Edição 1996',
     ano: '1197 (Idade das Trevas)',
@@ -191,7 +191,7 @@ Em termos de regras da 1ª Edição, a sua aparência sobrenaturalmente mórbida
   // =========================================================================
   {
     id: 'livro_cla_gangrel',
-    titulo: 'Livro de Clã: Gangrel',
+    titulo: 'Gangrel',
     subtitulo: 'Os Selvagens, Mestres da Floresta e Andarilhos da Noite',
     edicao: 'Libellus Sanguinis I / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -248,7 +248,7 @@ A cada frenesi sofrido, o personagem desenvolve uma característica bestial perm
   // =========================================================================
   {
     id: 'livro_cla_lasombra',
-    titulo: 'Livro de Clã: Lasombra',
+    titulo: 'Lasombra',
     subtitulo: 'Os Mestres das Sombras, Magísteres e Reis do Mar Noturno',
     edicao: 'Libellus Sanguinis I / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -305,7 +305,7 @@ O pacto com as trevas profundas roubou dos Lasombra qualquer imagem refletida. N
   // =========================================================================
   {
     id: 'livro_cla_malkaviano',
-    titulo: 'Livro de Clã: Malkaviano',
+    titulo: 'Malkaviano',
     subtitulo: 'Os Lunáticos, Videntes da Loucura e a Rede da Teia',
     edicao: 'Libellus Sanguinis IV / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -360,7 +360,7 @@ Todo membro do Clã Malkaviano é acometido por pelo menos uma **Perturbação M
   // =========================================================================
   {
     id: 'livro_cla_nosferatu',
-    titulo: 'Livro de Clã: Nosferatu',
+    titulo: 'Nosferatu',
     subtitulo: 'Os Leprosos, Senhores das Catacumbas e Mercadores de Segredos',
     edicao: 'Libellus Sanguinis IV / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -417,7 +417,7 @@ A maldição de Absimiliard é absoluta: o atributo **Aparência de qualquer Nos
   // =========================================================================
   {
     id: 'livro_cla_ravnos',
-    titulo: 'Livro de Clã: Ravnos',
+    titulo: 'Ravnos',
     subtitulo: 'Os Ilusionistas, Trapaceiros e Mestres da Miragem Cósmica',
     edicao: 'Libellus Sanguinis IV / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -476,7 +476,7 @@ Sempre que a oportunidade para cometer esse delito se apresenta, o Ravnos deve t
   // =========================================================================
   {
     id: 'livro_cla_setita',
-    titulo: 'Livro de Clã: Seguidores de Set',
+    titulo: 'Seguidores de Set',
     subtitulo: 'As Serpentes do Nilo, Corruptores da Alma e Guardiões de Typhon',
     edicao: 'Libellus Sanguinis IV / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -532,7 +532,7 @@ Como criaturas concebidas nas trevas mais puras e devotadas a Sutekh, os Seguido
   // =========================================================================
   {
     id: 'livro_cla_toreador',
-    titulo: 'Livro de Clã: Toreador',
+    titulo: 'Toreador',
     subtitulo: 'Os Degenerados, Artesãos e Patronos da Alta Cultura',
     edicao: 'Libellus Sanguinis II / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -588,7 +588,7 @@ A sensibilidade extrema à beleza é a armadilha do clã: sempre que um Toreador
   // =========================================================================
   {
     id: 'livro_cla_tremere',
-    titulo: 'Livro de Clã: Tremere',
+    titulo: 'Tremere',
     subtitulo: 'Os Usurpadores, Feiticeiros Herméticos e Mestres da Taumaturgia',
     edicao: 'Libellus Sanguinis II / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -647,7 +647,7 @@ A estrutura da Pirâmide é mantida através do Laço de Sangue formal: todo Tre
   // =========================================================================
   {
     id: 'livro_cla_tzimisce',
-    titulo: 'Livro de Clã: Tzimisce',
+    titulo: 'Tzimisce',
     subtitulo: 'Os Voivodas, Demônios dos Cárpatos e Mestres da Moldagem da Carne',
     edicao: 'Libellus Sanguinis I / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -704,7 +704,7 @@ Caso seja privado de seu solo nativo, todas as suas paradas de dados são dividi
   // =========================================================================
   {
     id: 'livro_cla_ventrue',
-    titulo: 'Livro de Clã: Ventrue',
+    titulo: 'Ventrue',
     subtitulo: 'Os Nobres, Soberanos do Sangue e Comandantes das Cortes',
     edicao: 'Libellus Sanguinis II / Clanbook Canônico',
     ano: '1197 (Idade das Trevas)',
@@ -763,7 +763,7 @@ Se tentar beber o sangue de qualquer pessoa fora de sua exigência restrita, o v
   // =========================================================================
   {
     id: 'livro_cla_salubri',
-    titulo: 'Livro de Clã: Salubri',
+    titulo: 'Salubri',
     subtitulo: 'Os Santos Mártires, Curandeiros de Três Olhos e Guerreiros de Saulot',
     edicao: 'Libellus Sanguinis II / Canon Histórico',
     ano: '1197 (Idade das Trevas)',
