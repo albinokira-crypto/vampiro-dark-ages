@@ -1,6 +1,6 @@
 {
-    "version": "v1.20.0",
-    "versionCode": 1200,
-    "updatedAt": "2026-11-27T18:45:00.000Z",
-    "changelog": "fix: bloqueio de Virtudes após a finalização da criação (não podem mais ser evoluídas por XP nem puxar Trilha/Força de Vontade automaticamente no modo XP), mantendo a evolução direta de Força de Vontade por XP conforme a 1ª Edição"
+    "version": "v1.21.0",
+    "versionCode": 1210,
+    "updatedAt": "2026-11-27T19:20:00.000Z",
+    "changelog": "feat: botão próprio 'Tabela de XP' ao lado de Livros no login de jogador, mantendo a Tabela de Experiência na aba Testes para o Mestre"
 }

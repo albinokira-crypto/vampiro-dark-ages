@@ -52,7 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     usuarioAtual.role === 'mestre' ? 'npcs' : 'meus'
   );
   const [abaMestre, setAbaMestre] = useState<'fichas' | 'auditoria' | 'jogadores'>('fichas');
-  const [abaPrincipal, setAbaPrincipal] = useState<'fichas' | 'elisio' | 'testes' | 'livros'>('fichas');
+  const [abaPrincipal, setAbaPrincipal] = useState<'fichas' | 'elisio' | 'testes' | 'livros' | 'tabela_xp'>('fichas');
   const [sincronizando, setSincronizando] = useState(false);
   const [personagens, setPersonagens] = useState<Personagem[]>(() =>
     storageService.getPersonagensDoUsuario(usuarioAtual)
@@ -320,6 +320,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <BookOpen className={`w-4 h-4 ${abaPrincipal === 'livros' ? 'text-black' : 'text-[#ef4444]'}`} />
             <span>Livros</span>
           </button>
+
+          {usuarioAtual.role !== 'mestre' && (
+            <button
+              type="button"
+              onClick={() => setAbaPrincipal(abaPrincipal === 'tabela_xp' ? 'fichas' : 'tabela_xp')}
+              className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md touch-manipulation border ${
+                abaPrincipal === 'tabela_xp'
+                  ? 'bg-[#d4af37] text-black border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                  : 'bg-[#241318] hover:bg-[#341820] text-[#d4af37] border-[#522228] hover:border-[#8b0000]'
+              }`}
+              title="Consultar Tabela de Experiência (XP) oficial da 1ª Edição"
+            >
+              <Award className={`w-4 h-4 ${abaPrincipal === 'tabela_xp' ? 'text-black' : 'text-[#ef4444]'}`} />
+              <span>Tabela de XP</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -338,6 +354,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           config={config}
           onConfigChange={setConfig}
           onVoltar={() => setAbaPrincipal('fichas')}
+        />
+      ) : abaPrincipal === 'tabela_xp' ? (
+        <PainelTestes
+          usuarioAtual={usuarioAtual}
+          config={config}
+          onConfigChange={setConfig}
+          onVoltar={() => setAbaPrincipal('fichas')}
+          apenasTabelaXP
         />
       ) : abaPrincipal === 'livros' ? (
         <PainelLivros
