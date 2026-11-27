@@ -1,6 +1,6 @@
 {
-    "version": "v1.23.0",
-    "versionCode": 1230,
-    "updatedAt": "2026-11-27T20:30:00.000Z",
-    "changelog": "ui: abas de Testes alinhadas na mesma linha ('Sistemas', 'Disciplinas', 'Meta-Disciplinas') e remoção dos prefixos redundantes nos títulos de todos os livros em Livros"
+    "version": "v1.24.0",
+    "versionCode": 1240,
+    "updatedAt": "2026-11-27T20:36:00.000Z",
+    "changelog": "ui: remoção dos ícones das abas Sistemas, Disciplinas e Meta-Disciplinas para encaixe compacto em qualquer largura de tela"
 }
