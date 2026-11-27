@@ -1,6 +1,6 @@
 {
-    "version": "v1.24.0",
-    "versionCode": 1240,
-    "updatedAt": "2026-11-27T20:36:00.000Z",
-    "changelog": "ui: remoção dos ícones das abas Sistemas, Disciplinas e Meta-Disciplinas para encaixe compacto em qualquer largura de tela"
+    "version": "v1.25.0",
+    "versionCode": 1250,
+    "updatedAt": "2026-11-27T20:45:00.000Z",
+    "changelog": "ui: aviso explicativo único com a Regra (Soma dos níveis x3) no topo de Meta-Disciplinas e custo limpo em XP nos cards"
 }

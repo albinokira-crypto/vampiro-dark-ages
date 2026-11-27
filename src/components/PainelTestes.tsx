@@ -4,7 +4,7 @@ import { storageService } from '../services/storage';
 import { TABELAS_TESTES_PADRAO_1E } from '../data/tabelasTestes1E';
 import { TESTES_DISCIPLINAS_1E } from '../data/testesDisciplinas1E';
 import { OUTRAS_DISCIPLINAS_TESTES } from '../data/outrasDisciplinas';
-import { META_DISCIPLINAS } from '../data/metaDisciplinas';
+import { META_DISCIPLINAS, calcularCustoMetaDisciplinaXP } from '../data/metaDisciplinas';
 import {
   ScrollText,
   Search,
@@ -314,11 +314,12 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
     if (!bateFiltroDisc) return false;
     const q = buscaMeta.toLowerCase().trim();
     if (!q) return true;
+    const custoTexto = `${calcularCustoMetaDisciplinaXP(meta)} xp`;
     return (
       meta.nome.toLowerCase().includes(q) ||
       meta.nomeIngles.toLowerCase().includes(q) ||
       meta.categoriaTag.toLowerCase().includes(q) ||
-      meta.custoXP.toLowerCase().includes(q) ||
+      custoTexto.includes(q) ||
       meta.efeito.toLowerCase().includes(q) ||
       meta.origem.toLowerCase().includes(q) ||
       meta.paradaOuAtivacao.toLowerCase().includes(q) ||
@@ -878,6 +879,21 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
       {/* ================================================================= */}
       {abaSubTestes === 'meta_disciplinas' && (
         <div className="space-y-6">
+          {/* Aviso Explicativo com a Regra Única de Obtenção e Custo */}
+          <div className="bg-[#1b1015] border border-amber-700/60 p-4 rounded-sm space-y-1.5 shadow-md">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#d4af37]">
+                Regras para Obter Meta-Disciplinas
+              </h3>
+              <span className="text-[11px] font-mono font-bold text-amber-200 bg-amber-950/80 border border-amber-600/80 px-2.5 py-0.5 rounded-xs">
+                Regra (Soma dos níveis x3)
+              </span>
+            </div>
+            <p className="text-xs text-[#ded6cb] font-serif leading-relaxed">
+              Meta-Disciplinas nunca podem ser adquiridas na criação inicial da ficha. Para comprá-las com XP durante a crônica, o cainita deve já possuir todos os níveis mínimos exigidos em cada Disciplina listada nos pré-requisitos (além de ensino ou aprovação na mesa), pagando o custo calculado pela <strong className="text-amber-300">Regra (Soma dos níveis x3)</strong> — por exemplo: <span className="font-mono text-[#d4af37]">Auspícios 2 + Fortitude 2 = 4 × 3 = 12 XP</span>.
+            </p>
+          </div>
+
           <div className="bg-[#140e11] border border-[#2d1217] p-4 rounded-sm space-y-3">
             <div className="relative">
               <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -944,7 +960,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                         className="px-2.5 py-1 rounded-xs bg-amber-950/80 border border-amber-600/80 text-amber-200 font-mono font-bold text-xs shrink-0"
                         title="Custo em Pontos de Experiência"
                       >
-                        ✨ {meta.custoXP}
+                        ✨ {calcularCustoMetaDisciplinaXP(meta)} XP
                       </span>
                     </div>
 

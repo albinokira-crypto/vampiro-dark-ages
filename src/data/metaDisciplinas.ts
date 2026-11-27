@@ -15,6 +15,9 @@ export interface MetaDisciplinaInfo {
   origem: string;
 }
 
+export const calcularCustoMetaDisciplinaXP = (meta: MetaDisciplinaInfo): number =>
+  meta.prerequisitos.reduce((total, pr) => total + pr.nivel, 0) * 3;
+
 export const META_DISCIPLINAS: MetaDisciplinaInfo[] = [
   {
     id: 'orelhas_morcego',
