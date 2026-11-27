@@ -207,7 +207,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
 
   // Cálculo de Custo Exato em XP
   const calcularCustoXP = (
-    tipo: 'atributo' | 'habilidade' | 'habilidade_secundaria' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
+    tipo: 'atributo' | 'habilidade' | 'habilidade_secundaria' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
     atual: number,
     novo: number,
     extra?: { isPrimaria?: boolean; isClan?: boolean }
@@ -256,17 +256,13 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
           // Caminho: Nível atual x 2
           total += n * 2;
           break;
-        case 'virtude':
-          // Virtude: Nível atual x 3 (1ª Edição 1996 - Livro Básico)
-          total += n * 3;
-          break;
       }
     }
     return total;
   };
 
   const tentarEvoluirComXP = (
-    tipo: 'atributo' | 'habilidade' | 'habilidade_secundaria' | 'disciplina' | 'trilha' | 'vontade' | 'caminho' | 'virtude',
+    tipo: 'atributo' | 'habilidade' | 'habilidade_secundaria' | 'disciplina' | 'trilha' | 'vontade' | 'caminho',
     nomeItem: string,
     valorAtual: number,
     novoValor: number,
@@ -1028,6 +1024,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
   const dadosCriacao = ficha.criacao;
   const isMestre = usuarioAtual.role === 'mestre';
   const isEmCriacao = !isNpc && ficha.criacao?.status === 'em_criacao';
+  const podeEditarVirtudes = podeEditar && (isEmCriacao || modoEdicaoLivre || isMestre);
   const deveDestacarBonus = isMestre || isEmCriacao;
   const valoresIniciais = useMemo(() => obterValoresIniciaisTraços(ficha, configMesa), [ficha, configMesa]);
   const [modalExtratoAberto, setModalExtratoAberto] = useState<boolean>(false);
@@ -1809,60 +1806,56 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
     tipo: 'consciencia' | 'autocontrole' | 'coragem',
     novoValor: number
   ) => {
-    const valorAtual = ficha.virtudes[tipo] || 1;
-    const nomeAmigavel =
-      tipo === 'consciencia'
-        ? ficha.virtudes.tipoConsciencia === 'conviccao' ? 'Convicção' : 'Consciência'
-        : tipo === 'autocontrole'
-        ? ficha.virtudes.tipoAutocontrole === 'instinto' ? 'Instinto' : 'Autocontrole'
-        : 'Coragem';
+    if (!podeEditarVirtudes) {
+      alert(
+        'Virtudes não podem ser alteradas ou compradas com XP após a finalização da criação. Apenas o Narrador pode modificá-las durante a crônica.'
+      );
+      return;
+    }
 
-    tentarEvoluirComXP(
-      'virtude',
-      `Virtude (${nomeAmigavel})`,
-      valorAtual,
-      novoValor,
-      (prev) => {
-        const novasVirtudes = {
-          ...prev.virtudes,
-          [tipo]: novoValor,
-        };
+    updateFicha((prev) => {
+      const novasVirtudes = {
+        ...prev.virtudes,
+        [tipo]: novoValor,
+      };
 
-        const c = tipo === 'consciencia' ? novoValor : (novasVirtudes.consciencia || 1);
-        const a = tipo === 'autocontrole' ? novoValor : (novasVirtudes.autocontrole || 1);
-        const cor = tipo === 'coragem' ? novoValor : (novasVirtudes.coragem || 1);
+      const c = tipo === 'consciencia' ? novoValor : (novasVirtudes.consciencia || 1);
+      const a = tipo === 'autocontrole' ? novoValor : (novasVirtudes.autocontrole || 1);
+      const cor = tipo === 'coragem' ? novoValor : (novasVirtudes.coragem || 1);
 
-        const trilhaBase = Math.min(10, Math.max(1, c + a));
-        const vontadeBase = Math.min(10, Math.max(1, cor));
+      const trilhaBase = Math.min(10, Math.max(1, c + a));
+      const vontadeBase = Math.min(10, Math.max(1, cor));
 
-        let novoCaminhoNivel = prev.caminhoNivel;
-        let novaForcaVontade = prev.forcaDeVontade;
+      let novoCaminhoNivel = prev.caminhoNivel;
+      let novaForcaVontade = prev.forcaDeVontade;
 
-        if (prev.criacao?.status === 'em_criacao') {
-          if (prev.criacao.etapa === 'iniciais' || prev.criacao.etapa === 'prioridades') {
-            novoCaminhoNivel = trilhaBase;
-            novaForcaVontade = vontadeBase;
-          } else {
-            // Na etapa bônus, não pode ser menor que a base das virtudes
-            novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
-            novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
-          }
+      if (prev.criacao?.status === 'em_criacao') {
+        if (prev.criacao.etapa === 'iniciais' || prev.criacao.etapa === 'prioridades') {
+          novoCaminhoNivel = trilhaBase;
+          novaForcaVontade = vontadeBase;
         } else {
+          // Na etapa bônus, não pode ser menor que a base das virtudes
           novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
           novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
         }
-
-        return {
-          ...prev,
-          virtudes: novasVirtudes,
-          caminhoNivel: novoCaminhoNivel,
-          forcaDeVontade: novaForcaVontade,
-        };
+      } else {
+        novoCaminhoNivel = Math.max(prev.caminhoNivel || 0, trilhaBase);
+        novaForcaVontade = Math.max(prev.forcaDeVontade || 0, vontadeBase);
       }
-    );
+
+      return {
+        ...prev,
+        virtudes: novasVirtudes,
+        caminhoNivel: novoCaminhoNivel,
+        forcaDeVontade: novaForcaVontade,
+      };
+    });
   };
 
   const handleSincronizarTrilhaEVontade = () => {
+    if (!podeEditarVirtudes) {
+      return;
+    }
     const c = ficha.virtudes?.consciencia || 1;
     const a = ficha.virtudes?.autocontrole || 1;
     const cor = ficha.virtudes?.coragem || 1;
@@ -2987,7 +2980,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       </div>
                     ) : (
                       <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2.5 py-1 rounded-xs font-bold shadow-xs">
-                        ✓ Criação Consolidada • Antecedentes Travados
+                        ✓ Criação Consolidada • Antecedentes e Virtudes Travados
                       </span>
                     )
                   )}
@@ -3160,14 +3153,25 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                       <h4 className="text-xs font-gothic font-bold uppercase tracking-wider text-[#ef4444]">
                         Virtudes
                       </h4>
-                      {!isNpc && isEmCriacao && renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial', 2)}
+                      {!isNpc && (
+                        isEmCriacao ? (
+                          renderBadgePontos(gastosVirtudes, maxVirtudes, 'Inicial', 2)
+                        ) : (
+                          <span
+                            className="text-[10px] font-mono text-amber-300/90 bg-[#221217] border border-[#522228] px-1.5 py-0.5 rounded-xs"
+                            title="Virtudes não evoluem com pontos de XP após a finalização da criação"
+                          >
+                            Travado (Sem XP)
+                          </span>
+                        )
+                      )}
                     </div>
 
                     {/* Consciência ou Convicção */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <select
-                          disabled={!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre'}
+                          disabled={!podeEditarVirtudes}
                           value={ficha.virtudes.tipoConsciencia}
                           onChange={(e) =>
                             updateFicha((prev) => ({
@@ -3190,7 +3194,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           max={5}
                           min={1}
                           onChange={(v) => handleVirtudeChange('consciencia', v)}
-                          readonly={!podeEditar}
+                          readonly={!podeEditarVirtudes}
                         />
                       </div>
                     </div>
@@ -3199,7 +3203,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <select
-                          disabled={!isEmCriacao && !modoEdicaoLivre && usuarioAtual.role !== 'mestre'}
+                          disabled={!podeEditarVirtudes}
                           value={ficha.virtudes.tipoAutocontrole}
                           onChange={(e) =>
                             updateFicha((prev) => ({
@@ -3222,7 +3226,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                           max={5}
                           min={1}
                           onChange={(v) => handleVirtudeChange('autocontrole', v)}
-                          readonly={!podeEditar}
+                          readonly={!podeEditarVirtudes}
                         />
                       </div>
                     </div>
@@ -3237,7 +3241,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                         max={5}
                         min={1}
                         onChange={(v) => handleVirtudeChange('coragem', v)}
-                        readonly={!podeEditar}
+                        readonly={!podeEditarVirtudes}
                       />
                     </div>
                   </div>
@@ -3531,7 +3535,7 @@ export const FichaPersonagem: React.FC<FichaPersonagemProps> = ({
                     <h3 className="text-md font-gothic font-bold text-[#d4af37] tracking-wider uppercase">
                       Status Atuais & Pontos
                     </h3>
-                    {podeEditar && (
+                    {podeEditarVirtudes && (
                       <button
                         type="button"
                         onClick={handleSincronizarTrilhaEVontade}

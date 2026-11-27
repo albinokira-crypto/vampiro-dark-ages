@@ -1,6 +1,6 @@
 {
-    "version": "v1.19.0",
-    "versionCode": 1190,
-    "updatedAt": "2026-11-24T22:55:00.000Z",
-    "changelog": "feat: paleta de cores e acessibilidade visual (Preto & Branco Escuro, Preto & Branco Papel Claro, Pergaminho Sépia e Azul Noturno) visível para todos os jogadores na barra superior e login, além das configurações do Mestre, com contraste garantido em caixas de texto e seletores"
+    "version": "v1.20.0",
+    "versionCode": 1200,
+    "updatedAt": "2026-11-27T18:45:00.000Z",
+    "changelog": "fix: bloqueio de Virtudes após a finalização da criação (não podem mais ser evoluídas por XP nem puxar Trilha/Força de Vontade automaticamente no modo XP), mantendo a evolução direta de Força de Vontade por XP conforme a 1ª Edição"
 }
