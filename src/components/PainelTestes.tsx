@@ -3,6 +3,8 @@ import type { User, ConfiguracaoMesa, TabelaTeste } from '../types';
 import { storageService } from '../services/storage';
 import { TABELAS_TESTES_PADRAO_1E } from '../data/tabelasTestes1E';
 import { TESTES_DISCIPLINAS_1E } from '../data/testesDisciplinas1E';
+import { OUTRAS_DISCIPLINAS_TESTES } from '../data/outrasDisciplinas';
+import { META_DISCIPLINAS } from '../data/metaDisciplinas';
 import {
   ScrollText,
   Search,
@@ -19,6 +21,7 @@ import {
   Sparkles,
   BookOpen,
   Award,
+  Layers,
 } from 'lucide-react';
 
 interface PainelTestesProps {
@@ -72,12 +75,15 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
       ? config.tabelasTestes
       : storageService.getTabelasTestes()
   );
-  const [abaSubTestes, setAbaSubTestes] = useState<'sistema' | 'disciplinas'>('sistema');
+  const [abaSubTestes, setAbaSubTestes] = useState<'sistema' | 'disciplinas' | 'meta_disciplinas'>('sistema');
+  const [abaDisciplinasGrupo, setAbaDisciplinasGrupo] = useState<'originais' | 'outras'>('originais');
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState<'todas' | TabelaTeste['categoria']>('todas');
   const [buscaDisciplina, setBuscaDisciplina] = useState('');
   const [filtroDisciplinaId, setFiltroDisciplinaId] = useState<string>('todas');
   const [filtroTierNivel, setFiltroTierNivel] = useState<'todos' | 'neofito' | 'anciao'>('todos');
+  const [buscaMeta, setBuscaMeta] = useState('');
+  const [filtroDisciplinaMeta, setFiltroDisciplinaMeta] = useState<string>('todas');
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
 
   // Modal de edição/criação (Exclusivo Mestre)
@@ -237,7 +243,10 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
     return tab.linhas.some((linha) => linha.some((cel) => cel.toLowerCase().includes(t)));
   });
 
-  const disciplinasFiltradas = TESTES_DISCIPLINAS_1E.map((disc) => {
+  const listaDisciplinasAtiva =
+    abaDisciplinasGrupo === 'originais' ? TESTES_DISCIPLINAS_1E : OUTRAS_DISCIPLINAS_TESTES;
+
+  const disciplinasFiltradas = listaDisciplinasAtiva.map((disc) => {
     const poderesDoTier = disc.poderes.filter((p) => {
       if (filtroTierNivel === 'neofito') return p.nivel <= 5;
       if (filtroTierNivel === 'anciao') return p.nivel >= 6;
@@ -272,6 +281,52 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
         `nv ${p.nivel}`.includes(q) ||
         `nivel ${p.nivel}`.includes(q) ||
         (p.nivel >= 6 && ('anciao'.includes(q) || 'ancião'.includes(q) || 'matusalem'.includes(q) || 'matusalém'.includes(q)))
+    );
+  });
+
+  const opcoesFiltroMetaDisciplina = [
+    'Animalismo',
+    'Auspícios',
+    'Demência',
+    'Dominação',
+    'Fortitude',
+    'Metamorfose',
+    'Mortis',
+    'Necromancia',
+    'Oblívio',
+    'Ofuscação',
+    'Potência',
+    'Presença',
+    'Quimerismo',
+    'Quietus',
+    'Rapidez',
+    'Taumaturgia',
+    'Tenebrosidade',
+    'Vicissitude',
+  ];
+
+  const metaDisciplinasFiltradas = META_DISCIPLINAS.filter((meta) => {
+    const bateFiltroDisc =
+      filtroDisciplinaMeta === 'todas' ||
+      meta.prerequisitos.some((pr) =>
+        pr.disciplina.toLowerCase().includes(filtroDisciplinaMeta.toLowerCase())
+      );
+    if (!bateFiltroDisc) return false;
+    const q = buscaMeta.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      meta.nome.toLowerCase().includes(q) ||
+      meta.nomeIngles.toLowerCase().includes(q) ||
+      meta.categoriaTag.toLowerCase().includes(q) ||
+      meta.custoXP.toLowerCase().includes(q) ||
+      meta.efeito.toLowerCase().includes(q) ||
+      meta.origem.toLowerCase().includes(q) ||
+      meta.paradaOuAtivacao.toLowerCase().includes(q) ||
+      meta.prerequisitos.some(
+        (pr) =>
+          pr.disciplina.toLowerCase().includes(q) ||
+          `${pr.disciplina.toLowerCase()} ${pr.nivel}`.includes(q)
+      )
     );
   });
 
@@ -394,6 +449,8 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
               <Award className="w-5 h-5 text-[#d4af37]" />
             ) : abaSubTestes === 'sistema' ? (
               <ScrollText className="w-5 h-5 text-[#d4af37]" />
+            ) : abaSubTestes === 'meta_disciplinas' ? (
+              <Layers className="w-5 h-5 text-amber-300" />
             ) : (
               <Sparkles className="w-5 h-5 text-rose-400" />
             )}
@@ -404,7 +461,9 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                 ? 'Tabela de Experiência (XP)'
                 : abaSubTestes === 'sistema'
                 ? 'Tabelas de Testes & Sistemas'
-                : 'Compêndio de Testes de Disciplinas'}
+                : abaSubTestes === 'meta_disciplinas'
+                ? 'Meta Disciplinas & Combinações'
+                : 'Testes de Disciplinas'}
             </h2>
             <p className="text-xs text-[#a89f91] font-serif">
               {apenasTabelaXP
@@ -413,7 +472,9 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                 ? isMestre
                   ? 'Referência oficial da 1ª Edição — você pode editar qualquer tabela, adicionar regras ou criar novas tabelas.'
                   : 'Referência oficial de testes, combate, frenesi, proezas e sobrevivência da crônica (somente visualização).'
-                : 'Referência canônica de testes de todas as 16 Disciplinas (Níveis 1 a 8 — Neófitos a Matusaléns) e variações dos Livros de Clã da 1ª Edição — paradas de dados, dificuldades, custos, durações e efeitos mecânicos.'}
+                : abaSubTestes === 'meta_disciplinas'
+                ? 'Disciplinas Combinatórias, Técnicas de Idade das Trevas e Amálgamas com seus pré-requisitos exatos de nível, custos em XP e efeitos.'
+                : 'Referência de testes das Disciplinas Originais (Níveis 1 a 8 e variações dos Livros de Clã) e de Outras Disciplinas raras, de linhagens e criações comunitárias.'}
             </p>
           </div>
         </div>
@@ -475,7 +536,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
       ) : (
         <>
           {/* Sub-Abas do Painel de Testes */}
-          <div className="flex border-b border-[#3b181b] gap-2 pb-0">
+          <div className="flex flex-wrap border-b border-[#3b181b] gap-2 pb-0">
             <button
               type="button"
               onClick={() => setAbaSubTestes('sistema')}
@@ -499,7 +560,20 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
               }`}
             >
               <Sparkles className="w-4 h-4 text-rose-400" />
-              <span>Testes de Disciplinas (16 Disciplinas)</span>
+              <span>Testes de Disciplinas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAbaSubTestes('meta_disciplinas')}
+              className={`px-4 py-2.5 text-xs font-gothic font-bold uppercase tracking-wider rounded-t-xs border-t border-l border-r transition-all flex items-center gap-2 cursor-pointer ${
+                abaSubTestes === 'meta_disciplinas'
+                  ? 'bg-[#1b1015] border-[#522228] text-amber-300 border-b-2 border-b-[#8b0000] -mb-[1px]'
+                  : 'bg-[#120a0e] border-transparent text-[#8e8273] hover:text-amber-300'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-amber-400" />
+              <span>Meta Disciplina</span>
             </button>
           </div>
 
@@ -563,10 +637,43 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
           )}
 
       {/* ================================================================= */}
-      {/* ABA 2: TESTES DE DISCIPLINAS (16 DISCIPLINAS) */}
+      {/* ABA 2: TESTES DE DISCIPLINAS (ORIGINAIS vs OUTRAS) */}
       {/* ================================================================= */}
       {abaSubTestes === 'disciplinas' && (
         <div className="space-y-6">
+          {/* Sub-divisão de Disciplinas: Originais vs Outras */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAbaDisciplinasGrupo('originais');
+                setFiltroDisciplinaId('todas');
+              }}
+              className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-all ${
+                abaDisciplinasGrupo === 'originais'
+                  ? 'bg-[#d4af37] text-black border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.35)]'
+                  : 'bg-[#181014] text-[#d4af37] border-[#522228] hover:border-[#8b0000]'
+              }`}
+            >
+              Disciplinas Originais ({TESTES_DISCIPLINAS_1E.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAbaDisciplinasGrupo('outras');
+                setFiltroDisciplinaId('todas');
+              }}
+              className={`px-4 py-2 text-xs font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-all ${
+                abaDisciplinasGrupo === 'outras'
+                  ? 'bg-[#d4af37] text-black border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.35)]'
+                  : 'bg-[#181014] text-[#d4af37] border-[#522228] hover:border-[#8b0000]'
+              }`}
+            >
+              Outras Disciplinas ({OUTRAS_DISCIPLINAS_TESTES.length})
+            </button>
+          </div>
+
           {/* Barra de Busca e Filtros de Disciplinas */}
           <div className="bg-[#140e11] border border-[#2d1217] p-4 rounded-sm space-y-3">
             <div className="relative">
@@ -575,7 +682,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                 type="text"
                 value={buscaDisciplina}
                 onChange={(e) => setBuscaDisciplina(e.target.value)}
-                placeholder="Buscar disciplina, poder (Nv 1 a 8), parada de dados (ex: Manipulação + Lábia), dificuldade, custo, variação, livro..."
+                placeholder="Buscar disciplina, poder, parada de dados, dificuldade, custo, linhagem, livro..."
                 className="w-full bg-[#1a1115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
               />
             </div>
@@ -590,9 +697,9 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                     : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
                 }`}
               >
-                Todas (16)
+                Todas ({listaDisciplinasAtiva.length})
               </button>
-              {TESTES_DISCIPLINAS_1E.map((d) => (
+              {listaDisciplinasAtiva.map((d) => (
                 <button
                   key={d.id}
                   type="button"
@@ -608,7 +715,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
               ))}
             </div>
 
-            {/* Filtros de Nível / Tier (Básicos 1-5 vs Anciões 6-8) */}
+            {/* Filtros de Nível / Tier (Básicos 1-5 vs Anciões 6+) */}
             <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#261014]">
               <span className="text-[10px] text-[#8e8273] uppercase font-mono mr-1">Faixa de Poder:</span>
               <button
@@ -620,7 +727,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                     : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
                 }`}
               >
-                Todos os Níveis (1 a 8)
+                Todos os Níveis ({abaDisciplinasGrupo === 'originais' ? '1 a 8' : '1 a 10'})
               </button>
               <button
                 type="button"
@@ -642,7 +749,7 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                     : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
                 }`}
               >
-                Anciões &amp; Matusaléns (Níveis 6 a 8)
+                Anciões &amp; Matusaléns (Níveis 6+)
               </button>
             </div>
           </div>
@@ -761,6 +868,117 @@ export const PainelTestes: React.FC<PainelTestesProps> = ({
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* ABA 3: META DISCIPLINA */}
+      {/* ================================================================= */}
+      {abaSubTestes === 'meta_disciplinas' && (
+        <div className="space-y-6">
+          <div className="bg-[#140e11] border border-[#2d1217] p-4 rounded-sm space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-[#8e8273] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={buscaMeta}
+                onChange={(e) => setBuscaMeta(e.target.value)}
+                placeholder="Buscar meta-disciplina, pré-requisito (ex: Rapidez 3), custo em XP, efeito ou livro..."
+                className="w-full bg-[#1a1115] border border-[#3b181b] focus:border-[#8b0000] text-xs text-[#ded6cb] pl-9 pr-3 py-2 rounded-xs focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setFiltroDisciplinaMeta('todas')}
+                className={`px-3 py-1 text-[11px] font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                  filtroDisciplinaMeta === 'todas'
+                    ? 'bg-[#8b0000] text-white border-[#b31419]'
+                    : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                }`}
+              >
+                Todas ({META_DISCIPLINAS.length})
+              </button>
+              {opcoesFiltroMetaDisciplina.map((discNome) => (
+                <button
+                  key={discNome}
+                  type="button"
+                  onClick={() => setFiltroDisciplinaMeta(discNome)}
+                  className={`px-2.5 py-1 text-[11px] font-gothic font-bold uppercase tracking-wider rounded-xs border cursor-pointer transition-colors ${
+                    filtroDisciplinaMeta === discNome
+                      ? 'bg-[#8b0000] text-white border-[#b31419]'
+                      : 'bg-[#1a1115] text-[#a89f91] border-[#3b181b] hover:text-white'
+                  }`}
+                >
+                  {discNome}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {metaDisciplinasFiltradas.length === 0 ? (
+            <div className="bg-[#140e11] border border-[#2d1217] p-8 rounded-sm text-center text-xs text-[#8e8273] italic">
+              Nenhuma Meta-Disciplina encontrada para o filtro informado.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {metaDisciplinasFiltradas.map((meta) => (
+                <div
+                  key={meta.id}
+                  className="bg-[#140e11] border border-[#3b181b] hover:border-[#63262c] rounded-sm shadow-lg overflow-hidden flex flex-col justify-between transition-colors"
+                >
+                  <div className="bg-[#1b1015] px-4 py-3 border-b border-[#3b181b] space-y-2">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div>
+                        <h3 className="font-gothic font-bold text-sm text-[#d4af37] uppercase tracking-wider">
+                          {meta.nome}
+                        </h3>
+                        <span className="text-[11px] text-[#8e8273] font-serif italic block">
+                          {meta.nomeIngles} • {meta.categoriaTag}
+                        </span>
+                      </div>
+                      <span
+                        className="px-2.5 py-1 rounded-xs bg-amber-950/80 border border-amber-600/80 text-amber-200 font-mono font-bold text-xs shrink-0"
+                        title="Custo em Pontos de Experiência"
+                      >
+                        ✨ {meta.custoXP}
+                      </span>
+                    </div>
+
+                    {/* Pré-requisitos exatos de nível em cada Disciplina */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] font-mono uppercase text-[#8e8273] mr-0.5">
+                        Pré-requisitos:
+                      </span>
+                      {meta.prerequisitos.map((pr, idx) => (
+                        <span
+                          key={`${meta.id}_pr_${idx}`}
+                          className="px-2 py-0.5 rounded-xs bg-[#261116] border border-[#6e242c] text-rose-200 font-mono text-[11px] font-semibold"
+                        >
+                          {pr.disciplina} Nv {pr.nivel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="text-[11px] font-mono text-sky-200 bg-[#131922] border border-[#2a3b52] px-2.5 py-1 rounded-xs">
+                        🎲 Ativação / Parada: <strong className="text-white">{meta.paradaOuAtivacao}</strong>
+                      </div>
+                      <p className="text-xs text-[#ded6cb] font-serif leading-relaxed border-l-2 border-[#522228] pl-2.5">
+                        {meta.efeito}
+                      </p>
+                    </div>
+                    <div className="pt-2 border-t border-[#251318] text-[10px] font-mono text-[#8e8273]">
+                      📖 Fonte: {meta.origem}
+                    </div>
                   </div>
                 </div>
               ))}

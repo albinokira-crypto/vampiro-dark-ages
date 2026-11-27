@@ -11,6 +11,7 @@
 import { LIVRO_DARK_AGES_1E } from './livrosDarkAges';
 import { LIVROS_MODERNOS_E_NOD } from './livrosMascaraCamarillaNod';
 import { LIVROS_CLANS_VAMPIRO } from './livrosCla';
+import { LIVROS_OUTROS_CLAS } from './livrosOutrosClas';
 
 export interface CapituloLivro {
   id: string;
@@ -26,7 +27,7 @@ export interface LivroVampiro {
   subtitulo: string;
   edicao: string;
   ano: string;
-  categoria: 'dark_ages' | 'mascara' | 'camarilla' | 'lore_nod' | 'cla';
+  categoria: 'dark_ages' | 'mascara' | 'camarilla' | 'lore_nod' | 'cla' | 'outros_clas';
   capaIcon: string;
   corTema: string;
   descricaoBreve: string;
@@ -41,6 +42,9 @@ export const LIVROS_BIBLIOTECA_VAMPIRO: LivroVampiro[] = [
   // 2. Os Livros de Clã (Libellus Sanguinis & Clanbooks Canônicos)
   ...LIVROS_CLANS_VAMPIRO,
 
-  // 3. Obras de Lore Ancestrais e Cenário Contemporâneo / Camarilla
+  // 3. Outros Clãs (Linhagens Raras, Derivados e Criações de Fãs)
+  ...LIVROS_OUTROS_CLAS,
+
+  // 4. Obras de Lore Ancestrais e Cenário Contemporâneo / Camarilla
   ...LIVROS_MODERNOS_E_NOD,
 ];

@@ -1,6 +1,6 @@
 {
-    "version": "v1.21.0",
-    "versionCode": 1210,
-    "updatedAt": "2026-11-27T19:20:00.000Z",
-    "changelog": "feat: botão próprio 'Tabela de XP' ao lado de Livros no login de jogador, mantendo a Tabela de Experiência na aba Testes para o Mestre"
+    "version": "v1.22.0",
+    "versionCode": 1220,
+    "updatedAt": "2026-11-27T20:10:00.000Z",
+    "changelog": "feat: nova aba 'Outros Clãs' na Biblioteca (incluindo Crias de Tempestade, Caitiff, linhagens raras, derivados e fãs), divisão de Testes de Disciplinas em 'Disciplinas Originais' e 'Outras Disciplinas' (com Electros Nv 1-10 e 18 disciplinas raras) e nova aba 'Meta Disciplina' com efeitos, custos em XP e pré-requisitos exatos"
 }

@@ -521,7 +521,7 @@ export const PainelLivros: React.FC<PainelLivrosProps> = ({
                     <span>Biblioteca & Códices da Noite</span>
                   </h2>
                   <p className="text-xs text-[#a89f91]">
-                    Acervo canônico completo: Livros de Clã, Idade das Trevas (1ª Edição com todas as Disciplinas), A Máscara, Guia da Camarilla e Livro de Nod.
+                    Acervo completo: Livros de Clã, Outros Clãs (Linhagens, Derivados e Criações de Fãs), Idade das Trevas (1ª Edição), A Máscara, Guia da Camarilla e Livro de Nod.
                   </p>
                 </div>
               </div>
@@ -563,6 +563,7 @@ export const PainelLivros: React.FC<PainelLivrosProps> = ({
                   [
                     ['todos', 'Todos os Livros'],
                     ['cla', 'Livros de Clã'],
+                    ['outros_clas', 'Outros Clãs'],
                     ['dark_ages', 'Idade das Trevas'],
                     ['mascara', 'A Máscara'],
                     ['camarilla', 'Camarilla'],
